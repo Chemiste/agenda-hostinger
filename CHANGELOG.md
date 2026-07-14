@@ -1,5 +1,13 @@
 # Journal des versions
 
+## v1.0.1 — 2026-07-14
+
+- Correctif : `migrate.php` plantait avec "There is no active transaction" sur
+  MySQL/MariaDB. En cause : un `CREATE TABLE` declenche un commit implicite
+  cote serveur, donc le `commit()` PDO explicite qui suivait echouait. Les
+  migrations ne sont plus enveloppees dans une transaction PDO.
+
+
 Format : chaque version correspond a un tag Git (`v1.0.0`, `v1.1.0`, ...).
 Quand une version change le schema de la base, un fichier est ajoute dans
 `migrations/` et doit etre execute via `migrate.php` (voir le guide).

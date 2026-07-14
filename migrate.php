@@ -57,7 +57,12 @@ function appliquerMigration($db, $fichier) {
 
     $requetes = array_filter(array_map('trim', explode(';', $sql)));
 
-    $db->beginTransaction();
+    // Pas de transaction ici : en MySQL/MariaDB, un CREATE TABLE / ALTER TABLE
+    // (DDL) declenche un commit implicite du cote serveur. Si on ouvrait une
+    // transaction PDO autour, le commit() explicite qui suit echoue ensuite
+    // avec "There is no active transaction". Les migrations utilisent donc
+    // des instructions idempotentes (IF NOT EXISTS, etc.) pour rester surs
+    // en cas de relance apres un echec partiel.
     try {
         foreach ($requetes as $requete) {
             if ($requete === '') continue;
@@ -65,10 +70,8 @@ function appliquerMigration($db, $fichier) {
         }
         $stmt = $db->prepare('INSERT INTO schema_migrations (migration) VALUES (?)');
         $stmt->execute([$nom]);
-        $db->commit();
         return true;
     } catch (Exception $e) {
-        $db->rollBack();
         throw new Exception("Migration $nom : " . $e->getMessage());
     }
 }
