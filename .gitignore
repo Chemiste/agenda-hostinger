@@ -1,0 +1,10 @@
+# Secrets propres a chaque environnement : ne jamais committer.
+config.php
+service-account.json
+
+# Fichiers systeme
+.DS_Store
+Thumbs.db
+
+# Utilitaire a usage unique (ne doit jamais rester en ligne ni dans l'historique)
+generate_password.php.bak

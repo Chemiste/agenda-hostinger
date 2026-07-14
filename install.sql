@@ -1,0 +1,9 @@
+-- OBSOLETE : ce fichier n'est plus utilise.
+--
+-- La creation et la mise a jour des tables se fait desormais via le
+-- systeme de migrations : voir le dossier migrations/ et le script
+-- migrate.php (executez "php migrate.php" en CLI, ou ouvrez
+-- migrate.php dans le navigateur une fois connecte).
+--
+-- Ce fichier est conserve uniquement pour l'historique et sera
+-- supprime dans une prochaine version.

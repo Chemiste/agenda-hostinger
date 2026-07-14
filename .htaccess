@@ -1,0 +1,10 @@
+# Bloque l'acces direct aux fichiers sensibles depuis un navigateur.
+<FilesMatch "^(config\.php|.*\.json|.*\.sql)$">
+  Require all denied
+</FilesMatch>
+
+<IfModule mod_php.c>
+  php_flag display_errors off
+</IfModule>
+
+Options -Indexes

@@ -1,0 +1,3 @@
+# Ce dossier ne contient que du code inclus par les autres pages PHP :
+# on bloque tout acces direct depuis un navigateur.
+Require all denied
