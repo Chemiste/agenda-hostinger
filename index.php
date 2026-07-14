@@ -74,6 +74,10 @@ requireLogin();
       <input type="text" id="fMedecin" placeholder="Dr Martin, cardiologue">
     </div>
     <div class="champ">
+      <label>Departement (facultatif)</label>
+      <input type="text" id="fDepartement" placeholder="Cardiologie">
+    </div>
+    <div class="champ">
       <label>Notes (facultatif)</label>
       <input type="text" id="fNotes" placeholder="Apporter les résultats de prise de sang">
     </div>

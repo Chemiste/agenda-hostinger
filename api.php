@@ -65,7 +65,7 @@ function validateAppt($appt) {
 }
 
 function listAppointments($db) {
-    $stmt = $db->query('SELECT id, appt_date AS date, appt_time AS time, person, doctor, notes FROM appointments ORDER BY appt_date, appt_time');
+    $stmt = $db->query('SELECT id, appt_date AS date, appt_time AS time, person, doctor, department, notes FROM appointments ORDER BY appt_date, appt_time');
     $rows = $stmt->fetchAll();
     foreach ($rows as &$r) {
         $r['id'] = (string) $r['id'];
@@ -76,12 +76,13 @@ function listAppointments($db) {
 
 function addAppointment($db, $sync, $appt) {
     validateAppt($appt);
-    $stmt = $db->prepare('INSERT INTO appointments (appt_date, appt_time, person, doctor, notes) VALUES (?, ?, ?, ?, ?)');
+    $stmt = $db->prepare('INSERT INTO appointments (appt_date, appt_time, person, doctor, department, notes) VALUES (?, ?, ?, ?, ?, ?)');
     $stmt->execute([
         $appt['date'],
         $appt['time'],
         $appt['person'],
         isset($appt['doctor']) ? $appt['doctor'] : '',
+        isset($appt['department']) ? $appt['department'] : '',
         isset($appt['notes']) ? $appt['notes'] : '',
     ]);
     $id = $db->lastInsertId();
@@ -121,12 +122,13 @@ function updateAppointmentAction($db, $sync, $appt) {
         throw new Exception('Rendez-vous introuvable.');
     }
 
-    $upd = $db->prepare('UPDATE appointments SET appt_date = ?, appt_time = ?, person = ?, doctor = ?, notes = ? WHERE id = ?');
+    $upd = $db->prepare('UPDATE appointments SET appt_date = ?, appt_time = ?, person = ?, doctor = ?, department = ?, notes = ? WHERE id = ?');
     $upd->execute([
         $appt['date'],
         $appt['time'],
         $appt['person'],
         isset($appt['doctor']) ? $appt['doctor'] : '',
+        isset($appt['department']) ? $appt['department'] : '',
         isset($appt['notes']) ? $appt['notes'] : '',
         $appt['id'],
     ]);

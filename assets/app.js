@@ -74,6 +74,7 @@ function afficherListe() {
       '<span class="badge ' + classeBadge(r.person) + '">' + r.person + '</span>' +
       '<div class="details">' +
         '<div class="medecin">' + escapeHtml(r.doctor || 'Rendez-vous') + '</div>' +
+        (r.department ? '<div class="departement">' + escapeHtml(r.department) + '</div>' : '') +
         (r.notes ? '<div class="notes">' + escapeHtml(r.notes) + '</div>' : '') +
       '</div>' +
       '<button class="supprimer" data-id="' + r.id + '" aria-label="Supprimer">✕</button>' +
@@ -111,6 +112,7 @@ function viderFormulaire() {
   document.getElementById('fDate').value = '';
   document.getElementById('fHeure').value = '';
   document.getElementById('fMedecin').value = '';
+  document.getElementById('fDepartement').value = '';
   document.getElementById('fNotes').value = '';
   document.querySelectorAll('.personnes input').forEach(function (r) { r.checked = false; });
   document.querySelectorAll('.personnes label').forEach(function (l) { l.classList.remove('checked'); });
@@ -125,6 +127,7 @@ function ouvrirEnEdition(id) {
   document.getElementById('fDate').value = r.date;
   document.getElementById('fHeure').value = r.time;
   document.getElementById('fMedecin').value = r.doctor || '';
+  document.getElementById('fDepartement').value = r.department || '';
   document.getElementById('fNotes').value = r.notes || '';
   selectionnerPersonne(r.person);
   document.getElementById('formCard').style.display = 'block';
@@ -168,6 +171,7 @@ document.getElementById('btnEnregistrer').addEventListener('click', function () 
   var heure = document.getElementById('fHeure').value;
   var personneInput = document.querySelector('.personnes input:checked');
   var medecin = document.getElementById('fMedecin').value;
+  var departement = document.getElementById('fDepartement').value;
   var notes = document.getElementById('fNotes').value;
 
   if (!date || !heure || !personneInput) {
@@ -182,6 +186,7 @@ document.getElementById('btnEnregistrer').addEventListener('click', function () 
     time: heure,
     person: personneInput.value,
     doctor: medecin,
+    department: departement,
     notes: notes
   };
 
