@@ -1,5 +1,12 @@
 # Journal des versions
 
+## v1.13.1 — 2026-07-15
+
+- Le bouton de suppression d'un rendez-vous n'est plus sur chaque ligne
+  de la liste principale (action rare, trop exposée) : il est maintenant
+  en bas du formulaire d'édition ("Supprimer ce rendez-vous"), visible
+  uniquement quand on modifie un rendez-vous existant (pas à la création).
+
 ## v1.13.0 — 2026-07-15
 
 - Correction des accents manquants dans tous les textes affichés du site

@@ -126,26 +126,18 @@ function afficherListe() {
         (contact ? '<div class="contact">' + contact + '</div>' : '') +
         (r.notes ? '<div class="notes">' + escapeHtml(r.notes) + '</div>' : '') +
       '</div>' +
-      '<button class="supprimer" data-id="' + r.id + '" aria-label="Supprimer">✕</button>' +
     '</div>';
   });
   if (dernierJour !== null) html += '</div>';
   document.getElementById('liste').innerHTML = html;
   genererGrilleCompacte(filtres);
 
+  // La suppression se fait desormais depuis le formulaire d'edition (bouton
+  // "Supprimer ce rendez-vous" en bas du formulaire), pas directement dans
+  // la liste : c'est une action rare, pas la peine de l'exposer partout.
   document.querySelectorAll('.rdv').forEach(function (el) {
-    el.addEventListener('click', function (e) {
-      if (e.target.classList.contains('supprimer')) return;
+    el.addEventListener('click', function () {
       ouvrirEnEdition(el.dataset.id);
-    });
-  });
-  document.querySelectorAll('.supprimer').forEach(function (el) {
-    el.addEventListener('click', function (e) {
-      e.stopPropagation();
-      if (!confirm('Supprimer ce rendez-vous ?')) return;
-      appelApi('delete', { id: el.dataset.id }).then(charger).catch(function (err) {
-        alert(err.message);
-      });
     });
   });
 }
@@ -214,6 +206,7 @@ function viderFormulaire() {
   document.querySelectorAll('.personnes input').forEach(function (r) { r.checked = false; });
   document.querySelectorAll('.personnes label').forEach(function (l) { l.classList.remove('checked'); });
   document.getElementById('erreurForm').textContent = '';
+  document.getElementById('btnSupprimer').style.display = 'none';
   idEnEdition = null;
 }
 
@@ -230,6 +223,7 @@ function ouvrirEnEdition(id) {
   document.getElementById('fRoute').value = r.route || '';
   document.getElementById('fNotes').value = r.notes || '';
   selectionnerPersonne(r.person);
+  document.getElementById('btnSupprimer').style.display = 'block';
   ouvrirModal('formCard');
 }
 
@@ -262,6 +256,21 @@ document.getElementById('btnAjouterMobile').addEventListener('click', ouvrirForm
 document.getElementById('btnAnnuler').addEventListener('click', function () {
   fermerModal('formCard');
   viderFormulaire();
+});
+
+document.getElementById('btnSupprimer').addEventListener('click', function () {
+  if (!idEnEdition) return;
+  if (!confirm('Supprimer ce rendez-vous ?')) return;
+  var id = idEnEdition;
+  appelApi('delete', { id: id })
+    .then(function () {
+      fermerModal('formCard');
+      viderFormulaire();
+      charger();
+    })
+    .catch(function (err) {
+      alert(err.message);
+    });
 });
 
 document.getElementById('btnImprimer').addEventListener('click', function () {

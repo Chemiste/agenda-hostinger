@@ -108,6 +108,7 @@ $p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
         <textarea id="fNotes" rows="4" placeholder="Apporter les résultats de prise de sang"></textarea>
       </div>
       <p class="erreur" id="erreurForm"></p>
+      <button type="button" class="lien-danger" id="btnSupprimer" style="display:none;">Supprimer ce rendez-vous</button>
     </div>
     <div class="form-boutons">
       <button class="principal" id="btnEnregistrer">Enregistrer</button>
