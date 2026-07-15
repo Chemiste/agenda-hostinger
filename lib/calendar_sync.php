@@ -104,9 +104,11 @@ class CalendarSync {
         return $tousLesEvenements;
     }
 
+    // Prefixe generique "[Nom] " construit directement a partir de la valeur
+    // de "person" (quelle que soit la configuration des noms dans
+    // config.php : Papa/Maman, des prenoms, "Les deux", etc.).
     private function eventPrefix($person) {
-        $map = ['Papa' => '[Papa] ', 'Maman' => '[Maman] ', 'Les deux' => '[Papa & Maman] '];
-        return isset($map[$person]) ? $map[$person] : '';
+        return !empty($person) ? '[' . $person . '] ' : '';
     }
 
     private function buildEventPayload($appt) {
@@ -116,24 +118,24 @@ class CalendarSync {
 
         return [
             'summary' => $this->eventPrefix($appt['person']) . (!empty($appt['doctor']) ? $appt['doctor'] : 'Rendez-vous'),
-            'location' => !empty($appt['doctor']) ? $appt['doctor'] : '',
+            'location' => !empty($appt['location']) ? $appt['location'] : '',
             'description' => $this->buildDescription($appt),
             'start' => ['dateTime' => $start, 'timeZone' => 'Europe/Paris'],
             'end' => ['dateTime' => $endDt->format('Y-m-d\TH:i:s'), 'timeZone' => 'Europe/Paris'],
         ];
     }
 
-    // Le departement (s'il y en a un) est place devant la note, separe par
-    // un saut de ligne. Ex : departement="Cardiologie", notes="Bonjour"
-    // -> description = "Cardiologie\nBonjour".
+    // Assemble la description a partir du departement, de la route (circuit
+    // interne de l'hopital), du telephone (pas de champs natifs pour ca dans
+    // Google Calendar, contrairement au lieu) et des notes, chacun sur sa
+    // propre ligne, en ignorant les champs vides.
     private function buildDescription($appt) {
-        $departement = !empty($appt['department']) ? $appt['department'] : '';
-        $notes = !empty($appt['notes']) ? $appt['notes'] : '';
-
-        if ($departement !== '' && $notes !== '') {
-            return $departement . "\n" . $notes;
-        }
-        return $departement . $notes;
+        $lignes = [];
+        if (!empty($appt['department'])) $lignes[] = $appt['department'];
+        if (!empty($appt['route'])) $lignes[] = $appt['route'];
+        if (!empty($appt['phone'])) $lignes[] = 'Tel : ' . $appt['phone'];
+        if (!empty($appt['notes'])) $lignes[] = $appt['notes'];
+        return implode("\n", $lignes);
     }
 
     private function base64url($data) {

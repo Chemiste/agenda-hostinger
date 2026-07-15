@@ -55,7 +55,17 @@ function appliquerMigration($db, $fichier) {
     $nom = basename($fichier);
     $sql = file_get_contents($fichier);
 
-    $requetes = array_filter(array_map('trim', explode(';', $sql)));
+    if ($sql === false || trim($sql) === '') {
+        throw new Exception("Migration $nom : le fichier est vide ou illisible (mal copie sur cet environnement ?). Aucune modification n'a ete marquee comme appliquee.");
+    }
+
+    $requetes = array_filter(array_map('trim', explode(';', $sql)), function ($r) {
+        return $r !== '';
+    });
+
+    if (empty($requetes)) {
+        throw new Exception("Migration $nom : aucune instruction SQL exploitable trouvee dans le fichier. Aucune modification n'a ete marquee comme appliquee.");
+    }
 
     // Pas de transaction ici : en MySQL/MariaDB, un CREATE TABLE / ALTER TABLE
     // (DDL) declenche un commit implicite du cote serveur. Si on ouvrait une
@@ -65,7 +75,6 @@ function appliquerMigration($db, $fichier) {
     // en cas de relance apres un echec partiel.
     try {
         foreach ($requetes as $requete) {
-            if ($requete === '') continue;
             $db->exec($requete);
         }
         $stmt = $db->prepare('INSERT INTO schema_migrations (migration) VALUES (?)');

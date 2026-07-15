@@ -1,7 +1,4 @@
 <?php
-
-ini_set('display_errors', 1);
-error_reporting(E_ALL);
 /**
  * IMPORT PONCTUEL depuis Google Calendar.
  *
@@ -28,6 +25,11 @@ $config = require __DIR__ . '/config.php';
 $sync = new CalendarSync($config['google_service_account_path'], $config['google_calendar_id']);
 $db = getDb();
 
+$p1 = isset($config['personne_1']) ? $config['personne_1'] : 'Papa';
+$p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
+// Un rendez-vous ne concerne jamais qu'une seule personne (pas de "les deux").
+$PERSONNES_VALIDES = [$p1, $p2];
+
 $erreur = '';
 $evenements = [];
 $resultatImport = null;
@@ -39,23 +41,22 @@ if (!$sync->isEnabled()) {
 $dateDebut = isset($_POST['date_debut']) ? $_POST['date_debut'] : date('Y-m-d', strtotime('-3 months'));
 $dateFin = isset($_POST['date_fin']) ? $_POST['date_fin'] : date('Y-m-d', strtotime('+1 year'));
 
-function prefixeVersPersonne($summary) {
-    $prefixes = [
-        '[Papa & Maman] ' => 'Les deux',
-        '[Papa] ' => 'Papa',
-        '[Maman] ' => 'Maman',
-    ];
-    foreach ($prefixes as $prefixe => $personne) {
-        if (strpos($summary, $prefixe) === 0) {
-            return [substr($summary, strlen($prefixe)), $personne];
-        }
+// Reconnait un prefixe generique "[Quelque chose] " en debut de titre (c'est
+// le format utilise par la synchronisation du site, quels que soient les
+// noms configures). Si aucun prefixe n'est trouve, on retombe sur la
+// premiere personne configuree, a corriger manuellement dans l'apercu si
+// besoin (un rendez-vous ne concerne toujours qu'une seule personne).
+function prefixeVersPersonne($summary, $labelParDefaut) {
+    if (preg_match('/^\[(.+?)\]\s*/', $summary, $m)) {
+        $reste = preg_replace('/^\[(.+?)\]\s*/', '', $summary, 1);
+        return [$reste, $m[1]];
     }
-    return [$summary, 'Les deux'];
+    return [$summary, $labelParDefaut];
 }
 
-function convertirEvenementGoogle($event) {
+function convertirEvenementGoogle($event, $labelParDefaut) {
     $summaryBrut = isset($event['summary']) ? $event['summary'] : 'Rendez-vous';
-    list($summary, $personne) = prefixeVersPersonne($summaryBrut);
+    list($summary, $personne) = prefixeVersPersonne($summaryBrut, $labelParDefaut);
 
     $toutelaJournee = isset($event['start']['date']);
     if ($toutelaJournee) {
@@ -88,20 +89,22 @@ function dejaImporte($db, $googleEventId) {
 }
 
 function importerLigne($db, $item) {
-    $personnesValides = ['Papa', 'Maman', 'Les deux'];
-    if (empty($item['date']) || empty($item['time']) || empty($item['person']) || !in_array($item['person'], $personnesValides, true)) {
+    global $PERSONNES_VALIDES;
+    if (empty($item['date']) || empty($item['time']) || empty($item['person']) || !in_array($item['person'], $PERSONNES_VALIDES, true)) {
         throw new Exception('Donnee invalide pour un des rendez-vous selectionnes.');
     }
     if (dejaImporte($db, isset($item['googleEventId']) ? $item['googleEventId'] : '')) {
         return false;
     }
-    $doctor = trim($item['summary'] . (!empty($item['location']) ? ' — ' . $item['location'] : ''));
-    $stmt = $db->prepare('INSERT INTO appointments (appt_date, appt_time, person, doctor, notes, calendar_event_id) VALUES (?, ?, ?, ?, ?, ?)');
+    $doctor = trim($item['summary']);
+    $location = isset($item['location']) ? $item['location'] : '';
+    $stmt = $db->prepare('INSERT INTO appointments (appt_date, appt_time, person, doctor, location, notes, calendar_event_id) VALUES (?, ?, ?, ?, ?, ?, ?)');
     $stmt->execute([
         $item['date'],
         $item['time'],
         $item['person'],
         $doctor,
+        $location,
         isset($item['description']) ? $item['description'] : '',
         isset($item['googleEventId']) ? $item['googleEventId'] : '',
     ]);
@@ -113,7 +116,9 @@ if (!$erreur && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])
         $timeMin = $dateDebut . 'T00:00:00Z';
         $timeMax = $dateFin . 'T23:59:59Z';
         $bruts = $sync->listEvents($timeMin, $timeMax);
-        $evenements = array_map('convertirEvenementGoogle', $bruts);
+        $evenements = array_map(function ($event) use ($p1) {
+            return convertirEvenementGoogle($event, $p1);
+        }, $bruts);
     } catch (Exception $e) {
         $erreur = $e->getMessage();
     }
@@ -196,16 +201,18 @@ if (!$erreur && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])
             <div class="rangee-evt">
               <input type="checkbox" checked class="evt-checked" data-idx="<?= $i ?>">
               <div class="details">
-                <div style="font-weight:600;"><?= htmlspecialchars($e['summary']) ?><?= $e['location'] ? ' — ' . htmlspecialchars($e['location']) : '' ?></div>
+                <div style="font-weight:600;"><?= htmlspecialchars($e['summary']) ?></div>
+                <?php if ($e['location']): ?>
+                  <div style="font-size:13px; color:#999;"><?= htmlspecialchars($e['location']) ?></div>
+                <?php endif; ?>
                 <div style="font-size:14px; color:#777;">
                   <?= htmlspecialchars($e['date']) ?> a <?= htmlspecialchars($e['time']) ?>
                   <?= $e['toutelaJournee'] ? ' (toute la journee, heure a verifier)' : '' ?>
                 </div>
               </div>
               <select class="evt-person" data-idx="<?= $i ?>">
-                <option value="Papa" <?= $e['person'] === 'Papa' ? 'selected' : '' ?>>Papa</option>
-                <option value="Maman" <?= $e['person'] === 'Maman' ? 'selected' : '' ?>>Maman</option>
-                <option value="Les deux" <?= $e['person'] === 'Les deux' ? 'selected' : '' ?>>Les deux</option>
+                <option value="<?= htmlspecialchars($p1) ?>" <?= $e['person'] === $p1 ? 'selected' : '' ?>><?= htmlspecialchars($p1) ?></option>
+                <option value="<?= htmlspecialchars($p2) ?>" <?= $e['person'] === $p2 ? 'selected' : '' ?>><?= htmlspecialchars($p2) ?></option>
               </select>
               <input type="hidden" class="evt-data" data-idx="<?= $i ?>" value='<?= htmlspecialchars(json_encode($e), ENT_QUOTES) ?>'>
             </div>

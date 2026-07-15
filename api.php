@@ -20,6 +20,12 @@ $config = require __DIR__ . '/config.php';
 $sync = new CalendarSync($config['google_service_account_path'], $config['google_calendar_id']);
 $db = getDb();
 
+// Un rendez-vous ne concerne jamais qu'une seule personne (pas de "les deux").
+$PERSONNES_VALIDES = [
+    isset($config['personne_1']) ? $config['personne_1'] : 'Papa',
+    isset($config['personne_2']) ? $config['personne_2'] : 'Maman',
+];
+
 $action = isset($_GET['action']) ? $_GET['action'] : (isset($_POST['action']) ? $_POST['action'] : '');
 $raw = file_get_contents('php://input');
 $input = json_decode($raw, true);
@@ -55,17 +61,17 @@ try {
 }
 
 function validateAppt($appt) {
-    $personnesValides = ['Papa', 'Maman', 'Les deux'];
+    global $PERSONNES_VALIDES;
     if (empty($appt['date']) || empty($appt['time']) || empty($appt['person'])) {
         throw new Exception("Merci de remplir la date, l'heure et la personne concernee.");
     }
-    if (!in_array($appt['person'], $personnesValides, true)) {
+    if (!in_array($appt['person'], $PERSONNES_VALIDES, true)) {
         throw new Exception('Personne invalide.');
     }
 }
 
 function listAppointments($db) {
-    $stmt = $db->query('SELECT id, appt_date AS date, appt_time AS time, person, doctor, department, notes FROM appointments ORDER BY appt_date, appt_time');
+    $stmt = $db->query('SELECT id, appt_date AS date, appt_time AS time, person, doctor, department, location, phone, route, notes FROM appointments ORDER BY appt_date, appt_time');
     $rows = $stmt->fetchAll();
     foreach ($rows as &$r) {
         $r['id'] = (string) $r['id'];
@@ -76,13 +82,16 @@ function listAppointments($db) {
 
 function addAppointment($db, $sync, $appt) {
     validateAppt($appt);
-    $stmt = $db->prepare('INSERT INTO appointments (appt_date, appt_time, person, doctor, department, notes) VALUES (?, ?, ?, ?, ?, ?)');
+    $stmt = $db->prepare('INSERT INTO appointments (appt_date, appt_time, person, doctor, department, location, phone, route, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
     $stmt->execute([
         $appt['date'],
         $appt['time'],
         $appt['person'],
         isset($appt['doctor']) ? $appt['doctor'] : '',
         isset($appt['department']) ? $appt['department'] : '',
+        isset($appt['location']) ? $appt['location'] : '',
+        isset($appt['phone']) ? $appt['phone'] : '',
+        isset($appt['route']) ? $appt['route'] : '',
         isset($appt['notes']) ? $appt['notes'] : '',
     ]);
     $id = $db->lastInsertId();
@@ -122,13 +131,16 @@ function updateAppointmentAction($db, $sync, $appt) {
         throw new Exception('Rendez-vous introuvable.');
     }
 
-    $upd = $db->prepare('UPDATE appointments SET appt_date = ?, appt_time = ?, person = ?, doctor = ?, department = ?, notes = ? WHERE id = ?');
+    $upd = $db->prepare('UPDATE appointments SET appt_date = ?, appt_time = ?, person = ?, doctor = ?, department = ?, location = ?, phone = ?, route = ?, notes = ? WHERE id = ?');
     $upd->execute([
         $appt['date'],
         $appt['time'],
         $appt['person'],
         isset($appt['doctor']) ? $appt['doctor'] : '',
         isset($appt['department']) ? $appt['department'] : '',
+        isset($appt['location']) ? $appt['location'] : '',
+        isset($appt['phone']) ? $appt['phone'] : '',
+        isset($appt['route']) ? $appt['route'] : '',
         isset($appt['notes']) ? $appt['notes'] : '',
         $appt['id'],
     ]);

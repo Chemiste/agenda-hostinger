@@ -1,5 +1,271 @@
 # Journal des versions
 
+## v1.11.2 — 2026-07-15
+
+- L'impression compacte (mode grille) affiche desormais aussi l'adresse
+  du rendez-vous, sous le departement.
+
+## v1.11.1 — 2026-07-15
+
+- Correctif : le champ Telephone n'heritait pas du style des autres champs
+  (police/taille par defaut du navigateur), ce qui le faisait paraitre
+  plus petit que le champ Route juste a cote. Harmonise.
+
+## v1.11.0 — 2026-07-15
+
+- Nouveau champ **Route** (facultatif) : le circuit / numero interne
+  utilise par certains hopitaux (ex. "Route 555"), separe du reste du
+  texte. Affiche avec l'adresse et le telephone sur la meme ligne
+  ("Adresse · Telephone · Route") dans la liste, l'impression detaillee
+  et l'impression compacte.
+- Vers Google Calendar : la route part dans la description, sur sa
+  propre ligne.
+- `admin_nettoyage.php` : l'outil d'extraction automatique du telephone
+  detecte desormais aussi la route quand elle est presente ("Le lieu du
+  rendez-vous : Route NNN Tel : ..."), et la range dans le nouveau champ
+  au lieu de la perdre. Detecte egalement une mention "Route NNN" isolee
+  (sans telephone a cote). L'outil generique "Retirer un texte" propose
+  aussi desormais "Route" comme destination possible.
+- Migration associee : `migrations/0006_add_route.sql`.
+
+
+## v1.10.0 — 2026-07-15
+
+- `admin_nettoyage.php` : nouvel outil **"Raccourcir les noms complets"**.
+  Detecte automatiquement "pour Michel Louis" / "pour Christiane Monique"
+  (prenom configure + nom de famille colle par certains imports) dans le
+  champ "Medecin / consultation" et le raccourcit en "pour Michel" /
+  "pour Christiane" — la personne est de toute facon deja indiquee par le
+  badge colore, inutile de repeter le nom complet dans le titre.
+  Fonctionne sans rien taper (se base sur `personne_1`/`personne_2` dans
+  `config.php`), avec apercu avant application comme les autres outils.
+
+
+## v1.9.0 — 2026-07-15
+
+- Nouveaux onglets **A venir / Passes / Tous** (sous les onglets
+  Michel/Christiane) : filtre les rendez-vous par periode, a l'ecran
+  comme a l'impression. "A venir" est selectionne par defaut. Le titre
+  imprime indique maintenant les deux filtres actifs (ex. "Christiane —
+  Passes").
+- Nouveau bouton **"Imprimer (compact)"** a cote du bouton "Imprimer"
+  existant : imprime une grille de petites cartes (date en evidence,
+  titre, departement, heure) plutot que la liste detaillee — tient
+  beaucoup plus de rendez-vous par page. Le bouton "Imprimer" normal
+  continue de produire la vue detaillee habituelle.
+
+
+## v1.8.7 — 2026-07-15
+
+- Correctif : le `break-after: avoid` du v1.8.6 (titre de journee colle au
+  rendez-vous suivant) n'etait pas respecte de maniere fiable par les
+  navigateurs — le titre pouvait quand meme rester seul en bas de page.
+  Chaque jour (titre + tous ses rendez-vous) est desormais regroupe dans
+  un seul conteneur, avec un `break-inside: avoid` sur ce conteneur
+  entier : cette approche est beaucoup mieux respectee a l'impression. Si
+  un jour a vraiment trop de rendez-vous pour tenir sur une page, il
+  passera entierement a la page suivante plutot que d'etre coupe au
+  milieu.
+
+
+## v1.8.6 — 2026-07-15
+
+- Correctif d'impression : un titre de journee ("JEUDI 5 NOVEMBRE 2026")
+  pouvait se retrouver seul en bas d'une page, separe des rendez-vous de
+  ce jour qui commencaient sur la page suivante (sans plus savoir de
+  quel jour il s'agissait). Le titre reste desormais toujours colle au
+  rendez-vous qui le suit ; s'ils ne tiennent pas ensemble sur la page en
+  cours, les deux passent a la page suivante. Renforce aussi la regle qui
+  empeche un rendez-vous d'etre coupe en deux entre deux pages (ajout de
+  la propriete equivalente `page-break-inside` pour une meilleure
+  compatibilite entre navigateurs).
+
+
+## v1.8.5 — 2026-07-15
+
+- Correctif : `min-width` ne fixe qu'un plancher, pas une largeur fixe —
+  "Christiane" (plus long) continuait a etre plus large que "Michel"
+  malgre le correctif precedent, donc les colonnes restaient decalees.
+  L'etiquette a maintenant une vraie largeur fixe (`width: 13ch`, qui
+  s'adapte a la taille de police a l'ecran comme a l'impression), avec
+  troncature "..." en secours pour des noms tres longs.
+
+
+## v1.8.4 — 2026-07-15
+
+- Correctif : la largeur fixe de l'etiquette "Michel"/"Christiane" ajoutee
+  en v1.8.3 ne s'appliquait pas (un `<span>` est un element "inline", qui
+  ignore `min-width` par defaut). Ajout de `display: inline-block` pour
+  que la largeur fixe fonctionne reellement, y compris a l'impression.
+
+
+## v1.8.3 — 2026-07-15
+
+- L'etiquette "Michel"/"Christiane" a maintenant une largeur fixe (au lieu
+  de s'ajuster a la longueur du nom) : le medecin, le departement,
+  l'adresse et les notes commencent desormais tous a la meme position,
+  sur toutes les lignes, a l'ecran comme a l'impression.
+
+
+## v1.8.2 — 2026-07-15
+
+- Retrait de la ligne "Imprime le [date]" en haut de la page imprimee
+  (ne restent que le titre "Rendez-vous medicaux — [filtre]").
+- Note : le bandeau gris avec le titre de la page et l'URL (ex.
+  "Agenda medical" / "http://.../index.php") vient du navigateur
+  lui-meme (en-tetes/pieds de page d'impression), pas du site — ca se
+  desactive dans la boite de dialogue d'impression du navigateur (ex.
+  Chrome : "Plus de parametres" -> decocher "En-tetes et pieds de
+  page"), et ce reglage est ensuite memorise par le navigateur.
+
+
+## v1.8.1 — 2026-07-15
+
+- Date et Heure sont maintenant cote a cote dans le formulaire de
+  rendez-vous (au lieu de deux lignes empilees) : gagne de la place
+  verticale, moins besoin de defiler pour voir le reste du formulaire.
+
+
+## v1.8.0 — 2026-07-15
+
+- Nouveau champ **Telephone** (facultatif), separe du reste du texte,
+  affiche avec l'adresse sur une seule ligne "Adresse · Telephone" dans
+  la liste et l'impression (pour gagner de la place).
+- Vers Google Calendar : le telephone part dans la description (pas de
+  champ natif "telephone" dans Calendar, contrairement au lieu), sur sa
+  propre ligne ("Tel : ...").
+- `admin_nettoyage.php` : outil generalise, avec deux sections.
+  - "Extraction automatique du telephone" : detecte tout seul les
+    numeros de telephone colles au texte, y compris le format complet
+    "Le lieu du rendez-vous : Route NNN Tel.: NN NNN NN NN" utilise par
+    certains hopitaux (retire toute la mention, y compris "Route NNN",
+    et ne garde que le numero de telephone).
+  - "Retirer un texte" (ex-outil d'extraction d'adresse) : on choisit
+    maintenant ou ranger le texte trouve — champ Adresse, champ
+    Telephone, ou nulle part si c'est juste une mention a supprimer.
+- Impression corrigee et resserree :
+  - Correctif important : les notes longues etaient tronquees avec des
+    "..." a l'impression (la regle qui coupe le texte dans la liste a
+    l'ecran s'appliquait aussi au papier). Le texte est desormais
+    complet et lisible a l'impression.
+  - Mise en page resserree (marges de page, espacements, tailles de
+    police) pour tenir davantage de rendez-vous par page.
+- Migration associee : `migrations/0005_add_phone.sql`.
+
+
+## v1.7.2 — 2026-07-15
+
+- Correctif d'affichage : dans le formulaire de rendez-vous, les boutons
+  "Enregistrer" / "Annuler" restent desormais toujours visibles en bas du
+  modal (au lieu de defiler avec les champs). Seul le contenu du
+  formulaire defile si besoin ; les boutons sont fixes, separes par une
+  ligne de separation. Meme correction sur la fenetre d'import .ics.
+
+
+## v1.7.1 — 2026-07-15
+
+- Le champ Notes du formulaire devient une zone de texte multi-lignes
+  (au lieu d'une seule ligne) : plus lisible pour les notes longues
+  (ex. adresses ou instructions collees depuis un email de convocation).
+
+
+## v1.7.0 — 2026-07-15
+
+- Nouvel outil d'administration `admin_nettoyage.php` (protege par le meme
+  mot de passe familial) pour corriger en masse les rendez-vous deja
+  enregistres dont le champ "Medecin / consultation" ou "Notes" contient
+  encore une adresse collee au reste du texte (heritage des imports
+  d'avant la v1.6.0).
+- Fonctionnement : on colle le texte exact de l'adresse (un par ligne),
+  le site cherche ce texte dans tous les rendez-vous, affiche un apercu
+  avec le passage surligne, et sur confirmation retire le texte du champ
+  ou il se trouvait, nettoie la ponctuation residuelle (tirets, virgules,
+  espaces en trop) et le range dans le champ Adresse (sans ecraser un
+  champ Adresse deja rempli). Une liste de suggestions (textes contenant
+  un code postal) aide a reperer quoi copier-coller.
+- Les rendez-vous deja synchronises avec Google Calendar sont mis a jour
+  automatiquement (l'adresse part dans le champ Lieu natif).
+- Lien discret vers cet outil ajoute en bas de la page principale (masque
+  a l'impression). Contrairement a `import_calendar.php`, cet outil n'est
+  pas a usage unique et peut rester sur le serveur.
+
+
+## v1.6.0 — 2026-07-15
+
+- Ajout d'un champ **Adresse** (facultatif), separe du champ "Medecin /
+  consultation" — corrige les rendez-vous importes (.ics ou Google
+  Calendar) ou l'adresse de l'hopital se retrouvait concatenee au nom du
+  medecin (ex. "Dr Martin — Avenue Hippocrate, 10, 1200 Bruxelles").
+- Affichee dans la liste entre le departement et les notes.
+- Envoyee vers Google Calendar dans le champ **Lieu** natif de l'evenement
+  (et non plus dans la description) : la description continue de
+  contenir uniquement `departement\nnotes`.
+- L'import de fichiers .ics et l'import ponctuel (`import_calendar.php`)
+  remplissent desormais automatiquement ce champ separement, au lieu de
+  le coller au nom du medecin.
+- Migration associee : `migrations/0004_add_location.sql`.
+
+
+## v1.5.0 — 2026-07-14
+
+- Suppression de l'option "Les deux" : un rendez-vous medical ne concerne
+  desormais jamais qu'une seule personne (Papa ou Maman). L'onglet "Tous"
+  reste disponible pour voir les rendez-vous des deux en meme temps.
+- `config.php` n'a plus que `personne_1` et `personne_2` (la cle
+  `personne_les_deux` est retiree).
+- Les anciens rendez-vous enregistres avec "Les deux" restent visibles
+  dans l'onglet "Tous" mais ne seront plus proposes a la creation ; les
+  rouvrir en edition demande de choisir explicitement Papa ou Maman.
+
+
+## v1.4.0 — 2026-07-14
+
+- Refonte visuelle complete : palette de couleurs affinee, ombres et
+  transitions douces, cartes de rendez-vous animees a l'apparition,
+  squelette de chargement anime.
+- Le formulaire d'ajout et l'import .ics deviennent des modals : dialogue
+  centre sur ordinateur, "bottom sheet" glissant depuis le bas sur mobile.
+- En-tete (titre + onglets) collant en haut de page pendant le defilement.
+- Bouton d'ajout flottant (FAB) sur smartphone.
+- Verrouillage du defilement de la page pendant qu'un modal est ouvert.
+- La vue impression reste inchangee (modals/FAB masques a l'impression).
+
+
+## v1.3.0 — 2026-07-14
+
+- Les noms "Papa"/"Maman"/"Les deux" sont desormais configurables via
+  `config.php` (`personne_1`, `personne_2`, `personne_les_deux`) au lieu
+  d'etre codes en dur dans 5 fichiers differents.
+- Le prefixe dans Google Calendar devient generique (`[Nom] `), construit
+  directement a partir de la personne — fonctionne avec n'importe quel nom
+  sans modification de code.
+- `import_calendar.php` reconnait desormais n'importe quel prefixe
+  `[Quelque chose]` dans les titres (au lieu de seulement Papa/Maman).
+- Migration `0003_widen_person.sql` : la colonne `person` passe de
+  VARCHAR(20) a VARCHAR(50) pour supporter des noms plus longs.
+- Voir le guide Hostinger, section "Remplacer Papa et Maman par d'autres
+  noms", pour la procedure complete (y compris la mise a jour des
+  rendez-vous deja enregistres).
+
+
+## v1.2.0 — 2026-07-14
+
+- Ajout du champ **Département** (facultatif), affiché avant les notes dans
+  la liste et dans le formulaire.
+- Dans Google Calendar, la description devient `département\nnotes` (saut
+  de ligne) quand un département est renseigné.
+- Migration associée : `migrations/0002_add_department.sql`.
+
+
+## v1.1.0 — 2026-07-14
+
+- Ajout de `import_calendar.php` : import ponctuel des rendez-vous déjà
+  présents dans le Google Calendar existant (aperçu, choix Papa/Maman/Les
+  deux par ligne, liaison avec `calendar_event_id` pour éviter les doublons
+  si l'import est relancé ou si l'évènement est modifié ensuite).
+- Ajout de `CalendarSync::listEvents()` dans `lib/calendar_sync.php`.
+
+
 ## v1.0.1 — 2026-07-14
 
 - Correctif : `migrate.php` plantait avec "There is no active transaction" sur
