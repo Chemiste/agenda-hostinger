@@ -21,8 +21,8 @@
  * accumuler indéfiniment.
  *
  * En cas de suppression accidentelle d'un rendez-vous, la page
- * admin/nettoyage.php (section "Sauvegardes") permet de comparer une
- * sauvegarde à l'état actuel et de restaurer les rendez-vous disparus.
+ * admin/sauvegardes.php permet de comparer une sauvegarde à l'état
+ * actuel et de restaurer les rendez-vous disparus.
  */
 
 require_once __DIR__ . '/../lib/db.php';

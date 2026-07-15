@@ -1,5 +1,31 @@
 # Journal des versions
 
+## v2.1.0 — 2026-07-15
+
+- **Refonte de l'administration : accueil groupé par thème + une page
+  par outil.** `admin/nettoyage.php` empilait 5 outils sans lien entre
+  eux sur une seule page (import .ics, extraction téléphone/route,
+  raccourcir les noms complets, retirer un texte, sauvegardes) — long à
+  parcourir, pas toujours évident de retrouver le bon outil. Remplacé
+  par :
+  - `admin/index.php` : nouvel accueil admin, avec deux chiffres clés
+    (rendez-vous à venir, date de la dernière sauvegarde) puis des
+    cartes groupées par thème — **Rendez-vous** (import .ics, corriger
+    des rendez-vous), **Sauvegardes**, **Notifications**. C'est
+    désormais cette page qu'il faut garder en favori (remplace
+    `admin/nettoyage.php`).
+  - `admin/import.php` : l'import .ics, seul sur sa page.
+  - `admin/corriger.php` : les 3 outils de correction (téléphone/route,
+    noms complets, texte libre), présentés en onglets — un seul visible
+    à la fois au lieu des 3 formulaires empilés. La logique de chaque
+    outil est inchangée.
+  - `admin/sauvegardes.php` : la restauration, seule sur sa page.
+  - `admin/reglages.php` : inchangé dans son fonctionnement, seul le fil
+    d'ariane en haut de page a été mis à jour.
+  Changement cassant : `admin/nettoyage.php` n'existe plus. Voir
+  `Guide_installation_hostinger.md`, section "Mise à jour depuis une
+  version antérieure à la refonte de l'admin (v2.1.0)".
+
 ## v2.0.0 — 2026-07-15
 
 - **Réorganisation des fichiers en sous-dossiers thématiques (changement de

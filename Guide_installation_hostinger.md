@@ -26,7 +26,7 @@ La table `appointments` sera créée à l'étape 5 via le script `outils/migrate
 
 1. Dans hPanel, ouvrez le **Gestionnaire de fichiers** (ou utilisez FTP/FileZilla si vous préférez).
 2. Allez dans le dossier du sous-domaine créé à l'étape 1.
-3. Envoyez-y **tout le contenu** du dossier `agenda-hostinger` fourni, **en conservant exactement la structure de dossiers** : à la racine `index.php`, `login.php`, `logout.php`, `api.php`, `mes_rappels.php`, `config.example.php`, `.htaccess`, ainsi que les dossiers `migrations/`, `lib/` (avec son propre `.htaccess`), `assets/`, `backups/` (avec son propre `.htaccess`), et les trois dossiers d'outils : `admin/` (login, logout, nettoyage, reglages), `cron/` (backup, rappels) et `outils/` (migrate, generate_password, import_calendar).
+3. Envoyez-y **tout le contenu** du dossier `agenda-hostinger` fourni, **en conservant exactement la structure de dossiers** : à la racine `index.php`, `login.php`, `logout.php`, `api.php`, `mes_rappels.php`, `config.example.php`, `.htaccess`, ainsi que les dossiers `migrations/`, `lib/` (avec son propre `.htaccess`), `assets/`, `backups/` (avec son propre `.htaccess`), et les trois dossiers d'outils : `admin/` (login, logout, index, import, corriger, sauvegardes, reglages), `cron/` (backup, rappels) et `outils/` (migrate, generate_password, import_calendar).
 4. Ne renvoyez pas votre `config.php` local : créez-en un directement sur le serveur (étape suivante). Chaque environnement a le sien.
 
 ## Étape 4 — Configurer `config.php` sur le serveur
@@ -91,25 +91,25 @@ Chaque rendez-vous importé reste lié à son évènement Google Calendar d'orig
 
 ## Protéger les outils d'administration par un second mot de passe
 
-Le site a une zone d'administration (`admin/nettoyage.php`) qui permet d'importer des fichiers `.ics`, de corriger des rendez-vous existants et de restaurer une sauvegarde. Pour que le reste de la famille n'y ait pas accès même s'il tombe sur l'adresse, cette zone est protégée par un **second mot de passe**, différent du mot de passe familial.
+Le site a une zone d'administration (`admin/index.php`), organisée en trois groupes : **Rendez-vous** (import `.ics`, correction de rendez-vous existants), **Sauvegardes** (restauration) et **Notifications** (réglages des rappels). Pour que le reste de la famille n'y ait pas accès même s'il tombe sur l'adresse, cette zone est protégée par un **second mot de passe**, différent du mot de passe familial.
 
 1. Remettez temporairement `outils/generate_password.php` sur le serveur si vous l'aviez déjà supprimé.
 2. Ouvrez `https://agenda.hellau.be/outils/generate_password.php`, saisissez le mot de passe d'administration de votre choix (gardez-le pour vous), cliquez sur **Générer le hash**.
 3. Copiez la valeur générée dans `config.php`, champ `admin_password_hash`.
 4. Supprimez à nouveau `outils/generate_password.php` du serveur si vous n'en avez plus besoin.
 
-Il n'y a plus de lien visible vers `admin/nettoyage.php` dans l'agenda : gardez cette adresse en favori pour y accéder directement. Même en la connaissant, l'accès reste bloqué tant que le mot de passe d'administration n'est pas défini dans `config.php`.
+Il n'y a plus de lien visible vers `admin/index.php` dans l'agenda : gardez cette adresse en favori pour y accéder directement. Même en la connaissant, l'accès reste bloqué tant que le mot de passe d'administration n'est pas défini dans `config.php`.
 
 ## Sauvegardes automatiques
 
-En cas de suppression accidentelle d'un rendez-vous, une sauvegarde automatique quotidienne permet de le retrouver et de le restaurer depuis `admin/nettoyage.php` (section **Sauvegardes**).
+En cas de suppression accidentelle d'un rendez-vous, une sauvegarde automatique quotidienne permet de le retrouver et de le restaurer depuis `admin/sauvegardes.php` (accessible aussi depuis la carte "Sauvegardes" de l'accueil admin).
 
 1. Dans `config.php`, remplacez `backup_token` par une chaîne aléatoire longue (par exemple générée sur [1password.com/password-generator](https://1password.com/password-generator) ou similaire) — ce n'est pas un mot de passe à retenir, juste une clé secrète dans une URL.
 2. Dans hPanel, allez dans **Avancé > Cron Jobs** (ou **Tâches Cron**).
 3. Créez une nouvelle tâche :
    - Fréquence : une fois par jour (par exemple à 3h du matin).
    - Type de commande / URL : `https://agenda.hellau.be/cron/backup.php?token=VOTRE_JETON` (remplacez `VOTRE_JETON` par la valeur mise dans `config.php`). Si hPanel demande une commande shell plutôt qu'une URL, utilisez `wget -q -O /dev/null "https://agenda.hellau.be/cron/backup.php?token=VOTRE_JETON"` (ou `curl` si disponible).
-4. Enregistrez. Le lendemain, vérifiez dans `admin/nettoyage.php` (section Sauvegardes) qu'une sauvegarde datée est bien apparue dans le menu déroulant.
+4. Enregistrez. Le lendemain, vérifiez dans `admin/sauvegardes.php` qu'une sauvegarde datée est bien apparue dans le menu déroulant.
 
 Chaque sauvegarde est un export complet des rendez-vous à cet instant, conservé 60 jours puis supprimé automatiquement. Le dossier `backups/` est bloqué à l'accès direct par son propre `.htaccess` : seule la page d'administration (avec son mot de passe) peut les consulter.
 
@@ -146,7 +146,7 @@ Si vous laissez `smtp_host` vide, le site continue de fonctionner en se rabattan
 ### Étape 2 — Réglages techniques (administration)
 
 1. Dans `config.php`, remplacez `reminder_token` par une chaîne aléatoire longue (même principe que `backup_token`).
-2. Ouvrez `https://agenda.hellau.be/admin/reglages.php` (lien "Réglages" présent dans `admin/nettoyage.php`), cochez **Activer les rappels par email**, réglez le délai (en heures) et renseignez ton adresse email (Chem) — tu reçois un rappel pour tous les rendez-vous, quels que soient les choix de tes parents.
+2. Ouvrez `https://agenda.hellau.be/admin/reglages.php` (carte "Notifications" sur l'accueil admin, `admin/index.php`), cochez **Activer les rappels par email**, réglez le délai (en heures) et renseignez ton adresse email (Chem) — tu reçois un rappel pour tous les rendez-vous, quels que soient les choix de tes parents.
 3. Cliquez sur **Envoyer un email de test** pour vérifier que l'envoi fonctionne bien (et pensez à regarder le dossier des indésirables/spam la première fois, surtout si vous n'avez pas configuré le SMTP ci-dessus). Le message d'erreur affiché en cas d'échec indique la cause précise (identifiants SMTP incorrects, serveur inaccessible, etc.).
 4. Cliquez sur **Enregistrer les réglages**.
 5. Dans hPanel, allez dans **Avancé > Cron Jobs** (ou **Tâches Cron**) et créez une nouvelle tâche :
@@ -191,7 +191,7 @@ Contrairement à la version Google Apps Script, il n'y a pas de « déploiement 
 
 - `config.php`, tous les fichiers `.json` et `.sql`, ainsi que tout le dossier `lib/` sont bloqués à l'accès direct par le `.htaccess` fourni.
 - Le dossier `backups/` a son propre `.htaccess` qui bloque tout accès direct aux sauvegardes.
-- La zone d'administration (`admin/nettoyage.php`, import `.ics`, sauvegardes) est protégée par un second mot de passe distinct du mot de passe familial (voir « Protéger les outils d'administration » plus haut), et n'a pas de lien visible depuis l'agenda.
+- La zone d'administration (`admin/index.php` et ses sous-pages : import `.ics`, correction de rendez-vous, sauvegardes) est protégée par un second mot de passe distinct du mot de passe familial (voir « Protéger les outils d'administration » plus haut), et n'a pas de lien visible depuis l'agenda.
 - Le SSL (`https://`) chiffre les échanges entre le navigateur et le serveur.
 - Ne partagez jamais `config.php` ni `service-account.json`.
 - Pour changer le mot de passe familial ou le mot de passe d'administration plus tard : remettez temporairement `outils/generate_password.php` sur le serveur, générez un nouveau hash, mettez à jour `config.php` (`family_password_hash` ou `admin_password_hash`), puis supprimez à nouveau `outils/generate_password.php`.
@@ -202,4 +202,11 @@ Contrairement à la version Google Apps Script, il n'y a pas de « déploiement 
 
 1. **Supprimer les anciens fichiers racine** devenus obsolètes : `admin_login.php`, `admin_logout.php`, `admin_nettoyage.php`, `admin_reglages.php`, `backup.php`, `rappels.php`, `migrate.php`, `generate_password.php`, `import_calendar.php` (s'il est encore présent). Les laisser en place ne casse rien techniquement, mais ce sont des doublons obsolètes qu'il vaut mieux retirer.
 2. **Mettre à jour les deux Cron Jobs** dans hPanel (Avancé > Cron Jobs) pour pointer vers les nouvelles URLs `cron/backup.php?token=...` et `cron/rappels.php?token=...` (voir les sections correspondantes ci-dessus).
-3. **Mettre à jour votre favori/marque-page** vers la page d'administration : la nouvelle adresse est `https://agenda.hellau.be/admin/nettoyage.php` (au lieu de `admin_nettoyage.php`).
+3. **Mettre à jour votre favori/marque-page** vers la page d'administration : la nouvelle adresse est `https://agenda.hellau.be/admin/index.php`.
+
+## Mise à jour depuis une version antérieure à la refonte de l'admin (v2.1.0)
+
+À partir de la version 2.1.0, `admin/nettoyage.php` (qui empilait 5 outils sur une seule page) est remplacé par un accueil admin (`admin/index.php`) avec des cartes groupées par thème, et 3 sous-pages dédiées : `admin/import.php` (import `.ics`), `admin/corriger.php` (les 3 outils de correction, présentés en onglets) et `admin/sauvegardes.php` (restauration). Si vous mettez à jour un site déjà installé :
+
+1. **Supprimez l'ancien fichier `admin/nettoyage.php`** du serveur, devenu obsolète.
+2. **Mettez à jour votre favori/marque-page** : la nouvelle adresse est `https://agenda.hellau.be/admin/index.php` (au lieu de `admin/nettoyage.php`).

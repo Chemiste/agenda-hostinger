@@ -89,8 +89,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <style>
   .outil { background:#fff; border-radius:12px; padding:18px; margin-bottom:24px; box-shadow: var(--shadow-sm); }
   .outil h2 { margin-top:0; }
-  .barre-admin { display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; flex-wrap:wrap; gap:8px; }
+  .barre-admin { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; flex-wrap:wrap; gap:8px; }
   .barre-admin a { font-size:13px; color:var(--text-muted, #888); }
+  .fil-admin { font-size:13px; color:var(--text-muted); margin-bottom:18px; }
+  .fil-admin a { color:var(--text-muted); text-decoration:none; }
+  .fil-admin a:hover { text-decoration:underline; }
+  .fil-admin .sep { margin:0 4px; }
+  .fil-admin .actuel { color:var(--text); font-weight:600; }
   .champ-case { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
   .champ-case input[type=checkbox] { width:22px; height:22px; }
   .champ-case label { font-weight:600; }
@@ -99,14 +104,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 <body>
   <div class="barre-admin">
-    <h1 style="margin:0;">Réglages</h1>
     <div>
-      <a href="/admin/nettoyage.php">Nettoyage</a>
-      &nbsp;·&nbsp;
       <a href="/index.php">Retour à l'agenda</a>
       &nbsp;·&nbsp;
       <a href="/admin/logout.php">Déconnexion admin</a>
     </div>
+  </div>
+  <div class="fil-admin">
+    <a href="/admin/index.php">Administration</a><span class="sep">/</span><span class="actuel">Réglages</span>
   </div>
 
   <div class="outil">

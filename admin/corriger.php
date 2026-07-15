@@ -1,37 +1,24 @@
 <?php
 /**
- * ADMINISTRATION : nettoyage des rendez-vous, import .ics et sauvegardes.
+ * ADMINISTRATION : correction de rendez-vous existants.
  *
- * Outil de maintenance, protégé par un DEUXIÈME mot de passe (distinct
- * du mot de passe familial, voir requireAdminLogin() / admin/login.php)
- * pour que le reste de la famille n'y ait pas accès même s'il tombe sur
- * l'URL de cette page.
- *
- * Outils disponibles :
- *  1. "Importer un fichier .ics" : import ponctuel de rendez-vous depuis
- *     un fichier .ics exporté d'un autre agenda.
- *  2. "Raccourcir les noms complets" : détecte tout seul "pour <Prénom>
- *     <Nom de famille>" (le prénom configuré suivi d'un nom de famille
- *     collé par certains imports) et raccourcit en "pour <Prénom>", vu
- *     que la personne est déjà indiquée par le badge coloré.
- *  3. "Retirer un texte" : on tape un texte exact (ex: une adresse, ou une
+ * Regroupe 3 outils de nettoyage sous forme d'onglets (un seul affiché à
+ * la fois, plutôt que les 3 empilés) :
+ *  1. "Téléphone et route" : détecte tout seul les numéros de téléphone
+ *     (et les mentions "Route NNN" à côté) collés dans le texte (avec ou
+ *     sans la mention complète "Le lieu du rendez-vous ... Route NNN
+ *     Tél : ...") et les range dans les champs Téléphone et Route.
+ *  2. "Noms complets" : détecte tout seul "pour <Prénom> <Nom de
+ *     famille>" (le prénom configuré suivi d'un nom de famille collé par
+ *     certains imports) et raccourcit en "pour <Prénom>", vu que la
+ *     personne est déjà indiquée par le badge coloré.
+ *  3. "Texte libre" : on tape un texte exact (ex: une adresse, ou une
  *     phrase comme "Le lieu du rendez-vous"), et on choisit où le ranger
- *     (Adresse, Téléphone, ou nulle part si c'est juste une mention à
- *     supprimer).
- *  4. "Extraction automatique du téléphone et de la route" : détecte tout
- *     seul les numéros de téléphone (et les mentions "Route NNN" à côté)
- *     collés dans le texte (avec ou sans la mention complète "Le lieu du
- *     rendez-vous ... Route NNN Tél : ...") et les range dans les champs
- *     Téléphone et Route.
- *  5. "Sauvegardes" : consulte les sauvegardes automatiques (voir
- *     cron/backup.php) et restaure un rendez-vous supprimé par erreur.
+ *     (Adresse, Téléphone, Route, ou nulle part si c'est juste une
+ *     mention à supprimer).
  *
- * Pour les outils 2 à 4, si le rendez-vous est déjà synchronisé avec
- * Google Calendar, l'événement est mis à jour.
- *
- * À garder sur le serveur : contrairement à outils/import_calendar.php,
- * cet outil n'est pas à usage unique, pas besoin de le supprimer après
- * usage.
+ * Si le rendez-vous est déjà synchronisé avec Google Calendar,
+ * l'événement est mis à jour à chaque correction.
  */
 
 require_once __DIR__ . '/../lib/auth.php';
@@ -58,111 +45,20 @@ $resultatApplicationTel = null;
 $resultatsNoms = [];
 $resultatApplicationNoms = null;
 
-// --- Sauvegardes : lister les fichiers disponibles (voir backup.php) ---
-$dossierBackups = __DIR__ . '/../backups';
-$fichiersBackup = [];
-if (is_dir($dossierBackups)) {
-    $fichiersBackup = glob($dossierBackups . '/appointments-*.json');
-    rsort($fichiersBackup); // noms horodates -> tri alphabétique = tri chronologique
-}
-
-function nomBackupValide($nom) {
-    return preg_match('/^appointments-[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{4}\.json$/', $nom) === 1;
-}
-
-// Sauvegarde choisie (menu déroulant, requête GET en lecture seule) :
-// on calcule les rendez-vous présents dans cette sauvegarde mais absents
-// de la base actuelle (candidats à une restauration).
-$backupSelectionnee = isset($_GET['sauvegarde']) ? basename($_GET['sauvegarde']) : '';
-$rendezVousDisparus = [];
-$erreurBackup = '';
-if ($backupSelectionnee !== '') {
-    $cheminBackup = $dossierBackups . '/' . $backupSelectionnee;
-    if (!nomBackupValide($backupSelectionnee) || !file_exists($cheminBackup)) {
-        $erreurBackup = 'Sauvegarde introuvable.';
-    } else {
-        $donneesBackup = json_decode(file_get_contents($cheminBackup), true);
-        if (!is_array($donneesBackup)) {
-            $erreurBackup = 'Ce fichier de sauvegarde est illisible.';
-        } else {
-            $idsActuels = array_map('intval', array_column($db->query('SELECT id FROM appointments')->fetchAll(), 'id'));
-            foreach ($donneesBackup as $ligne) {
-                if (!in_array((int) $ligne['id'], $idsActuels, true)) {
-                    $rendezVousDisparus[] = $ligne;
-                }
-            }
-            // Les plus récents en premier (plus probable que ce soit ce qu'on cherche).
-            usort($rendezVousDisparus, function ($a, $b) {
-                return strcmp($b['appt_date'] . $b['appt_time'], $a['appt_date'] . $a['appt_time']);
-            });
-        }
-    }
-}
-
-// Restauration effective (création en base + recréation de l'événement
-// Google Calendar si la synchro est active) des rendez-vous cochés.
-$nbRestaures = null;
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'restaurer_sauvegarde') {
-    $nomFichier = basename($_POST['fichier'] ?? '');
-    $cheminBackup = $dossierBackups . '/' . $nomFichier;
-    $idsARestaurer = isset($_POST['selection']) ? array_map('intval', (array) $_POST['selection']) : [];
-    $nbRestaures = 0;
-
-    if (nomBackupValide($nomFichier) && file_exists($cheminBackup) && !empty($idsARestaurer)) {
-        $donneesBackup = json_decode(file_get_contents($cheminBackup), true);
-        if (is_array($donneesBackup)) {
-            $parId = [];
-            foreach ($donneesBackup as $ligne) {
-                $parId[(int) $ligne['id']] = $ligne;
-            }
-
-            foreach ($idsARestaurer as $id) {
-                if (!isset($parId[$id])) continue;
-                $ligne = $parId[$id];
-
-                // Par sécurité (ex: double clic, ou id déjà repris entre
-                // temps par un autre rendez-vous) : on ne restaure pas si
-                // cet id existe déjà dans la base.
-                $existe = $db->prepare('SELECT COUNT(*) FROM appointments WHERE id = ?');
-                $existe->execute([$id]);
-                if ((int) $existe->fetchColumn() > 0) continue;
-
-                $stmt = $db->prepare('INSERT INTO appointments (id, appt_date, appt_time, person, doctor, department, location, phone, route, notes, calendar_event_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
-                $stmt->execute([
-                    $id,
-                    $ligne['appt_date'],
-                    $ligne['appt_time'],
-                    $ligne['person'],
-                    isset($ligne['doctor']) ? $ligne['doctor'] : '',
-                    isset($ligne['department']) ? $ligne['department'] : '',
-                    isset($ligne['location']) ? $ligne['location'] : '',
-                    isset($ligne['phone']) ? $ligne['phone'] : '',
-                    isset($ligne['route']) ? $ligne['route'] : '',
-                    isset($ligne['notes']) ? $ligne['notes'] : '',
-                    '', // nouvel événement Calendar recréé ci-dessous (l'ancien id est périmé)
-                    isset($ligne['created_at']) ? $ligne['created_at'] : date('Y-m-d H:i:s'),
-                ]);
-
-                $appt = [
-                    'date' => $ligne['appt_date'],
-                    'time' => substr($ligne['appt_time'], 0, 5),
-                    'person' => $ligne['person'],
-                    'doctor' => isset($ligne['doctor']) ? $ligne['doctor'] : '',
-                    'department' => isset($ligne['department']) ? $ligne['department'] : '',
-                    'location' => isset($ligne['location']) ? $ligne['location'] : '',
-                    'phone' => isset($ligne['phone']) ? $ligne['phone'] : '',
-                    'route' => isset($ligne['route']) ? $ligne['route'] : '',
-                    'notes' => isset($ligne['notes']) ? $ligne['notes'] : '',
-                ];
-                $nouvelId = $sync->createEvent($appt);
-                if ($nouvelId) {
-                    $upd = $db->prepare('UPDATE appointments SET calendar_event_id = ? WHERE id = ?');
-                    $upd->execute([$nouvelId, $id]);
-                }
-
-                $nbRestaures++;
-            }
-        }
+// --- Quel onglet afficher au chargement ? Determine par le lien cliqué
+// (?onglet=...) ou par l'action venant d'etre soumise, sinon "tel" par
+// defaut. Les 3 outils restent tous dans le DOM (juste caches/affiches en
+// CSS) : pas besoin de recharger la page pour changer d'onglet ensuite.
+$ongletActif = 'tel';
+if (isset($_GET['onglet']) && in_array($_GET['onglet'], ['tel', 'noms', 'texte'], true)) {
+    $ongletActif = $_GET['onglet'];
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    if (strpos($_POST['action'], '_tel') !== false) {
+        $ongletActif = 'tel';
+    } elseif (strpos($_POST['action'], '_noms') !== false) {
+        $ongletActif = 'noms';
+    } elseif (in_array($_POST['action'], ['rechercher', 'appliquer'], true)) {
+        $ongletActif = 'texte';
     }
 }
 
@@ -540,9 +436,17 @@ try {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Nettoyage des rendez-vous — Administration</title>
+<title>Corriger des rendez-vous — Administration</title>
 <link rel="stylesheet" href="/assets/style.css">
 <style>
+  .barre-admin { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; flex-wrap:wrap; gap:8px; }
+  .barre-admin a { font-size:13px; color:var(--text-muted); }
+  .fil-admin { font-size:13px; color:var(--text-muted); margin-bottom:18px; }
+  .fil-admin a { color:var(--text-muted); text-decoration:none; }
+  .fil-admin a:hover { text-decoration:underline; }
+  .fil-admin .sep { margin:0 4px; }
+  .fil-admin .actuel { color:var(--text); font-weight:600; }
+  .outil { background:#fff; border-radius:12px; padding:18px; box-shadow: var(--shadow-sm); }
   .rangee-nett { display:flex; align-items:flex-start; gap:10px; padding:12px 0; border-bottom:1px solid var(--border); }
   .rangee-nett input[type=checkbox] { width:20px; height:20px; margin-top:3px; }
   .rangee-nett .details { flex:1; }
@@ -554,34 +458,32 @@ try {
   .suggestions ul { margin:6px 0 0; padding-left:18px; max-height:160px; overflow:auto; }
   .destination-choix { display:flex; flex-direction:column; gap:6px; }
   .destination-choix label { font-weight:400; font-size:15px; display:flex; align-items:center; gap:8px; cursor:pointer; }
-  .outil { background:#fff; border-radius:12px; padding:18px; margin-bottom:24px; box-shadow: var(--shadow-sm); }
-  .outil h2 { margin-top:0; }
-  .barre-admin { display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; flex-wrap:wrap; gap:8px; }
-  .barre-admin a { font-size:13px; color:var(--text-muted, #888); }
+  .tabs-outils { display:flex; gap:6px; margin-bottom:18px; background:var(--tous-bg); border-radius:var(--radius-md); padding:4px; }
+  .tab-outil { flex:1; border:none; background:transparent; color:var(--text-secondary); font-size:14px; font-weight:600; padding:10px 6px; border-radius:var(--radius-sm); cursor:pointer; transition:background var(--dur) var(--ease), color var(--dur) var(--ease); }
+  .tab-outil.active { background:#fff; color:var(--text); box-shadow:var(--shadow-sm); }
+  .panneau-outil { display:none; }
+  .panneau-outil.active { display:block; }
 </style>
 </head>
 <body>
   <div class="barre-admin">
-    <h1 style="margin:0;">Administration</h1>
     <div>
-      <a href="/admin/reglages.php">Réglages</a>
-      &nbsp;·&nbsp;
       <a href="/index.php">Retour à l'agenda</a>
       &nbsp;·&nbsp;
       <a href="/admin/logout.php">Déconnexion admin</a>
     </div>
   </div>
-  <p class="sous-titre">Import .ics, correction des rendez-vous existants et sauvegardes.</p>
-
-  <div class="outil">
-    <h2>Importer un fichier .ics</h2>
-    <p class="sous-titre">Importe des rendez-vous depuis un fichier .ics exporté d'un autre agenda (Google Calendar, Outlook, etc.).</p>
-    <button class="secondaire" id="btnImportIcs">Choisir un fichier .ics</button>
-    <input type="file" id="fichierIcs" accept=".ics,text/calendar" style="display:none;">
+  <div class="fil-admin">
+    <a href="/admin/index.php">Administration</a><span class="sep">/</span><span class="actuel">Corriger des rendez-vous</span>
   </div>
 
-  <div class="outil">
-    <h2>Extraction automatique du téléphone et de la route</h2>
+  <div class="tabs-outils">
+    <button type="button" class="tab-outil<?= $ongletActif === 'tel' ? ' active' : '' ?>" data-cible="panneau-tel">Téléphone et route</button>
+    <button type="button" class="tab-outil<?= $ongletActif === 'noms' ? ' active' : '' ?>" data-cible="panneau-noms">Noms complets</button>
+    <button type="button" class="tab-outil<?= $ongletActif === 'texte' ? ' active' : '' ?>" data-cible="panneau-texte">Texte libre</button>
+  </div>
+
+  <div class="outil panneau-outil<?= $ongletActif === 'tel' ? ' active' : '' ?>" id="panneau-tel">
     <p class="sous-titre">Détecte tout seul les numéros de téléphone (et les mentions "Route NNN" à côté) dans "Médecin / consultation" et "Notes" — avec ou sans la mention complète "Le lieu du rendez-vous ... Route NNN Tél : ..." — les retire du texte et remplit les champs Téléphone et Route.</p>
 
     <?php if ($resultatApplicationTel !== null): ?>
@@ -591,7 +493,7 @@ try {
           <?= (int) $resultatApplicationTel['ignores'] ?> avaient déjà le champ Téléphone ou Route rempli (texte tout de même nettoyé, valeur existante conservée).
         <?php endif; ?>
       </p>
-      <p><a href="/admin/nettoyage.php">Relancer une recherche</a></p>
+      <p><a href="/admin/corriger.php?onglet=tel">Relancer une recherche</a></p>
     <?php else: ?>
 
       <form method="post">
@@ -648,13 +550,12 @@ try {
     <?php endif; ?>
   </div>
 
-  <div class="outil">
-    <h2>Raccourcir les noms complets</h2>
+  <div class="outil panneau-outil<?= $ongletActif === 'noms' ? ' active' : '' ?>" id="panneau-noms">
     <p class="sous-titre">Détecte "pour <?= htmlspecialchars($p1) ?> Nom-de-famille" ou "pour <?= htmlspecialchars($p2) ?> Nom-de-famille" dans "Médecin / consultation" (nom de famille collé par certains imports) et le raccourcit en "pour <?= htmlspecialchars($p1) ?>" / "pour <?= htmlspecialchars($p2) ?>" — la personne est de toute façon déjà indiquée par le badge coloré.</p>
 
     <?php if ($resultatApplicationNoms !== null): ?>
       <p class="info"><?= (int) $resultatApplicationNoms['modifies'] ?> rendez-vous corrigé(s).</p>
-      <p><a href="/admin/nettoyage.php">Relancer une recherche</a></p>
+      <p><a href="/admin/corriger.php?onglet=noms">Relancer une recherche</a></p>
     <?php else: ?>
 
       <form method="post">
@@ -693,8 +594,7 @@ try {
     <?php endif; ?>
   </div>
 
-  <div class="outil">
-    <h2>Retirer un texte</h2>
+  <div class="outil panneau-outil<?= $ongletActif === 'texte' ? ' active' : '' ?>" id="panneau-texte">
     <p class="sous-titre">Pour un texte exact qui revient tel quel (une adresse, une phrase inutile comme "Le lieu du rendez-vous"...).</p>
 
     <?php if ($erreur): ?>
@@ -708,7 +608,7 @@ try {
           <?= (int) $resultatApplication['ignores'] ?> ignoré(s) car le champ de destination était déjà rempli (à corriger manuellement si besoin).
         <?php endif; ?>
       </p>
-      <p><a href="/index.php">Voir l'agenda</a> · <a href="/admin/nettoyage.php">Faire un autre nettoyage</a></p>
+      <p><a href="/index.php">Voir l'agenda</a> · <a href="/admin/corriger.php?onglet=texte">Faire un autre nettoyage</a></p>
 
     <?php else: ?>
 
@@ -787,94 +687,15 @@ try {
     <?php endif; ?>
   </div>
 
-  <div class="outil">
-    <h2>Sauvegardes</h2>
-    <p class="sous-titre">Une sauvegarde automatique (voir backup.php et le guide d'installation pour la configurer via un Cron Job Hostinger) exporte tous les rendez-vous chaque jour. En cas de suppression accidentelle, choisissez une sauvegarde d'avant la suppression : les rendez-vous qui y figurent mais qui ont disparu de l'agenda actuel sont proposés à la restauration.</p>
-
-    <?php if (empty($fichiersBackup)): ?>
-      <p class="vide">Aucune sauvegarde trouvée pour l'instant. Vérifiez que le Cron Job de sauvegarde est bien configuré (voir le guide d'installation).</p>
-    <?php else: ?>
-
-      <?php if ($nbRestaures !== null): ?>
-        <p class="info">
-          <?= (int) $nbRestaures ?> rendez-vous restauré(s)<?= $nbRestaures > 0 ? ' (et resynchronisé(s) avec Google Calendar si activé)' : '' ?>.
-        </p>
-        <p><a href="/admin/nettoyage.php">Retour aux sauvegardes</a></p>
-      <?php else: ?>
-
-        <form method="get" style="margin-bottom:16px;">
-          <div class="champ">
-            <label for="sauvegarde">Choisir une sauvegarde</label>
-            <select name="sauvegarde" id="sauvegarde" onchange="this.form.submit()" style="width:100%; font-size:16px; padding:12px; border-radius:8px; border:1.5px solid var(--border);">
-              <option value="">— Sélectionner une date —</option>
-              <?php foreach ($fichiersBackup as $chemin):
-                $nom = basename($chemin);
-                $horodatage = preg_replace('/^appointments-([0-9]{4})-([0-9]{2})-([0-9]{2})-([0-9]{2})([0-9]{2})\.json$/', '$3/$2/$1 à $4:$5', $nom);
-              ?>
-                <option value="<?= htmlspecialchars($nom) ?>" <?= $nom === $backupSelectionnee ? 'selected' : '' ?>><?= htmlspecialchars($horodatage) ?></option>
-              <?php endforeach; ?>
-            </select>
-          </div>
-        </form>
-
-        <?php if ($erreurBackup): ?>
-          <p class="erreur"><?= htmlspecialchars($erreurBackup) ?></p>
-        <?php elseif ($backupSelectionnee !== ''): ?>
-          <?php if (empty($rendezVousDisparus)): ?>
-            <p class="vide">Aucun rendez-vous de cette sauvegarde ne manque dans l'agenda actuel.</p>
-          <?php else: ?>
-            <form method="post">
-              <input type="hidden" name="action" value="restaurer_sauvegarde">
-              <input type="hidden" name="fichier" value="<?= htmlspecialchars($backupSelectionnee) ?>">
-              <p><?= count($rendezVousDisparus) ?> rendez-vous de cette sauvegarde manque(nt) actuellement. Décochez ceux à ne pas restaurer.</p>
-
-              <?php foreach ($rendezVousDisparus as $r): ?>
-                <div class="rangee-nett">
-                  <input type="checkbox" checked name="selection[]" value="<?= (int) $r['id'] ?>">
-                  <div class="details">
-                    <div style="font-weight:600;"><?= htmlspecialchars($r['appt_date']) ?> à <?= htmlspecialchars(substr($r['appt_time'], 0, 5)) ?> — <?= htmlspecialchars($r['person']) ?></div>
-                    <div class="champ-avant"><?= htmlspecialchars(isset($r['doctor']) ? $r['doctor'] : '') ?></div>
-                    <?php if (!empty($r['department'])): ?>
-                      <div class="champ-avant"><?= htmlspecialchars($r['department']) ?></div>
-                    <?php endif; ?>
-                    <?php if (!empty($r['location'])): ?>
-                      <div class="champ-avant"><?= htmlspecialchars($r['location']) ?></div>
-                    <?php endif; ?>
-                  </div>
-                </div>
-              <?php endforeach; ?>
-
-              <div class="form-boutons" style="margin-top:16px;">
-                <button class="principal" type="submit">Restaurer la sélection</button>
-              </div>
-            </form>
-          <?php endif; ?>
-        <?php endif; ?>
-
-      <?php endif; ?>
-    <?php endif; ?>
-  </div>
-
-  <p style="margin-top:2rem;"><a href="/index.php">Retour à l'agenda</a></p>
-
-  <div class="overlay" id="overlay"></div>
-
-  <div id="icsCard" class="modal">
-    <div class="modal-corps">
-      <h2>Rendez-vous trouvés dans le fichier</h2>
-      <p class="erreur" id="erreurIcs"></p>
-      <div id="listeIcs"></div>
-    </div>
-    <div class="form-boutons">
-      <button class="principal" id="btnImporterSelection">Importer la sélection</button>
-      <button class="secondaire" id="btnAnnulerIcs">Annuler</button>
-    </div>
-  </div>
-
   <script>
-    window.PERSONNE_1 = <?= json_encode($p1) ?>;
-    window.PERSONNE_2 = <?= json_encode($p2) ?>;
+    document.querySelectorAll('.tab-outil').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        document.querySelectorAll('.tab-outil').forEach(function (b) { b.classList.remove('active'); });
+        document.querySelectorAll('.panneau-outil').forEach(function (p) { p.classList.remove('active'); });
+        btn.classList.add('active');
+        document.getElementById(btn.dataset.cible).classList.add('active');
+      });
+    });
   </script>
-  <script src="/assets/admin.js"></script>
 </body>
 </html>

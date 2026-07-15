@@ -3,7 +3,7 @@ require_once __DIR__ . '/../lib/auth.php';
 requireLogin();
 
 if (isAdminLoggedIn()) {
-    header('Location: /admin/nettoyage.php');
+    header('Location: /admin/index.php');
     exit;
 }
 
@@ -11,7 +11,7 @@ $erreur = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $motDePasse = $_POST['password'] ?? '';
     if (attemptAdminLogin($motDePasse)) {
-        header('Location: /admin/nettoyage.php');
+        header('Location: /admin/index.php');
         exit;
     }
     $erreur = 'Mot de passe incorrect.';

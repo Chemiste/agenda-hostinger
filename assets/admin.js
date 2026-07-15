@@ -1,7 +1,7 @@
 // ---------------------------------------------------------------
-// JS de la page d'administration (admin_nettoyage.php) : uniquement
-// l'import de fichiers .ics (le reste des outils de cette page est
-// géré côté serveur via de simples formulaires PHP, pas besoin de JS).
+// JS de la page d'import .ics (admin/import.php) : uniquement l'import
+// de fichiers .ics (les autres outils d'administration sont gérés côté
+// serveur via de simples formulaires PHP, pas besoin de JS).
 // ---------------------------------------------------------------
 
 function ouvrirModal(id) {
@@ -27,7 +27,7 @@ function escapeHtml(s) {
 }
 
 function appelApi(action, corps) {
-  // Chemin absolu : ce script est charge depuis admin/nettoyage.php, pas
+  // Chemin absolu : ce script est charge depuis admin/import.php, pas
   // depuis la racine, un chemin relatif "api.php" pointerait a tort vers
   // admin/api.php.
   return fetch('/api.php?action=' + action, {
