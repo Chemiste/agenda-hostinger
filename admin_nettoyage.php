@@ -563,6 +563,8 @@ try {
   <div class="barre-admin">
     <h1 style="margin:0;">Administration</h1>
     <div>
+      <a href="admin_reglages.php">Réglages</a>
+      &nbsp;·&nbsp;
       <a href="index.php">Retour à l'agenda</a>
       &nbsp;·&nbsp;
       <a href="admin_logout.php">Déconnexion admin</a>

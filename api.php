@@ -124,14 +124,22 @@ function updateAppointmentAction($db, $sync, $appt) {
         throw new Exception('Identifiant manquant.');
     }
 
-    $stmt = $db->prepare('SELECT calendar_event_id FROM appointments WHERE id = ?');
+    $stmt = $db->prepare('SELECT calendar_event_id, appt_date, appt_time FROM appointments WHERE id = ?');
     $stmt->execute([$appt['id']]);
     $row = $stmt->fetch();
     if (!$row) {
         throw new Exception('Rendez-vous introuvable.');
     }
 
-    $upd = $db->prepare('UPDATE appointments SET appt_date = ?, appt_time = ?, person = ?, doctor = ?, department = ?, location = ?, phone = ?, route = ?, notes = ? WHERE id = ?');
+    // Si la date/heure change, on remet le rappel à zéro pour qu'il soit
+    // renvoyé au bon moment pour le nouvel horaire (voir rappels.php).
+    $dateHeureChangee = ($row['appt_date'] !== $appt['date']) || (substr($row['appt_time'], 0, 5) !== $appt['time']);
+
+    $upd = $db->prepare(
+        'UPDATE appointments SET appt_date = ?, appt_time = ?, person = ?, doctor = ?, department = ?, location = ?, phone = ?, route = ?, notes = ?'
+        . ($dateHeureChangee ? ', reminder_sent_at = NULL' : '')
+        . ' WHERE id = ?'
+    );
     $upd->execute([
         $appt['date'],
         $appt['time'],

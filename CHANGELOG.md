@@ -1,5 +1,26 @@
 # Journal des versions
 
+## v1.14.0 — 2026-07-15
+
+- **Rappels par email.** Un email peut désormais être envoyé avant chaque
+  rendez-vous à venir, à vous (Chem) et/ou à vos parents. Réglable
+  entièrement depuis une nouvelle page d'administration
+  `admin_reglages.php` (lien "Réglages" dans `admin_nettoyage.php`) : 
+  activer/désactiver, délai unique en heures avant le rendez-vous (le
+  même délai s'applique à tous les rendez-vous), adresses email des
+  destinataires, adresse d'expédition, et un bouton "Envoyer un email de
+  test" pour vérifier que ça fonctionne avant de compter dessus.
+  L'envoi effectif est fait par un nouveau script `rappels.php`, protégé
+  par jeton (`reminder_token` dans `config.php`, même principe que
+  `backup.php`) et déclenché périodiquement par un Cron Job Hostinger
+  (voir le guide d'installation). Chaque rendez-vous ne reçoit qu'un
+  seul rappel (colonne `reminder_sent_at`), y compris si `rappels.php`
+  est appelé très souvent ; le rappel est automatiquement réarmé si la
+  date ou l'heure du rendez-vous est modifiée par la suite. Nouvelles
+  tables/colonnes : `settings` (réglages génériques clé/valeur,
+  réutilisable pour de futurs réglages sans toucher à `config.php`) et
+  `appointments.reminder_sent_at` (migrations 0007 et 0008).
+
 ## v1.13.2 — 2026-07-15
 
 - Sur telephone (largeur d'ecran <= 640px), le badge de la personne dans

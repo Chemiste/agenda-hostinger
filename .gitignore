@@ -1,5 +1,7 @@
 # Secrets propres a chaque environnement : ne jamais committer.
 config.php
+config_dev.php
+config_prod.php
 service-account.json
 
 # Fichiers systeme
