@@ -1,38 +1,40 @@
 <?php
 /**
- * ADMINISTRATION : nettoyage des rendez-vous existants.
+ * ADMINISTRATION : nettoyage des rendez-vous, import .ics et sauvegardes.
  *
- * Outil de maintenance (protege par le meme mot de passe familial que le
- * reste du site) pour rattraper les rendez-vous deja enregistres dont le
- * champ "Medecin / consultation" ou "Notes" contient encore une adresse,
- * un numero de telephone ou une mention inutile collee au reste du texte
- * (cas herite des imports .ics ou Google Calendar d'avant la v1.6.0/1.8.0,
- * qui concatenaient tout ca au lieu de le mettre dans des champs separes).
+ * Outil de maintenance, protege par un DEUXIEME mot de passe (distinct
+ * du mot de passe familial, voir requireAdminLogin() / admin_login.php)
+ * pour que le reste de la famille n'y ait pas acces meme s'il tombe sur
+ * l'URL de cette page.
  *
- * Trois outils sur cette page :
- *  1. "Raccourcir les noms complets" : detecte tout seul "pour <Prenom>
+ * Outils disponibles :
+ *  1. "Importer un fichier .ics" : import ponctuel de rendez-vous depuis
+ *     un fichier .ics exporte d'un autre agenda.
+ *  2. "Raccourcir les noms complets" : detecte tout seul "pour <Prenom>
  *     <Nom de famille>" (le prenom configure suivi d'un nom de famille
  *     colle par certains imports) et raccourcit en "pour <Prenom>", vu
  *     que la personne est deja indiquee par le badge colore.
- *  2. "Retirer un texte" : on tape un texte exact (ex: une adresse, ou une
+ *  3. "Retirer un texte" : on tape un texte exact (ex: une adresse, ou une
  *     phrase comme "Le lieu du rendez-vous"), et on choisit ou le ranger
  *     (Adresse, Telephone, ou nulle part si c'est juste une mention a
  *     supprimer).
- *  3. "Extraction automatique du telephone et de la route" : detecte tout
+ *  4. "Extraction automatique du telephone et de la route" : detecte tout
  *     seul les numeros de telephone (et les mentions "Route NNN" a cote)
  *     colles dans le texte (avec ou sans la mention complete "Le lieu du
  *     rendez-vous ... Route NNN Tel : ...") et les range dans les champs
  *     Telephone et Route.
+ *  5. "Sauvegardes" : consulte les sauvegardes automatiques (voir
+ *     backup.php) et restaure un rendez-vous supprime par erreur.
  *
- * Dans les trois cas, si le rendez-vous est deja synchronise avec Google
- * Calendar, l'evenement est mis a jour.
+ * Pour les outils 2 a 4, si le rendez-vous est deja synchronise avec
+ * Google Calendar, l'evenement est mis a jour.
  *
  * A garder sur le serveur : contrairement a import_calendar.php, cet outil
  * n'est pas a usage unique, pas besoin de le supprimer apres usage.
  */
 
 require_once __DIR__ . '/lib/auth.php';
-requireLogin();
+requireAdminLogin();
 require_once __DIR__ . '/lib/db.php';
 require_once __DIR__ . '/lib/calendar_sync.php';
 
@@ -54,6 +56,114 @@ $resultatsTel = [];
 $resultatApplicationTel = null;
 $resultatsNoms = [];
 $resultatApplicationNoms = null;
+
+// --- Sauvegardes : lister les fichiers disponibles (voir backup.php) ---
+$dossierBackups = __DIR__ . '/backups';
+$fichiersBackup = [];
+if (is_dir($dossierBackups)) {
+    $fichiersBackup = glob($dossierBackups . '/appointments-*.json');
+    rsort($fichiersBackup); // noms horodates -> tri alphabetique = tri chronologique
+}
+
+function nomBackupValide($nom) {
+    return preg_match('/^appointments-[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{4}\.json$/', $nom) === 1;
+}
+
+// Sauvegarde choisie (menu deroulant, requete GET en lecture seule) :
+// on calcule les rendez-vous presents dans cette sauvegarde mais absents
+// de la base actuelle (candidats a une restauration).
+$backupSelectionnee = isset($_GET['sauvegarde']) ? basename($_GET['sauvegarde']) : '';
+$rendezVousDisparus = [];
+$erreurBackup = '';
+if ($backupSelectionnee !== '') {
+    $cheminBackup = $dossierBackups . '/' . $backupSelectionnee;
+    if (!nomBackupValide($backupSelectionnee) || !file_exists($cheminBackup)) {
+        $erreurBackup = 'Sauvegarde introuvable.';
+    } else {
+        $donneesBackup = json_decode(file_get_contents($cheminBackup), true);
+        if (!is_array($donneesBackup)) {
+            $erreurBackup = 'Ce fichier de sauvegarde est illisible.';
+        } else {
+            $idsActuels = array_map('intval', array_column($db->query('SELECT id FROM appointments')->fetchAll(), 'id'));
+            foreach ($donneesBackup as $ligne) {
+                if (!in_array((int) $ligne['id'], $idsActuels, true)) {
+                    $rendezVousDisparus[] = $ligne;
+                }
+            }
+            // Les plus recents en premier (plus probable que ce soit ce qu'on cherche).
+            usort($rendezVousDisparus, function ($a, $b) {
+                return strcmp($b['appt_date'] . $b['appt_time'], $a['appt_date'] . $a['appt_time']);
+            });
+        }
+    }
+}
+
+// Restauration effective (creation en base + recreation de l'evenement
+// Google Calendar si la synchro est active) des rendez-vous coches.
+$nbRestaures = null;
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'restaurer_sauvegarde') {
+    $nomFichier = basename($_POST['fichier'] ?? '');
+    $cheminBackup = $dossierBackups . '/' . $nomFichier;
+    $idsARestaurer = isset($_POST['selection']) ? array_map('intval', (array) $_POST['selection']) : [];
+    $nbRestaures = 0;
+
+    if (nomBackupValide($nomFichier) && file_exists($cheminBackup) && !empty($idsARestaurer)) {
+        $donneesBackup = json_decode(file_get_contents($cheminBackup), true);
+        if (is_array($donneesBackup)) {
+            $parId = [];
+            foreach ($donneesBackup as $ligne) {
+                $parId[(int) $ligne['id']] = $ligne;
+            }
+
+            foreach ($idsARestaurer as $id) {
+                if (!isset($parId[$id])) continue;
+                $ligne = $parId[$id];
+
+                // Par securite (ex: double clic, ou id deja repris entre
+                // temps par un autre rendez-vous) : on ne restaure pas si
+                // cet id existe deja dans la base.
+                $existe = $db->prepare('SELECT COUNT(*) FROM appointments WHERE id = ?');
+                $existe->execute([$id]);
+                if ((int) $existe->fetchColumn() > 0) continue;
+
+                $stmt = $db->prepare('INSERT INTO appointments (id, appt_date, appt_time, person, doctor, department, location, phone, route, notes, calendar_event_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+                $stmt->execute([
+                    $id,
+                    $ligne['appt_date'],
+                    $ligne['appt_time'],
+                    $ligne['person'],
+                    isset($ligne['doctor']) ? $ligne['doctor'] : '',
+                    isset($ligne['department']) ? $ligne['department'] : '',
+                    isset($ligne['location']) ? $ligne['location'] : '',
+                    isset($ligne['phone']) ? $ligne['phone'] : '',
+                    isset($ligne['route']) ? $ligne['route'] : '',
+                    isset($ligne['notes']) ? $ligne['notes'] : '',
+                    '', // nouvel evenement Calendar recree ci-dessous (l'ancien id est perime)
+                    isset($ligne['created_at']) ? $ligne['created_at'] : date('Y-m-d H:i:s'),
+                ]);
+
+                $appt = [
+                    'date' => $ligne['appt_date'],
+                    'time' => substr($ligne['appt_time'], 0, 5),
+                    'person' => $ligne['person'],
+                    'doctor' => isset($ligne['doctor']) ? $ligne['doctor'] : '',
+                    'department' => isset($ligne['department']) ? $ligne['department'] : '',
+                    'location' => isset($ligne['location']) ? $ligne['location'] : '',
+                    'phone' => isset($ligne['phone']) ? $ligne['phone'] : '',
+                    'route' => isset($ligne['route']) ? $ligne['route'] : '',
+                    'notes' => isset($ligne['notes']) ? $ligne['notes'] : '',
+                ];
+                $nouvelId = $sync->createEvent($appt);
+                if ($nouvelId) {
+                    $upd = $db->prepare('UPDATE appointments SET calendar_event_id = ? WHERE id = ?');
+                    $upd->execute([$nouvelId, $id]);
+                }
+
+                $nbRestaures++;
+            }
+        }
+    }
+}
 
 function parseMotifs($texte) {
     $lignes = preg_split('/\r\n|\r|\n/', $texte);
@@ -445,11 +555,27 @@ try {
   .destination-choix label { font-weight:400; font-size:15px; display:flex; align-items:center; gap:8px; cursor:pointer; }
   .outil { background:#fff; border-radius:12px; padding:18px; margin-bottom:24px; box-shadow: var(--shadow-sm); }
   .outil h2 { margin-top:0; }
+  .barre-admin { display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; flex-wrap:wrap; gap:8px; }
+  .barre-admin a { font-size:13px; color:var(--text-muted, #888); }
 </style>
 </head>
 <body>
-  <h1>Nettoyage des rendez-vous existants</h1>
-  <p class="sous-titre">Corrige les rendez-vous deja enregistres dont un champ contient encore du texte colle (nom complet, adresse, telephone, mentions inutiles).</p>
+  <div class="barre-admin">
+    <h1 style="margin:0;">Administration</h1>
+    <div>
+      <a href="index.php">Retour a l'agenda</a>
+      &nbsp;·&nbsp;
+      <a href="admin_logout.php">Deconnexion admin</a>
+    </div>
+  </div>
+  <p class="sous-titre">Import .ics, correction des rendez-vous existants et sauvegardes.</p>
+
+  <div class="outil">
+    <h2>Importer un fichier .ics</h2>
+    <p class="sous-titre">Importe des rendez-vous depuis un fichier .ics exporte d'un autre agenda (Google Calendar, Outlook, etc.).</p>
+    <button class="secondaire" id="btnImportIcs">Choisir un fichier .ics</button>
+    <input type="file" id="fichierIcs" accept=".ics,text/calendar" style="display:none;">
+  </div>
 
   <div class="outil">
     <h2>Extraction automatique du telephone et de la route</h2>
@@ -658,6 +784,94 @@ try {
     <?php endif; ?>
   </div>
 
+  <div class="outil">
+    <h2>Sauvegardes</h2>
+    <p class="sous-titre">Une sauvegarde automatique (voir backup.php et le guide d'installation pour la configurer via un Cron Job Hostinger) exporte tous les rendez-vous chaque jour. En cas de suppression accidentelle, choisissez une sauvegarde d'avant la suppression : les rendez-vous qui y figurent mais qui ont disparu de l'agenda actuel sont proposes a la restauration.</p>
+
+    <?php if (empty($fichiersBackup)): ?>
+      <p class="vide">Aucune sauvegarde trouvee pour l'instant. Verifiez que le Cron Job de sauvegarde est bien configure (voir le guide d'installation).</p>
+    <?php else: ?>
+
+      <?php if ($nbRestaures !== null): ?>
+        <p class="info">
+          <?= (int) $nbRestaures ?> rendez-vous restaure(s)<?= $nbRestaures > 0 ? ' (et resynchronise(s) avec Google Calendar si active)' : '' ?>.
+        </p>
+        <p><a href="admin_nettoyage.php">Retour aux sauvegardes</a></p>
+      <?php else: ?>
+
+        <form method="get" style="margin-bottom:16px;">
+          <div class="champ">
+            <label for="sauvegarde">Choisir une sauvegarde</label>
+            <select name="sauvegarde" id="sauvegarde" onchange="this.form.submit()" style="width:100%; font-size:16px; padding:12px; border-radius:8px; border:1.5px solid var(--border);">
+              <option value="">— Selectionner une date —</option>
+              <?php foreach ($fichiersBackup as $chemin):
+                $nom = basename($chemin);
+                $horodatage = preg_replace('/^appointments-([0-9]{4})-([0-9]{2})-([0-9]{2})-([0-9]{2})([0-9]{2})\.json$/', '$3/$2/$1 a $4:$5', $nom);
+              ?>
+                <option value="<?= htmlspecialchars($nom) ?>" <?= $nom === $backupSelectionnee ? 'selected' : '' ?>><?= htmlspecialchars($horodatage) ?></option>
+              <?php endforeach; ?>
+            </select>
+          </div>
+        </form>
+
+        <?php if ($erreurBackup): ?>
+          <p class="erreur"><?= htmlspecialchars($erreurBackup) ?></p>
+        <?php elseif ($backupSelectionnee !== ''): ?>
+          <?php if (empty($rendezVousDisparus)): ?>
+            <p class="vide">Aucun rendez-vous de cette sauvegarde ne manque dans l'agenda actuel.</p>
+          <?php else: ?>
+            <form method="post">
+              <input type="hidden" name="action" value="restaurer_sauvegarde">
+              <input type="hidden" name="fichier" value="<?= htmlspecialchars($backupSelectionnee) ?>">
+              <p><?= count($rendezVousDisparus) ?> rendez-vous de cette sauvegarde manque(nt) actuellement. Decochez ceux a ne pas restaurer.</p>
+
+              <?php foreach ($rendezVousDisparus as $r): ?>
+                <div class="rangee-nett">
+                  <input type="checkbox" checked name="selection[]" value="<?= (int) $r['id'] ?>">
+                  <div class="details">
+                    <div style="font-weight:600;"><?= htmlspecialchars($r['appt_date']) ?> a <?= htmlspecialchars(substr($r['appt_time'], 0, 5)) ?> — <?= htmlspecialchars($r['person']) ?></div>
+                    <div class="champ-avant"><?= htmlspecialchars(isset($r['doctor']) ? $r['doctor'] : '') ?></div>
+                    <?php if (!empty($r['department'])): ?>
+                      <div class="champ-avant"><?= htmlspecialchars($r['department']) ?></div>
+                    <?php endif; ?>
+                    <?php if (!empty($r['location'])): ?>
+                      <div class="champ-avant"><?= htmlspecialchars($r['location']) ?></div>
+                    <?php endif; ?>
+                  </div>
+                </div>
+              <?php endforeach; ?>
+
+              <div class="form-boutons" style="margin-top:16px;">
+                <button class="principal" type="submit">Restaurer la selection</button>
+              </div>
+            </form>
+          <?php endif; ?>
+        <?php endif; ?>
+
+      <?php endif; ?>
+    <?php endif; ?>
+  </div>
+
   <p style="margin-top:2rem;"><a href="index.php">Retour a l'agenda</a></p>
+
+  <div class="overlay" id="overlay"></div>
+
+  <div id="icsCard" class="modal">
+    <div class="modal-corps">
+      <h2>Rendez-vous trouves dans le fichier</h2>
+      <p class="erreur" id="erreurIcs"></p>
+      <div id="listeIcs"></div>
+    </div>
+    <div class="form-boutons">
+      <button class="principal" id="btnImporterSelection">Importer la selection</button>
+      <button class="secondaire" id="btnAnnulerIcs">Annuler</button>
+    </div>
+  </div>
+
+  <script>
+    window.PERSONNE_1 = <?= json_encode($p1) ?>;
+    window.PERSONNE_2 = <?= json_encode($p2) ?>;
+  </script>
+  <script src="assets/admin.js"></script>
 </body>
 </html>

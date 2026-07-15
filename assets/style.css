@@ -451,7 +451,18 @@ button.secondaire:active { transform: scale(0.97); }
   .cc-contenu { min-width: 0; }
   .cc-titre { font-size: 9pt; font-weight: 600; line-height: 1.25; }
   .cc-sous { font-size: 7.5pt; color: #666; font-style: italic; margin-top: 1px; }
-  .cc-adresse { font-size: 7.5pt; color: #666; margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cc-adresse {
+    font-size: 7.5pt;
+    color: #666;
+    margin-top: 1px;
+    line-height: 1.2;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-height: 2.4em;
+  }
   .cc-bas { font-size: 7.5pt; color: #666; margin-top: 1px; }
   .cc-personne { font-weight: 700; }
   .cc-personne.cc-papa { color: var(--papa); }

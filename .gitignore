@@ -8,3 +8,6 @@ Thumbs.db
 
 # Utilitaire a usage unique (ne doit jamais rester en ligne ni dans l'historique)
 generate_password.php.bak
+ 
+# Sauvegardes automatiques (donnees, generees par backup.php, jamais committees)
+backups/*.json

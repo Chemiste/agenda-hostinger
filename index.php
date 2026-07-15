@@ -48,9 +48,6 @@ $p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
     <button class="secondaire" id="btnImprimerCompact">Imprimer (compact)</button>
   </div>
 
-  <button class="secondaire" id="btnImportIcs">Importer un fichier .ics</button>
-  <input type="file" id="fichierIcs" accept=".ics,text/calendar" style="display:none;">
-
   <div id="liste">
     <div class="squelette">
       <div class="squelette-ligne"></div>
@@ -61,18 +58,6 @@ $p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
   <div id="listeCompacte"></div>
 
   <div class="overlay" id="overlay"></div>
-
-  <div id="icsCard" class="modal">
-    <div class="modal-corps">
-      <h2>Rendez-vous trouves dans le fichier</h2>
-      <p class="erreur" id="erreurIcs"></p>
-      <div id="listeIcs"></div>
-    </div>
-    <div class="form-boutons">
-      <button class="principal" id="btnImporterSelection">Importer la selection</button>
-      <button class="secondaire" id="btnAnnulerIcs">Annuler</button>
-    </div>
-  </div>
 
   <div id="formCard" class="modal">
     <div class="modal-corps">
@@ -131,8 +116,6 @@ $p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
   </div>
 
   <button class="fab" id="btnAjouterMobile" aria-label="Ajouter un rendez-vous">+</button>
-
-  <p class="outils-footer"><a href="admin_nettoyage.php">Nettoyer d'anciens rendez-vous</a></p>
 
   <script>
     window.PERSONNE_1 = <?= json_encode($p1) ?>;

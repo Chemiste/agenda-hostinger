@@ -1,0 +1,4 @@
+# Les sauvegardes contiennent toutes les donnees des rendez-vous : aucun
+# acces direct depuis un navigateur, meme en connaissant le nom exact
+# d'un fichier.
+Require all denied
