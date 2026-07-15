@@ -1,11 +1,17 @@
 <?php
 /**
- * ADMINISTRATION : reglages (rappels par email).
+ * ADMINISTRATION : reglages techniques des rappels par email.
  *
  * Page protegee par le mot de passe admin (voir requireAdminLogin()) qui
  * permet de configurer les rappels par email sans avoir a toucher
  * config.php ni redeployer le site : activer/desactiver, delai avant le
- * rendez-vous, adresses email des destinataires, adresse d'expedition.
+ * rendez-vous, adresse email de Chem (destinataire fixe de tous les
+ * rappels), adresse d'expedition.
+ *
+ * Les adresses email de Papa/Maman et leurs preferences ("je veux aussi
+ * etre prevenu des rendez-vous de l'autre") ne sont PAS ici : chacun les
+ * gere lui-meme depuis mes_rappels.php, accessible avec le mot de passe
+ * familial (pas besoin du mot de passe admin).
  *
  * L'envoi effectif des rappels se fait par le script rappels.php, appele
  * periodiquement par un Cron Job Hostinger (voir le guide d'installation)
@@ -18,13 +24,15 @@ require_once __DIR__ . '/lib/db.php';
 require_once __DIR__ . '/lib/settings.php';
 require_once __DIR__ . '/lib/mailer.php';
 
+$config = require __DIR__ . '/config.php';
+$configSmtp = construireConfigSmtp($config);
+
 $db = getDb();
 
 $defauts = [
     'reminder_enabled' => '0',
     'reminder_hours_before' => '24',
     'reminder_email_chem' => '',
-    'reminder_email_parents' => '',
     'reminder_email_from' => 'agenda@hellau.be',
 ];
 $valeurs = [];
@@ -40,7 +48,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $valeurs['reminder_hours_before'] = isset($_POST['reminder_hours_before'])
         ? (string) max(1, (int) $_POST['reminder_hours_before']) : $valeurs['reminder_hours_before'];
     $valeurs['reminder_email_chem'] = isset($_POST['reminder_email_chem']) ? trim($_POST['reminder_email_chem']) : '';
-    $valeurs['reminder_email_parents'] = isset($_POST['reminder_email_parents']) ? trim($_POST['reminder_email_parents']) : '';
     $valeurs['reminder_email_from'] = isset($_POST['reminder_email_from']) ? trim($_POST['reminder_email_from']) : '';
 
     if (isset($_POST['action']) && $_POST['action'] === 'enregistrer') {
@@ -49,21 +56,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         $messageEnregistre = true;
     } elseif (isset($_POST['action']) && $_POST['action'] === 'tester') {
-        $destinataires = array_filter([$valeurs['reminder_email_chem'], $valeurs['reminder_email_parents']]);
-        if (empty($destinataires)) {
+        if ($valeurs['reminder_email_chem'] === '') {
             $resultatTest = [
                 'ok' => false,
-                'message' => 'Aucune adresse email renseignee : remplissez au moins un des deux champs avant de tester.',
+                'message' => 'Renseignez ton adresse email avant de tester.',
             ];
         } else {
             $corps = "Ceci est un email de test envoye depuis la page de reglages de l'agenda medical.\n\n"
                 . "Si vous recevez ce message, l'envoi d'emails fonctionne correctement.\n\n"
                 . "(Pensez a verifier le dossier des indesirables/spam si vous ne le voyez pas dans votre boite de reception principale.)";
-            $envoi = envoyerEmail($destinataires, 'Test - Agenda medical', $corps, $valeurs['reminder_email_from']);
+            $envoi = envoyerEmail([$valeurs['reminder_email_chem']], 'Test - Agenda medical', $corps, $valeurs['reminder_email_from'], $configSmtp);
             $resultatTest = $envoi['ok']
                 ? [
                     'ok' => true,
-                    'message' => 'Email de test envoye a : ' . implode(', ', $destinataires) . '. Verifiez la reception (et le dossier spam).',
+                    'message' => 'Email de test envoye a : ' . $valeurs['reminder_email_chem'] . '. Verifiez la reception (et le dossier spam).',
                 ]
                 : [
                     'ok' => false,
@@ -105,7 +111,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   <div class="outil">
     <h2>Rappels par email</h2>
-    <p class="sous-titre">Envoie un email avant chaque rendez-vous à venir, à toi et/ou à tes parents. L'envoi effectif est fait par un Cron Job Hostinger qui appelle <code>rappels.php</code> régulièrement (voir le guide d'installation) — cette page enregistre juste les réglages qu'il utilisera.</p>
+    <p class="sous-titre">Réglages techniques (délai, activer/désactiver, ta propre adresse, adresse d'expédition). L'envoi effectif est fait par un Cron Job Hostinger qui appelle <code>rappels.php</code> régulièrement (voir le guide d'installation) — cette page enregistre juste les réglages qu'il utilisera.</p>
+    <p class="sous-titre">Les adresses email de tes parents et leurs préférences ("aussi recevoir les rappels de l'autre") ne se règlent pas ici : chacun les gère lui-même depuis <a href="mes_rappels.php">mes_rappels.php</a>, accessible avec le mot de passe familial.</p>
+
+    <?php if ($configSmtp === null): ?>
+      <p class="aide" style="color:#c60;">Envoi via <code>mail()</code> natif (aucun serveur SMTP renseigné dans <code>config.php</code>) : les emails ont plus de risques d'atterrir en indésirables. Voir le guide d'installation, section "Rappels par email", pour configurer un envoi SMTP authentifié — nettement plus fiable.</p>
+    <?php else: ?>
+      <p class="aide">Envoi via SMTP authentifié (<?= htmlspecialchars($configSmtp['host']) ?>) — configuration recommandée, déjà active.</p>
+    <?php endif; ?>
 
     <?php if ($messageEnregistre): ?>
       <p class="info">Réglages enregistrés.</p>
@@ -130,12 +143,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <div class="champ">
         <label>Ton adresse email (Chem)</label>
         <input type="email" name="reminder_email_chem" value="<?= htmlspecialchars($valeurs['reminder_email_chem']) ?>" placeholder="toi@example.com">
-      </div>
-
-      <div class="champ">
-        <label>Adresse email de tes parents</label>
-        <input type="email" name="reminder_email_parents" value="<?= htmlspecialchars($valeurs['reminder_email_parents']) ?>" placeholder="parents@example.com">
-        <p class="aide">Laisse vide si un seul des deux champs doit recevoir les rappels.</p>
+        <p class="aide">Tu reçois un rappel pour tous les rendez-vous, quels que soient les réglages de tes parents.</p>
       </div>
 
       <div class="champ">

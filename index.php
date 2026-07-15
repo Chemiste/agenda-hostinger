@@ -22,7 +22,10 @@ $p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
         <h1>Agenda médical</h1>
         <p class="sous-titre">Rendez-vous de <?= htmlspecialchars($p1) ?> et <?= htmlspecialchars($p2) ?></p>
       </div>
-      <a class="deconnexion" href="logout.php">Déconnexion</a>
+      <div style="display:flex; align-items:center; gap:4px; flex-wrap:wrap;">
+        <a class="deconnexion" href="mes_rappels.php">Rappels par email</a>
+        <a class="deconnexion" href="logout.php">Déconnexion</a>
+      </div>
     </div>
 
     <div class="tabs" id="tabs">

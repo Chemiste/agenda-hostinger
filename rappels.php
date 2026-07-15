@@ -12,8 +12,10 @@
  * éviter que n'importe qui puisse déclencher l'envoi en tombant sur cette
  * page. Générez-la par exemple avec `openssl rand -hex 20`.
  *
- * Les réglages (activé/désactivé, délai, destinataires, expéditeur) se
- * configurent depuis la page admin_reglages.php, pas ici.
+ * Les réglages techniques (activé/désactivé, délai, adresse de Chem,
+ * expéditeur) se configurent depuis admin_reglages.php. Les adresses de
+ * Papa/Maman et leurs préférences ("aussi recevoir les rappels de
+ * l'autre") se configurent depuis mes_rappels.php, pas ici.
  *
  * À chaque appel : cherche les rendez-vous à venir dont l'heure de rappel
  * (date/heure du rendez-vous moins le délai réglé) est déjà passée, mais
@@ -28,6 +30,7 @@ require_once __DIR__ . '/lib/mailer.php';
 
 $config = require __DIR__ . '/config.php';
 $token = isset($config['reminder_token']) ? $config['reminder_token'] : '';
+$configSmtp = construireConfigSmtp($config);
 
 header('Content-Type: text/plain; charset=utf-8');
 
@@ -62,14 +65,45 @@ if ($heures < 1) {
     $heures = 24;
 }
 
-$emailChem = trim(getSetting($db, 'reminder_email_chem', ''));
-$emailParents = trim(getSetting($db, 'reminder_email_parents', ''));
-$emailFrom = trim(getSetting($db, 'reminder_email_from', ''));
-$destinataires = array_filter([$emailChem, $emailParents]);
+$p1 = isset($config['personne_1']) ? $config['personne_1'] : 'Papa';
+$p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
 
-if (empty($destinataires)) {
-    echo "Rappels activés mais aucune adresse email configurée (admin_reglages.php).";
+$emailChem = trim(getSetting($db, 'reminder_email_chem', ''));
+$emailFrom = trim(getSetting($db, 'reminder_email_from', ''));
+$emailPerson1 = trim(getSetting($db, 'reminder_email_person1', ''));
+$notifySelfPerson1 = getSetting($db, 'reminder_notify_self_person1', '1') === '1';
+$notifyOtherPerson1 = getSetting($db, 'reminder_notify_other_person1', '0') === '1';
+$emailPerson2 = trim(getSetting($db, 'reminder_email_person2', ''));
+$notifySelfPerson2 = getSetting($db, 'reminder_notify_self_person2', '1') === '1';
+$notifyOtherPerson2 = getSetting($db, 'reminder_notify_other_person2', '0') === '1';
+
+if ($emailChem === '' && $emailPerson1 === '' && $emailPerson2 === '') {
+    echo "Rappels activés mais aucune adresse email configurée (admin_reglages.php / mes_rappels.php).";
     exit;
+}
+
+// Destinataires pour un rendez-vous donne : la personne concernee (si
+// elle a renseigne son email ET n'a pas desactive ses propres rappels),
+// plus l'autre personne si elle a choisi de recevoir aussi les rappels de
+// celle-ci, plus Chem dans tous les cas (destinataire fixe, voir
+// admin_reglages.php).
+function destinatairesRappel(
+    $personneRdv, $p1, $p2,
+    $emailPerson1, $notifySelfPerson1, $notifyOtherPerson1,
+    $emailPerson2, $notifySelfPerson2, $notifyOtherPerson2,
+    $emailChem
+) {
+    $destinataires = [];
+    if ($personneRdv === $p1) {
+        if ($emailPerson1 !== '' && $notifySelfPerson1) $destinataires[] = $emailPerson1;
+        if ($notifyOtherPerson2 && $emailPerson2 !== '') $destinataires[] = $emailPerson2;
+    } elseif ($personneRdv === $p2) {
+        if ($emailPerson2 !== '' && $notifySelfPerson2) $destinataires[] = $emailPerson2;
+        if ($notifyOtherPerson1 && $emailPerson1 !== '') $destinataires[] = $emailPerson1;
+    }
+    if ($emailChem !== '') $destinataires[] = $emailChem;
+
+    return array_values(array_unique($destinataires));
 }
 
 $stmt = $db->prepare(
@@ -102,8 +136,20 @@ function formaterDateFr($appt_date, $appt_time, $joursFr, $moisFr) {
 
 $envoyes = 0;
 $echecs = 0;
+$ignores = 0;
 
 foreach ($rdvs as $rdv) {
+    $destinataires = destinatairesRappel(
+        $rdv['person'], $p1, $p2,
+        $emailPerson1, $notifySelfPerson1, $notifyOtherPerson1,
+        $emailPerson2, $notifySelfPerson2, $notifyOtherPerson2,
+        $emailChem
+    );
+    if (empty($destinataires)) {
+        $ignores++;
+        continue;
+    }
+
     $quand = formaterDateFr($rdv['appt_date'], $rdv['appt_time'], $joursFr, $moisFr);
 
     $lignes = [];
@@ -123,9 +169,9 @@ foreach ($rdvs as $rdv) {
 
     $sujet = 'Rappel : rendez-vous ' . $rdv['person'] . ' - ' . $quand;
 
-    $ok = envoyerEmail($destinataires, $sujet, $corps, $emailFrom);
+    $envoi = envoyerEmail($destinataires, $sujet, $corps, $emailFrom, $configSmtp);
 
-    if ($ok) {
+    if ($envoi['ok']) {
         $maj = $db->prepare('UPDATE appointments SET reminder_sent_at = NOW() WHERE id = ?');
         $maj->execute([$rdv['id']]);
         $envoyes++;
@@ -134,4 +180,7 @@ foreach ($rdvs as $rdv) {
     }
 }
 
-echo "OK : $envoyes rappel(s) envoyé(s)" . ($echecs > 0 ? ", $echecs échec(s)" : '') . '.';
+echo "OK : $envoyes rappel(s) envoyé(s)"
+    . ($echecs > 0 ? ", $echecs échec(s)" : '')
+    . ($ignores > 0 ? ", $ignores ignoré(s) (aucun destinataire configuré)" : '')
+    . '.';
