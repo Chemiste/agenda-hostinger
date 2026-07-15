@@ -3,7 +3,7 @@
  * Reglages modifiables depuis une page d'administration (table
  * "settings", simple cle/valeur - voir migrations/0007_add_settings.sql),
  * sans avoir a toucher config.php ni redeployer le site. Utilise pour le
- * moment par les reglages des rappels par email (admin_reglages.php).
+ * moment par les reglages des rappels par email (admin/reglages.php).
  */
 
 function getSetting($db, $key, $default = '') {

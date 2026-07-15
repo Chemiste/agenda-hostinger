@@ -13,7 +13,11 @@ function isLoggedIn() {
 
 function requireLogin() {
     if (!isLoggedIn()) {
-        header('Location: login.php');
+        // Chemin absolu (depuis la racine du site) plutot que relatif : les
+        // pages qui appellent cette fonction ne sont pas toutes au meme
+        // niveau (racine, admin/, outils/...), un chemin relatif se
+        // resoudrait differemment selon d'ou l'appel vient.
+        header('Location: /login.php');
         exit;
     }
 }
@@ -50,7 +54,7 @@ function isAdminLoggedIn() {
 function requireAdminLogin() {
     requireLogin();
     if (!isAdminLoggedIn()) {
-        header('Location: admin_login.php');
+        header('Location: /admin/login.php');
         exit;
     }
 }

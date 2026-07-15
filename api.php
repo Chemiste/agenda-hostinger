@@ -132,7 +132,7 @@ function updateAppointmentAction($db, $sync, $appt) {
     }
 
     // Si la date/heure change, on remet le rappel à zéro pour qu'il soit
-    // renvoyé au bon moment pour le nouvel horaire (voir rappels.php).
+    // renvoyé au bon moment pour le nouvel horaire (voir cron/rappels.php).
     $dateHeureChangee = ($row['appt_date'] !== $appt['date']) || (substr($row['appt_time'], 0, 5) !== $appt['time']);
 
     $upd = $db->prepare(

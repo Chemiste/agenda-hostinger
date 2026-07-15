@@ -1,5 +1,92 @@
 # Journal des versions
 
+## v2.0.0 — 2026-07-15
+
+- **Réorganisation des fichiers en sous-dossiers thématiques (changement de
+  structure).** Les pages admin, les scripts Cron et les outils
+  d'installation/maintenance à usage ponctuel étaient jusqu'ici tous mêlés
+  à la racine du site avec les pages publiques — plus difficile à s'y
+  retrouver à mesure que le projet grossit. Nouvelle organisation :
+  - `admin/` : `login.php`, `logout.php`, `nettoyage.php`, `reglages.php`
+    (anciennement `admin_login.php`, `admin_logout.php`,
+    `admin_nettoyage.php`, `admin_reglages.php`) ;
+  - `cron/` : `backup.php`, `rappels.php` — les deux scripts destinés à
+    être appelés périodiquement par un Cron Job Hostinger ;
+  - `outils/` : `migrate.php`, `generate_password.php`,
+    `import_calendar.php` — outils d'installation ou de maintenance
+    ponctuelle.
+  Restent à la racine (pages publiques ou fichiers partagés par tous les
+  environnements) : `index.php`, `login.php`, `logout.php`, `api.php`,
+  `mes_rappels.php`, `config.php`.
+- Tous les liens, redirections et références aux assets (CSS, JS) ont été
+  convertis en chemins absolus (`/assets/...`, `/admin/...`, etc.) plutôt
+  que relatifs, pour fonctionner correctement quelle que soit la
+  profondeur du dossier où se trouve la page. `assets/admin.js` a été
+  corrigé dans la foulée (l'appel à `api.php` utilisait un chemin relatif
+  qui se serait mal résolu une fois `nettoyage.php` déplacé dans `admin/`).
+  Tous les fichiers déplacés ont été revérifiés syntaxiquement.
+  **Changement cassant** : si vous mettez à jour un site déjà installé,
+  voir la section "Mise à jour depuis une version antérieure..." du
+  `Guide_installation_hostinger.md` — il faut supprimer les anciens
+  fichiers racine, mettre à jour les deux Cron Jobs (nouvelles URLs
+  `cron/backup.php` et `cron/rappels.php`) et le favori vers la page
+  d'administration (nouvelle adresse `admin/nettoyage.php`).
+
+## v1.16.1 — 2026-07-15
+
+- `mes_rappels.php` : ajout d'une case "Je souhaite recevoir un rappel
+  pour mes rendez-vous", indépendante du champ email. Auparavant, la
+  seule façon de désactiver ses propres rappels était d'effacer son
+  adresse email — désormais on peut couper l'envoi tout en gardant
+  l'adresse enregistrée (pratique pour la réactiver plus tard sans avoir
+  à la retaper). Réglage `reminder_notify_self_person1`/`_person2`,
+  activé par défaut pour ne pas couper les rappels de ceux qui avaient
+  déjà renseigné leur adresse avant cette version.
+
+## v1.16.0 — 2026-07-15
+
+- **Rappels par email : préférences par personne, gérées par chacun.**
+  Le champ admin unique "email des parents" est remplacé par une nouvelle
+  page **`mes_rappels.php`**, accessible avec le mot de passe familial
+  (pas besoin du mot de passe admin) et reliée par un lien "Rappels par
+  email" en haut de l'agenda. Chaque parent y renseigne sa propre adresse
+  email et peut cocher "Recevoir aussi les rappels des rendez-vous de
+  [l'autre]" pour être prévenu des deux agendas plutôt que du sien
+  seulement — chacun règle ça indépendamment, à tout moment. Chem reste
+  destinataire fixe de tous les rappels (réglage inchangé dans
+  `admin_reglages.php`, qui ne gère plus que les réglages techniques :
+  activer/désactiver, délai, adresse d'expédition, adresse de Chem).
+  `rappels.php` calcule maintenant les destinataires rendez-vous par
+  rendez-vous plutôt qu'une liste unique pour tous les envois. Les anciens
+  réglages ne sont pas perdus : `mes_rappels.php` les reprend comme valeur
+  de départ la première fois qu'on l'ouvre.
+
+## v1.15.0 — 2026-07-15
+
+- **Rappels par email : envoi via SMTP authentifié (recommandé).** La
+  fonction `mail()` native de PHP fonctionne mais atterrit très souvent en
+  indésirables, même avec un domaine correctement configuré (SPF/DKIM),
+  car l'email n'est pas authentifié comme venant réellement de la boîte
+  d'expédition — c'est un comportement documenté par Hostinger, qui
+  recommande officiellement de passer par SMTP. `lib/mailer.php` propose
+  maintenant les deux : si un serveur SMTP est renseigné dans `config.php`
+  (`smtp_host`, `smtp_port`, `smtp_securite`, `smtp_utilisateur`,
+  `smtp_mot_de_passe`), les rappels sont envoyés via une connexion SMTP
+  authentifiée à une vraie boîte mail (nettement plus fiable) ; sinon,
+  repli automatique sur `mail()` comme avant. Le client SMTP est écrit à
+  la main (aucune dépendance externe, même principe que la synchro Google
+  Calendar). `admin_reglages.php` affiche désormais laquelle des deux
+  méthodes est active. Voir `Guide_installation_hostinger.md`, section
+  "Rappels par email", pour la marche à suivre.
+
+## v1.14.1 — 2026-07-15
+
+- Rappels par email : le bouton "Envoyer un email de test" affichait un
+  message générique en cas d'échec ("L'envoi a échoué"), impossible à
+  diagnostiquer. `lib/mailer.php` capture maintenant le message
+  d'avertissement PHP réel émis par `mail()` et l'affiche directement sur
+  la page de réglages (`admin_reglages.php`).
+
 ## v1.14.0 — 2026-07-15
 
 - **Rappels par email.** Un email peut désormais être envoyé avant chaque

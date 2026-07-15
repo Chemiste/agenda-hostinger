@@ -3,14 +3,14 @@
  * Runner de migrations de base de données.
  *
  * Utilisation en local (développement) :
- *   php migrate.php
+ *   php outils/migrate.php
  *
  * Utilisation sur le serveur de production (si vous avez un accès SSH) :
- *   php migrate.php
+ *   php outils/migrate.php
  *
  * Sans accès SSH, ouvrez ce fichier dans le navigateur
- * (https://agenda.hellau.be/migrate.php) : il vous demandera de vous
- * connecter puis de confirmer avant d'appliquer quoi que ce soit.
+ * (https://agenda.hellau.be/outils/migrate.php) : il vous demandera de
+ * vous connecter puis de confirmer avant d'appliquer quoi que ce soit.
  *
  * Chaque fichier .sql du dossier migrations/ est appliqué une seule fois,
  * dans l'ordre alphabétique (d'où les noms 0001_..., 0002_..., etc).
@@ -18,10 +18,10 @@
  * "schema_migrations" et ne sont jamais rejouées.
  */
 
-require_once __DIR__ . '/lib/db.php';
+require_once __DIR__ . '/../lib/db.php';
 
 function migrationsDisponibles() {
-    $fichiers = glob(__DIR__ . '/migrations/*.sql');
+    $fichiers = glob(__DIR__ . '/../migrations/*.sql');
     sort($fichiers);
     return $fichiers;
 }
@@ -128,7 +128,7 @@ if (php_sapi_name() === 'cli') {
 }
 
 // --- Mode navigateur (nécessite d'être connecté) ---
-require_once __DIR__ . '/lib/auth.php';
+require_once __DIR__ . '/../lib/auth.php';
 requireLogin();
 
 $erreur = '';
@@ -152,7 +152,7 @@ $enAttente = array_map('basename', migrationsEnAttente($db));
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Migrations - Agenda médical</title>
-<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="/assets/style.css">
 </head>
 <body>
   <h1>Migrations de la base de données</h1>
@@ -187,6 +187,6 @@ $enAttente = array_map('basename', migrationsEnAttente($db));
     </form>
   <?php endif; ?>
 
-  <p style="margin-top:2rem;"><a href="index.php">Retour à l'agenda</a></p>
+  <p style="margin-top:2rem;"><a href="/index.php">Retour à l'agenda</a></p>
 </body>
 </html>

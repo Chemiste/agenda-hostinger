@@ -2,7 +2,7 @@
 require_once __DIR__ . '/lib/auth.php';
 
 if (isLoggedIn()) {
-    header('Location: index.php');
+    header('Location: /index.php');
     exit;
 }
 
@@ -10,7 +10,7 @@ $erreur = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $motDePasse = $_POST['password'] ?? '';
     if (attemptLogin($motDePasse)) {
-        header('Location: index.php');
+        header('Location: /index.php');
         exit;
     }
     $erreur = 'Mot de passe incorrect.';
@@ -22,7 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Connexion - Agenda médical</title>
-<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="/assets/style.css">
 </head>
 <body class="page-login">
   <div class="login-card">

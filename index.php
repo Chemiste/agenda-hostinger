@@ -12,7 +12,7 @@ $p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Agenda médical</title>
-<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="/assets/style.css">
 </head>
 <body>
 
@@ -23,8 +23,8 @@ $p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
         <p class="sous-titre">Rendez-vous de <?= htmlspecialchars($p1) ?> et <?= htmlspecialchars($p2) ?></p>
       </div>
       <div style="display:flex; align-items:center; gap:4px; flex-wrap:wrap;">
-        <a class="deconnexion" href="mes_rappels.php">Rappels par email</a>
-        <a class="deconnexion" href="logout.php">Déconnexion</a>
+        <a class="deconnexion" href="/mes_rappels.php">Rappels par email</a>
+        <a class="deconnexion" href="/logout.php">Déconnexion</a>
       </div>
     </div>
 
@@ -125,6 +125,6 @@ $p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
     window.PERSONNE_1 = <?= json_encode($p1) ?>;
     window.PERSONNE_2 = <?= json_encode($p2) ?>;
   </script>
-  <script src="assets/app.js"></script>
+  <script src="/assets/app.js"></script>
 </body>
 </html>

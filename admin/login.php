@@ -1,9 +1,9 @@
 <?php
-require_once __DIR__ . '/lib/auth.php';
+require_once __DIR__ . '/../lib/auth.php';
 requireLogin();
 
 if (isAdminLoggedIn()) {
-    header('Location: admin_nettoyage.php');
+    header('Location: /admin/nettoyage.php');
     exit;
 }
 
@@ -11,7 +11,7 @@ $erreur = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $motDePasse = $_POST['password'] ?? '';
     if (attemptAdminLogin($motDePasse)) {
-        header('Location: admin_nettoyage.php');
+        header('Location: /admin/nettoyage.php');
         exit;
     }
     $erreur = 'Mot de passe incorrect.';
@@ -23,7 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Administration - Agenda médical</title>
-<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="/assets/style.css">
 </head>
 <body class="page-login">
   <div class="login-card">
@@ -36,7 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <input type="password" name="password" placeholder="Mot de passe admin" autofocus required>
       <button class="principal" type="submit">Entrer</button>
     </form>
-    <p style="margin-top:16px;"><a href="index.php">Retour à l'agenda</a></p>
+    <p style="margin-top:16px;"><a href="/index.php">Retour à l'agenda</a></p>
   </div>
 </body>
 </html>

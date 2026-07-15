@@ -36,7 +36,7 @@ cp config.example.php config.php
 - `db_name` → `agenda_dev`
 - `db_user` → `agenda_dev`
 - `db_pass` → `un_mot_de_passe_local`
-- `family_password_hash` → générez-le en local avec `generate_password.php` (voir ci-dessous)
+- `family_password_hash` → générez-le en local avec `outils/generate_password.php` (voir ci-dessous)
 - laissez `google_calendar_id` vide en local (pas besoin de polluer votre vrai calendrier pendant les tests)
 
 `config.php` est ignoré par Git (`.gitignore`) : chaque environnement (votre machine, le serveur Hostinger) a le sien, jamais partagé ni commité.
@@ -44,12 +44,12 @@ cp config.example.php config.php
 ## 3. Créer les tables et générer un mot de passe de test
 
 ```
-php migrate.php
+php outils/migrate.php
 ```
 
 Ça crée la table `appointments` (et la table technique `schema_migrations` qui garde la trace de ce qui a été appliqué).
 
-Pour le mot de passe : lancez le serveur de dev (étape suivante), ouvrez `http://localhost:8000/generate_password.php`, générez un hash, collez-le dans `config.php`, puis supprimez le fichier ou laissez-le (en local ce n'est pas grave, mais ne le mettez jamais en prod — il est justement listé pour rappel dans le guide Hostinger).
+Pour le mot de passe : lancez le serveur de dev (étape suivante), ouvrez `http://localhost:8000/outils/generate_password.php`, générez un hash, collez-le dans `config.php`, puis supprimez le fichier ou laissez-le (en local ce n'est pas grave, mais ne le mettez jamais en prod — il est justement listé pour rappel dans le guide Hostinger).
 
 ## 4. Lancer le site en local
 
@@ -91,7 +91,7 @@ Dès que vous modifiez la table `appointments` (nouvelle colonne, nouvel index, 
    ```sql
    ALTER TABLE appointments ADD COLUMN duree_minutes INT NOT NULL DEFAULT 30;
    ```
-2. Testez en local : `php migrate.php` — il ne joue que les migrations pas encore appliquées.
+2. Testez en local : `php outils/migrate.php` — il ne joue que les migrations pas encore appliquées.
 3. Vérifiez que le site fonctionne toujours avec la nouvelle colonne.
 4. Committez le fichier de migration avec le reste du code, mettez à jour `CHANGELOG.md`, taguez la version.
 
@@ -99,8 +99,8 @@ Dès que vous modifiez la table `appointments` (nouvelle colonne, nouvel index, 
 
 1. Envoyez sur Hostinger uniquement les fichiers qui ont changé (via le Gestionnaire de fichiers ou FTP), y compris les nouveaux fichiers dans `migrations/` s'il y en a.
 2. Si de nouvelles migrations existent, appliquez-les sur le serveur :
-   - **Avec accès SSH** (si votre plan Hostinger le propose) : connectez-vous et lancez `php migrate.php`.
-   - **Sans accès SSH** : ouvrez `https://agenda.hellau.be/migrate.php` dans le navigateur, connectez-vous avec le mot de passe familial, la page liste les migrations en attente, cliquez sur **Lancer les migrations**.
+   - **Avec accès SSH** (si votre plan Hostinger le propose) : connectez-vous et lancez `php outils/migrate.php`.
+   - **Sans accès SSH** : ouvrez `https://agenda.hellau.be/outils/migrate.php` dans le navigateur, connectez-vous avec le mot de passe familial, la page liste les migrations en attente, cliquez sur **Lancer les migrations**.
 3. Rechargez le site et vérifiez que tout fonctionne.
 
 `config.php` reste propre à chaque environnement : ne le copiez jamais de votre machine vers le serveur (les identifiants de base de données et le mot de passe familial sont différents entre local et production).

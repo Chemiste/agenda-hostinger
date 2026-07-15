@@ -3,7 +3,7 @@
  * ADMINISTRATION : nettoyage des rendez-vous, import .ics et sauvegardes.
  *
  * Outil de maintenance, protégé par un DEUXIÈME mot de passe (distinct
- * du mot de passe familial, voir requireAdminLogin() / admin_login.php)
+ * du mot de passe familial, voir requireAdminLogin() / admin/login.php)
  * pour que le reste de la famille n'y ait pas accès même s'il tombe sur
  * l'URL de cette page.
  *
@@ -24,21 +24,22 @@
  *     rendez-vous ... Route NNN Tél : ...") et les range dans les champs
  *     Téléphone et Route.
  *  5. "Sauvegardes" : consulte les sauvegardes automatiques (voir
- *     backup.php) et restaure un rendez-vous supprimé par erreur.
+ *     cron/backup.php) et restaure un rendez-vous supprimé par erreur.
  *
  * Pour les outils 2 à 4, si le rendez-vous est déjà synchronisé avec
  * Google Calendar, l'événement est mis à jour.
  *
- * À garder sur le serveur : contrairement à import_calendar.php, cet outil
- * n'est pas à usage unique, pas besoin de le supprimer après usage.
+ * À garder sur le serveur : contrairement à outils/import_calendar.php,
+ * cet outil n'est pas à usage unique, pas besoin de le supprimer après
+ * usage.
  */
 
-require_once __DIR__ . '/lib/auth.php';
+require_once __DIR__ . '/../lib/auth.php';
 requireAdminLogin();
-require_once __DIR__ . '/lib/db.php';
-require_once __DIR__ . '/lib/calendar_sync.php';
+require_once __DIR__ . '/../lib/db.php';
+require_once __DIR__ . '/../lib/calendar_sync.php';
 
-$config = require __DIR__ . '/config.php';
+$config = require __DIR__ . '/../config.php';
 $sync = new CalendarSync($config['google_service_account_path'], $config['google_calendar_id']);
 $db = getDb();
 
@@ -58,7 +59,7 @@ $resultatsNoms = [];
 $resultatApplicationNoms = null;
 
 // --- Sauvegardes : lister les fichiers disponibles (voir backup.php) ---
-$dossierBackups = __DIR__ . '/backups';
+$dossierBackups = __DIR__ . '/../backups';
 $fichiersBackup = [];
 if (is_dir($dossierBackups)) {
     $fichiersBackup = glob($dossierBackups . '/appointments-*.json');
@@ -540,7 +541,7 @@ try {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Nettoyage des rendez-vous — Administration</title>
-<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="/assets/style.css">
 <style>
   .rangee-nett { display:flex; align-items:flex-start; gap:10px; padding:12px 0; border-bottom:1px solid var(--border); }
   .rangee-nett input[type=checkbox] { width:20px; height:20px; margin-top:3px; }
@@ -563,11 +564,11 @@ try {
   <div class="barre-admin">
     <h1 style="margin:0;">Administration</h1>
     <div>
-      <a href="admin_reglages.php">Réglages</a>
+      <a href="/admin/reglages.php">Réglages</a>
       &nbsp;·&nbsp;
-      <a href="index.php">Retour à l'agenda</a>
+      <a href="/index.php">Retour à l'agenda</a>
       &nbsp;·&nbsp;
-      <a href="admin_logout.php">Déconnexion admin</a>
+      <a href="/admin/logout.php">Déconnexion admin</a>
     </div>
   </div>
   <p class="sous-titre">Import .ics, correction des rendez-vous existants et sauvegardes.</p>
@@ -590,7 +591,7 @@ try {
           <?= (int) $resultatApplicationTel['ignores'] ?> avaient déjà le champ Téléphone ou Route rempli (texte tout de même nettoyé, valeur existante conservée).
         <?php endif; ?>
       </p>
-      <p><a href="admin_nettoyage.php">Relancer une recherche</a></p>
+      <p><a href="/admin/nettoyage.php">Relancer une recherche</a></p>
     <?php else: ?>
 
       <form method="post">
@@ -653,7 +654,7 @@ try {
 
     <?php if ($resultatApplicationNoms !== null): ?>
       <p class="info"><?= (int) $resultatApplicationNoms['modifies'] ?> rendez-vous corrigé(s).</p>
-      <p><a href="admin_nettoyage.php">Relancer une recherche</a></p>
+      <p><a href="/admin/nettoyage.php">Relancer une recherche</a></p>
     <?php else: ?>
 
       <form method="post">
@@ -707,7 +708,7 @@ try {
           <?= (int) $resultatApplication['ignores'] ?> ignoré(s) car le champ de destination était déjà rempli (à corriger manuellement si besoin).
         <?php endif; ?>
       </p>
-      <p><a href="index.php">Voir l'agenda</a> · <a href="admin_nettoyage.php">Faire un autre nettoyage</a></p>
+      <p><a href="/index.php">Voir l'agenda</a> · <a href="/admin/nettoyage.php">Faire un autre nettoyage</a></p>
 
     <?php else: ?>
 
@@ -798,7 +799,7 @@ try {
         <p class="info">
           <?= (int) $nbRestaures ?> rendez-vous restauré(s)<?= $nbRestaures > 0 ? ' (et resynchronisé(s) avec Google Calendar si activé)' : '' ?>.
         </p>
-        <p><a href="admin_nettoyage.php">Retour aux sauvegardes</a></p>
+        <p><a href="/admin/nettoyage.php">Retour aux sauvegardes</a></p>
       <?php else: ?>
 
         <form method="get" style="margin-bottom:16px;">
@@ -854,7 +855,7 @@ try {
     <?php endif; ?>
   </div>
 
-  <p style="margin-top:2rem;"><a href="index.php">Retour à l'agenda</a></p>
+  <p style="margin-top:2rem;"><a href="/index.php">Retour à l'agenda</a></p>
 
   <div class="overlay" id="overlay"></div>
 
@@ -874,6 +875,6 @@ try {
     window.PERSONNE_1 = <?= json_encode($p1) ?>;
     window.PERSONNE_2 = <?= json_encode($p2) ?>;
   </script>
-  <script src="assets/admin.js"></script>
+  <script src="/assets/admin.js"></script>
 </body>
 </html>

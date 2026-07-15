@@ -5,7 +5,7 @@
  * choisit sa propre adresse email, peut activer/desactiver les rappels
  * pour lui-meme (sans avoir a effacer son adresse), et peut aussi choisir
  * d'etre prevenu des rendez-vous de l'autre personne. Contrairement a
- * admin_reglages.php (delai, activer/desactiver globalement, adresse
+ * admin/reglages.php (delai, activer/desactiver globalement, adresse
  * d'expedition), ces reglages-ci sont penses pour etre modifies
  * directement par la famille, sans passer par l'administration.
  */
@@ -92,7 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Rappels par email</title>
-<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="/assets/style.css">
 <style>
   .outil { background:#fff; border-radius:12px; padding:18px; margin-bottom:24px; box-shadow: var(--shadow-sm); }
   .outil h2 { margin-top:0; }
@@ -108,7 +108,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <div class="barre-admin">
     <h1 style="margin:0;">Rappels par email</h1>
     <div>
-      <a href="index.php">Retour à l'agenda</a>
+      <a href="/index.php">Retour à l'agenda</a>
     </div>
   </div>
   <p class="sous-titre">Chacun renseigne ici son adresse email, active ou désactive les rappels pour lui-même (sans avoir à effacer son adresse), et peut aussi choisir d'être prévenu des rendez-vous de l'autre.</p>

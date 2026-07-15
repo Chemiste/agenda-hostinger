@@ -5,7 +5,7 @@
  * Destiné à être appelé périodiquement par un Cron Job Hostinger (hPanel
  * > Avancé > Cron Jobs), par exemple chaque nuit à 3h, en visitant :
  *
- *   https://votre-domaine/backup.php?token=VOTRE_JETON
+ *   https://votre-domaine/cron/backup.php?token=VOTRE_JETON
  *
  * VOTRE_JETON est la valeur de 'backup_token' dans config.php : ce n'est
  * pas un mot de passe interactif (il n'y a pas de formulaire), juste une
@@ -21,15 +21,15 @@
  * accumuler indéfiniment.
  *
  * En cas de suppression accidentelle d'un rendez-vous, la page
- * admin_nettoyage.php (section "Sauvegardes") permet de comparer une
+ * admin/nettoyage.php (section "Sauvegardes") permet de comparer une
  * sauvegarde à l'état actuel et de restaurer les rendez-vous disparus.
  */
 
-require_once __DIR__ . '/lib/db.php';
+require_once __DIR__ . '/../lib/db.php';
 
 const RETENTION_JOURS = 60;
 
-$config = require __DIR__ . '/config.php';
+$config = require __DIR__ . '/../config.php';
 $token = isset($config['backup_token']) ? $config['backup_token'] : '';
 
 header('Content-Type: text/plain; charset=utf-8');
@@ -47,7 +47,7 @@ if (!is_string($fourni) || $fourni === '' || !hash_equals($token, $fourni)) {
     exit;
 }
 
-$dossier = __DIR__ . '/backups';
+$dossier = __DIR__ . '/../backups';
 if (!is_dir($dossier)) {
     mkdir($dossier, 0755, true);
 }

@@ -68,7 +68,7 @@ class CalendarSync {
      * Liste les evenements existants du calendrier entre deux dates
      * (format ISO 8601, ex : '2026-01-01T00:00:00Z'). Utilise pour
      * l'import ponctuel des rendez-vous deja presents dans le calendrier
-     * (voir import_calendar.php). Les evenements recurrents sont
+     * (voir outils/import_calendar.php). Les evenements recurrents sont
      * "deplies" en occurrences individuelles (singleEvents=true).
      */
     public function listEvents($timeMin, $timeMax) {

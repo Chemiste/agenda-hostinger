@@ -32,7 +32,7 @@ document.getElementById('overlay').addEventListener('click', function () {
 });
 
 function appelApi(action, corps) {
-  return fetch('api.php?action=' + action, {
+  return fetch('/api.php?action=' + action, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(corps || {})
@@ -45,7 +45,7 @@ function appelApi(action, corps) {
 }
 
 function charger() {
-  fetch('api.php?action=list')
+  fetch('/api.php?action=list')
     .then(function (r) {
       return r.json().then(function (data) {
         if (!r.ok || !Array.isArray(data)) {

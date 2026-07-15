@@ -16,12 +16,12 @@
  * rester accessible en ligne.
  */
 
-require_once __DIR__ . '/lib/auth.php';
+require_once __DIR__ . '/../lib/auth.php';
 requireLogin();
-require_once __DIR__ . '/lib/db.php';
-require_once __DIR__ . '/lib/calendar_sync.php';
+require_once __DIR__ . '/../lib/db.php';
+require_once __DIR__ . '/../lib/calendar_sync.php';
 
-$config = require __DIR__ . '/config.php';
+$config = require __DIR__ . '/../config.php';
 $sync = new CalendarSync($config['google_service_account_path'], $config['google_calendar_id']);
 $db = getDb();
 
@@ -149,7 +149,7 @@ if (!$erreur && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Import depuis Google Calendar</title>
-<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="/assets/style.css">
 <style>
   .rangee-evt { display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--border); }
   .rangee-evt input[type=checkbox] { width:20px; height:20px; }
@@ -172,7 +172,7 @@ if (!$erreur && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])
         <?= (int) $resultatImport['ignores'] ?> ignoré(s) (déjà importés précédemment).
       <?php endif; ?>
     </p>
-    <p><a href="index.php">Voir l'agenda</a> · <a href="import_calendar.php">Relancer un import</a> (sur une autre période par exemple)</p>
+    <p><a href="/index.php">Voir l'agenda</a> · <a href="/outils/import_calendar.php">Relancer un import</a> (sur une autre période par exemple)</p>
 
   <?php else: ?>
 
@@ -243,6 +243,6 @@ if (!$erreur && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])
 
   <?php endif; ?>
 
-  <p style="margin-top:2rem;"><a href="index.php">Retour à l'agenda</a></p>
+  <p style="margin-top:2rem;"><a href="/index.php">Retour à l'agenda</a></p>
 </body>
 </html>

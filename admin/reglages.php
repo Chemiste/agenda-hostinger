@@ -13,18 +13,18 @@
  * gere lui-meme depuis mes_rappels.php, accessible avec le mot de passe
  * familial (pas besoin du mot de passe admin).
  *
- * L'envoi effectif des rappels se fait par le script rappels.php, appele
+ * L'envoi effectif des rappels se fait par le script cron/rappels.php, appele
  * periodiquement par un Cron Job Hostinger (voir le guide d'installation)
  * - cette page ne fait qu'enregistrer les reglages qu'il utilisera.
  */
 
-require_once __DIR__ . '/lib/auth.php';
+require_once __DIR__ . '/../lib/auth.php';
 requireAdminLogin();
-require_once __DIR__ . '/lib/db.php';
-require_once __DIR__ . '/lib/settings.php';
-require_once __DIR__ . '/lib/mailer.php';
+require_once __DIR__ . '/../lib/db.php';
+require_once __DIR__ . '/../lib/settings.php';
+require_once __DIR__ . '/../lib/mailer.php';
 
-$config = require __DIR__ . '/config.php';
+$config = require __DIR__ . '/../config.php';
 $configSmtp = construireConfigSmtp($config);
 
 $db = getDb();
@@ -85,7 +85,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Réglages — Administration</title>
-<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="/assets/style.css">
 <style>
   .outil { background:#fff; border-radius:12px; padding:18px; margin-bottom:24px; box-shadow: var(--shadow-sm); }
   .outil h2 { margin-top:0; }
@@ -101,18 +101,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <div class="barre-admin">
     <h1 style="margin:0;">Réglages</h1>
     <div>
-      <a href="admin_nettoyage.php">Nettoyage</a>
+      <a href="/admin/nettoyage.php">Nettoyage</a>
       &nbsp;·&nbsp;
-      <a href="index.php">Retour à l'agenda</a>
+      <a href="/index.php">Retour à l'agenda</a>
       &nbsp;·&nbsp;
-      <a href="admin_logout.php">Déconnexion admin</a>
+      <a href="/admin/logout.php">Déconnexion admin</a>
     </div>
   </div>
 
   <div class="outil">
     <h2>Rappels par email</h2>
-    <p class="sous-titre">Réglages techniques (délai, activer/désactiver, ta propre adresse, adresse d'expédition). L'envoi effectif est fait par un Cron Job Hostinger qui appelle <code>rappels.php</code> régulièrement (voir le guide d'installation) — cette page enregistre juste les réglages qu'il utilisera.</p>
-    <p class="sous-titre">Les adresses email de tes parents et leurs préférences ("aussi recevoir les rappels de l'autre") ne se règlent pas ici : chacun les gère lui-même depuis <a href="mes_rappels.php">mes_rappels.php</a>, accessible avec le mot de passe familial.</p>
+    <p class="sous-titre">Réglages techniques (délai, activer/désactiver, ta propre adresse, adresse d'expédition). L'envoi effectif est fait par un Cron Job Hostinger qui appelle <code>cron/rappels.php</code> régulièrement (voir le guide d'installation) — cette page enregistre juste les réglages qu'il utilisera.</p>
+    <p class="sous-titre">Les adresses email de tes parents et leurs préférences ("aussi recevoir les rappels de l'autre") ne se règlent pas ici : chacun les gère lui-même depuis <a href="/mes_rappels.php">mes_rappels.php</a>, accessible avec le mot de passe familial.</p>
 
     <?php if ($configSmtp === null): ?>
       <p class="aide" style="color:#c60;">Envoi via <code>mail()</code> natif (aucun serveur SMTP renseigné dans <code>config.php</code>) : les emails ont plus de risques d'atterrir en indésirables. Voir le guide d'installation, section "Rappels par email", pour configurer un envoi SMTP authentifié — nettement plus fiable.</p>

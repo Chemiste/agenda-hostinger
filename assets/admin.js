@@ -27,7 +27,10 @@ function escapeHtml(s) {
 }
 
 function appelApi(action, corps) {
-  return fetch('api.php?action=' + action, {
+  // Chemin absolu : ce script est charge depuis admin/nettoyage.php, pas
+  // depuis la racine, un chemin relatif "api.php" pointerait a tort vers
+  // admin/api.php.
+  return fetch('/api.php?action=' + action, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(corps || {})

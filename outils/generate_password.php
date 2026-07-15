@@ -3,8 +3,8 @@
  * UTILITAIRE À USAGE UNIQUE.
  *
  * Ouvrez cette page une fois dans votre navigateur (ex :
- * https://agenda.hellau.be/generate_password.php), choisissez votre mot
- * de passe familial, copiez le hash généré dans config.php
+ * https://agenda.hellau.be/outils/generate_password.php), choisissez
+ * votre mot de passe familial, copiez le hash généré dans config.php
  * (family_password_hash), puis SUPPRIMEZ ce fichier du serveur.
  */
 
@@ -19,7 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['password'])) {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Générer le mot de passe</title>
-<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="/assets/style.css">
 </head>
 <body class="page-login">
   <div class="login-card">

@@ -5,7 +5,7 @@
  * Destiné à être appelé périodiquement par un Cron Job Hostinger (hPanel
  * > Avancé > Cron Jobs), par exemple toutes les 15 minutes, en visitant :
  *
- *   https://votre-domaine/rappels.php?token=VOTRE_JETON
+ *   https://votre-domaine/cron/rappels.php?token=VOTRE_JETON
  *
  * VOTRE_JETON est la valeur de 'reminder_token' dans config.php : ce n'est
  * pas un mot de passe interactif, juste une chaîne secrète dans l'URL pour
@@ -13,7 +13,7 @@
  * page. Générez-la par exemple avec `openssl rand -hex 20`.
  *
  * Les réglages techniques (activé/désactivé, délai, adresse de Chem,
- * expéditeur) se configurent depuis admin_reglages.php. Les adresses de
+ * expéditeur) se configurent depuis admin/reglages.php. Les adresses de
  * Papa/Maman et leurs préférences ("aussi recevoir les rappels de
  * l'autre") se configurent depuis mes_rappels.php, pas ici.
  *
@@ -24,11 +24,11 @@
  * être appelé aussi souvent que voulu sans risque de doublon.
  */
 
-require_once __DIR__ . '/lib/db.php';
-require_once __DIR__ . '/lib/settings.php';
-require_once __DIR__ . '/lib/mailer.php';
+require_once __DIR__ . '/../lib/db.php';
+require_once __DIR__ . '/../lib/settings.php';
+require_once __DIR__ . '/../lib/mailer.php';
 
-$config = require __DIR__ . '/config.php';
+$config = require __DIR__ . '/../config.php';
 $token = isset($config['reminder_token']) ? $config['reminder_token'] : '';
 $configSmtp = construireConfigSmtp($config);
 
@@ -56,7 +56,7 @@ try {
 }
 
 if (getSetting($db, 'reminder_enabled', '0') !== '1') {
-    echo 'Rappels désactivés dans les réglages (admin_reglages.php).';
+    echo 'Rappels désactivés dans les réglages (admin/reglages.php).';
     exit;
 }
 
@@ -78,7 +78,7 @@ $notifySelfPerson2 = getSetting($db, 'reminder_notify_self_person2', '1') === '1
 $notifyOtherPerson2 = getSetting($db, 'reminder_notify_other_person2', '0') === '1';
 
 if ($emailChem === '' && $emailPerson1 === '' && $emailPerson2 === '') {
-    echo "Rappels activés mais aucune adresse email configurée (admin_reglages.php / mes_rappels.php).";
+    echo "Rappels activés mais aucune adresse email configurée (admin/reglages.php / mes_rappels.php).";
     exit;
 }
 
@@ -86,7 +86,7 @@ if ($emailChem === '' && $emailPerson1 === '' && $emailPerson2 === '') {
 // elle a renseigne son email ET n'a pas desactive ses propres rappels),
 // plus l'autre personne si elle a choisi de recevoir aussi les rappels de
 // celle-ci, plus Chem dans tous les cas (destinataire fixe, voir
-// admin_reglages.php).
+// admin/reglages.php).
 function destinatairesRappel(
     $personneRdv, $p1, $p2,
     $emailPerson1, $notifySelfPerson1, $notifyOtherPerson1,
