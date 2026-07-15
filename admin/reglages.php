@@ -87,8 +87,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <title>Réglages — Administration</title>
 <link rel="stylesheet" href="/assets/style.css">
 <style>
-  .outil { background:#fff; border-radius:12px; padding:18px; margin-bottom:24px; box-shadow: var(--shadow-sm); }
-  .outil h2 { margin-top:0; }
+  .outil { background:#fff; border-radius:12px; padding:18px; margin-bottom:16px; box-shadow: var(--shadow-sm); }
+  .outil h2 { margin-top:0; font-size:15px; }
   .barre-admin { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; flex-wrap:wrap; gap:8px; }
   .barre-admin a { font-size:13px; color:var(--text-muted, #888); }
   .fil-admin { font-size:13px; color:var(--text-muted); margin-bottom:18px; }
@@ -96,10 +96,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   .fil-admin a:hover { text-decoration:underline; }
   .fil-admin .sep { margin:0 4px; }
   .fil-admin .actuel { color:var(--text); font-weight:600; }
-  .champ-case { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+  .entete-page { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:4px; flex-wrap:wrap; }
+  .entete-page h1 { font-size:20px; margin:0; }
+  .badge-smtp { display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:600; padding:5px 12px; border-radius:999px; white-space:nowrap; }
+  .badge-smtp.ok { background:#e6f7f1; color:#0f766e; }
+  .badge-smtp.attention { background:#fdf1ea; color:#b45309; }
+  .sous-titre-page { margin:2px 0 20px; }
+  .champ-case { display:flex; align-items:center; gap:10px; margin-bottom:2px; }
   .champ-case input[type=checkbox] { width:22px; height:22px; }
   .champ-case label { font-weight:600; }
   .aide { font-size:13px; color:#777; margin-top:4px; }
+  .champs-secondaires { margin-top:16px; padding-top:16px; border-top:1px solid var(--border); transition:opacity var(--dur) var(--ease); }
+  .champs-secondaires.inactifs { opacity:0.45; }
+  .callout { background:var(--tous-bg); border-radius:var(--radius-md); padding:14px 16px; font-size:14px; color:var(--text); }
+  .callout a { font-weight:600; }
 </style>
 </head>
 <body>
@@ -114,47 +124,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <a href="/admin/index.php">Administration</a><span class="sep">/</span><span class="actuel">Réglages</span>
   </div>
 
-  <div class="outil">
-    <h2>Rappels par email</h2>
-    <p class="sous-titre">Réglages techniques (délai, activer/désactiver, ta propre adresse, adresse d'expédition). L'envoi effectif est fait par un Cron Job Hostinger qui appelle <code>cron/rappels.php</code> régulièrement (voir le guide d'installation) — cette page enregistre juste les réglages qu'il utilisera.</p>
-    <p class="sous-titre">Les adresses email de tes parents et leurs préférences ("aussi recevoir les rappels de l'autre") ne se règlent pas ici : chacun les gère lui-même depuis <a href="/mes_rappels.php">mes_rappels.php</a>, accessible avec le mot de passe familial.</p>
-
+  <div class="entete-page">
+    <h1>Rappels par email</h1>
     <?php if ($configSmtp === null): ?>
-      <p class="aide" style="color:#c60;">Envoi via <code>mail()</code> natif (aucun serveur SMTP renseigné dans <code>config.php</code>) : les emails ont plus de risques d'atterrir en indésirables. Voir le guide d'installation, section "Rappels par email", pour configurer un envoi SMTP authentifié — nettement plus fiable.</p>
+      <span class="badge-smtp attention">Envoi via mail() natif</span>
     <?php else: ?>
-      <p class="aide">Envoi via SMTP authentifié (<?= htmlspecialchars($configSmtp['host']) ?>) — configuration recommandée, déjà active.</p>
+      <span class="badge-smtp ok">SMTP authentifié actif</span>
     <?php endif; ?>
+  </div>
+  <p class="sous-titre sous-titre-page">Réglages techniques utilisés par le Cron Job qui envoie les rappels (<code>cron/rappels.php</code>).</p>
 
-    <?php if ($messageEnregistre): ?>
-      <p class="info">Réglages enregistrés.</p>
-    <?php endif; ?>
+  <?php if ($configSmtp === null): ?>
+    <p class="aide" style="color:#b45309; margin:-8px 0 16px;">Aucun serveur SMTP renseigné dans <code>config.php</code> : les emails ont plus de risques d'atterrir en indésirables. Voir le guide d'installation, section "Rappels par email", pour configurer un envoi authentifié — nettement plus fiable.</p>
+  <?php endif; ?>
 
-    <?php if ($resultatTest !== null): ?>
-      <p class="<?= $resultatTest['ok'] ? 'info' : 'erreur' ?>"><?= htmlspecialchars($resultatTest['message']) ?></p>
-    <?php endif; ?>
+  <?php if ($messageEnregistre): ?>
+    <p class="info">Réglages enregistrés.</p>
+  <?php endif; ?>
 
+  <?php if ($resultatTest !== null): ?>
+    <p class="<?= $resultatTest['ok'] ? 'info' : 'erreur' ?>"><?= htmlspecialchars($resultatTest['message']) ?></p>
+  <?php endif; ?>
+
+  <div class="outil">
     <form method="post">
       <div class="champ-case">
-        <input type="checkbox" name="reminder_enabled" id="reminder_enabled" value="1" <?= $valeurs['reminder_enabled'] === '1' ? 'checked' : '' ?>>
+        <input type="checkbox" name="reminder_enabled" id="reminder_enabled" value="1" <?= $valeurs['reminder_enabled'] === '1' ? 'checked' : '' ?> onchange="document.getElementById('champsSecondaires').classList.toggle('inactifs', !this.checked)">
         <label for="reminder_enabled">Activer les rappels par email</label>
       </div>
 
-      <div class="champ">
-        <label>Délai avant le rendez-vous (en heures)</label>
-        <input type="number" min="1" step="1" name="reminder_hours_before" value="<?= htmlspecialchars($valeurs['reminder_hours_before']) ?>">
-        <p class="aide">Exemples : 24 = envoyé la veille à la même heure, 2 = envoyé 2h avant, 48 = envoyé 2 jours avant. Un seul délai s'applique à tous les rendez-vous.</p>
-      </div>
+      <div id="champsSecondaires" class="champs-secondaires<?= $valeurs['reminder_enabled'] === '1' ? '' : ' inactifs' ?>">
+        <div class="champ">
+          <label>Délai avant le rendez-vous (en heures)</label>
+          <input type="number" min="1" step="1" name="reminder_hours_before" value="<?= htmlspecialchars($valeurs['reminder_hours_before']) ?>">
+          <p class="aide">Exemples : 24 = envoyé la veille à la même heure, 2 = envoyé 2h avant, 48 = envoyé 2 jours avant. Un seul délai s'applique à tous les rendez-vous.</p>
+        </div>
 
-      <div class="champ">
-        <label>Ton adresse email (Chem)</label>
-        <input type="email" name="reminder_email_chem" value="<?= htmlspecialchars($valeurs['reminder_email_chem']) ?>" placeholder="toi@example.com">
-        <p class="aide">Tu reçois un rappel pour tous les rendez-vous, quels que soient les réglages de tes parents.</p>
-      </div>
+        <div class="champ">
+          <label>Ton adresse email (Chem)</label>
+          <input type="email" name="reminder_email_chem" value="<?= htmlspecialchars($valeurs['reminder_email_chem']) ?>" placeholder="toi@example.com">
+          <p class="aide">Tu reçois un rappel pour tous les rendez-vous, quels que soient les réglages de tes parents.</p>
+        </div>
 
-      <div class="champ">
-        <label>Adresse d'expédition (From)</label>
-        <input type="text" name="reminder_email_from" value="<?= htmlspecialchars($valeurs['reminder_email_from']) ?>" placeholder="agenda@votre-domaine.be">
-        <p class="aide">Idéalement une adresse existante sur votre domaine (créée dans hPanel > Emails), pour éviter que le mail parte en indésirables.</p>
+        <div class="champ">
+          <label>Adresse d'expédition (From)</label>
+          <input type="text" name="reminder_email_from" value="<?= htmlspecialchars($valeurs['reminder_email_from']) ?>" placeholder="agenda@votre-domaine.be">
+          <p class="aide">Idéalement une adresse existante sur votre domaine (créée dans hPanel > Emails), pour éviter que le mail parte en indésirables.</p>
+        </div>
       </div>
 
       <div class="form-boutons" style="margin-top:16px;">
@@ -162,6 +178,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <button class="secondaire" type="submit" name="action" value="tester">Envoyer un email de test</button>
       </div>
     </form>
+  </div>
+
+  <div class="callout">
+    Les adresses email de tes parents et leurs préférences ("aussi recevoir les rappels de l'autre") ne se règlent pas ici : chacun les gère lui-même depuis <a href="/mes_rappels.php">Rappels par email</a>, accessible avec le mot de passe familial.
   </div>
 </body>
 </html>
