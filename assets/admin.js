@@ -1,7 +1,7 @@
 // ---------------------------------------------------------------
 // JS de la page d'administration (admin_nettoyage.php) : uniquement
 // l'import de fichiers .ics (le reste des outils de cette page est
-// gere cote serveur via de simples formulaires PHP, pas besoin de JS).
+// géré côté serveur via de simples formulaires PHP, pas besoin de JS).
 // ---------------------------------------------------------------
 
 function ouvrirModal(id) {
@@ -146,7 +146,7 @@ function afficherPreviewIcs() {
   var conteneur = document.getElementById('listeIcs');
 
   if (evenementsIcsAImporter.length === 0) {
-    conteneur.innerHTML = '<p class="vide">Aucun rendez-vous trouve dans ce fichier.</p>';
+    conteneur.innerHTML = '<p class="vide">Aucun rendez-vous trouvé dans ce fichier.</p>';
   } else {
     conteneur.innerHTML = evenementsIcsAImporter.map(function (e, i) {
       return '<div class="ics-ligne">' +
@@ -154,7 +154,7 @@ function afficherPreviewIcs() {
         '<div class="ics-details">' +
           '<div class="ics-titre">' + escapeHtml(e.summary) + '</div>' +
           (e.location ? '<div class="ics-adresse">' + escapeHtml(e.location) + '</div>' : '') +
-          '<div class="ics-date">' + e.date + ' a ' + e.time + (e.toutelaJournee ? ' (toute la journee, heure a verifier)' : '') + '</div>' +
+          '<div class="ics-date">' + e.date + ' à ' + e.time + (e.toutelaJournee ? ' (toute la journée, heure à vérifier)' : '') + '</div>' +
         '</div>' +
         '<select class="ics-personne" data-idx="' + i + '">' +
           '<option value="' + escapeHtml(window.PERSONNE_1) + '">' + escapeHtml(window.PERSONNE_1) + '</option>' +
@@ -189,7 +189,7 @@ document.getElementById('btnImporterSelection').addEventListener('click', functi
   });
 
   if (aImporter.length === 0) {
-    document.getElementById('erreurIcs').textContent = 'Selectionnez au moins un rendez-vous.';
+    document.getElementById('erreurIcs').textContent = 'Sélectionnez au moins un rendez-vous.';
     return;
   }
 
@@ -204,15 +204,15 @@ document.getElementById('btnImporterSelection').addEventListener('click', functi
       var conteneur = document.querySelector('.outil');
       var p = document.createElement('p');
       p.className = 'info';
-      p.textContent = nb + ' rendez-vous importe(s) avec succes. Retournez a l\'agenda pour les consulter.';
+      p.textContent = nb + ' rendez-vous importé(s) avec succès. Retournez à l\'agenda pour les consulter.';
       conteneur.appendChild(p);
       evenementsIcsAImporter = [];
       btn.disabled = false;
-      btn.textContent = 'Importer la selection';
+      btn.textContent = 'Importer la sélection';
     })
     .catch(function (err) {
       btn.disabled = false;
-      btn.textContent = 'Importer la selection';
+      btn.textContent = 'Importer la sélection';
       document.getElementById('erreurIcs').textContent = err.message;
     });
 });

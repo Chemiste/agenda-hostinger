@@ -3,7 +3,7 @@ var filtreActuel = 'Tous';
 var filtreTemps = 'avenir';
 var idEnEdition = null;
 
-var MOIS_ABREGES = ['Jan', 'Fev', 'Mars', 'Avr', 'Mai', 'Juin', 'Juil', 'Aout', 'Sep', 'Oct', 'Nov', 'Dec'];
+var MOIS_ABREGES = ['Jan', 'Fév', 'Mars', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
 function formatDateCompacte(dateStr) {
   var p = dateStr.split('-');
   return { jour: p[2], mois: MOIS_ABREGES[parseInt(p[1], 10) - 1], annee: p[0] };
@@ -49,7 +49,7 @@ function charger() {
     .then(function (r) {
       return r.json().then(function (data) {
         if (!r.ok || !Array.isArray(data)) {
-          throw new Error(data && data.error ? data.error : 'Reponse inattendue du serveur.');
+          throw new Error(data && data.error ? data.error : 'Réponse inattendue du serveur.');
         }
         return data;
       });
@@ -93,20 +93,20 @@ function afficherListe() {
     return ca < cb ? -1 : ca > cb ? 1 : 0;
   });
 
-  var labelTemps = filtreTemps === 'avenir' ? 'A venir' : (filtreTemps === 'passes' ? 'Passes' : 'Tous');
+  var labelTemps = filtreTemps === 'avenir' ? 'À venir' : (filtreTemps === 'passes' ? 'Passés' : 'Tous');
   document.getElementById('filtreImpression').textContent = filtreActuel + ' — ' + labelTemps;
 
   if (filtres.length === 0) {
-    var messageVide = filtreTemps === 'passes' ? 'Aucun rendez-vous passe.' : 'Aucun rendez-vous a venir.';
+    var messageVide = filtreTemps === 'passes' ? 'Aucun rendez-vous passé.' : 'Aucun rendez-vous à venir.';
     document.getElementById('liste').innerHTML = '<p class="vide">' + messageVide + '</p>';
     document.getElementById('listeCompacte').innerHTML = '<p class="vide">' + messageVide + '</p>';
     return;
   }
 
-  // Chaque jour est regroupe dans un conteneur ".jour-groupe" (titre +
-  // ses rendez-vous) pour qu'a l'impression le navigateur garde le titre
-  // colle a ses rendez-vous : un "avoid" sur le conteneur entier est bien
-  // mieux respecte par les navigateurs qu'un "avoid" pose seulement sur
+  // Chaque jour est regroupé dans un conteneur ".jour-groupe" (titre +
+  // ses rendez-vous) pour qu'à l'impression le navigateur garde le titre
+  // collé à ses rendez-vous : un "avoid" sur le conteneur entier est bien
+  // mieux respecté par les navigateurs qu'un "avoid" posé seulement sur
   // le titre (qui laissait parfois le titre seul en bas d'une page).
   var html = '';
   var dernierJour = null;
@@ -169,11 +169,11 @@ document.getElementById('tabsTemps').addEventListener('click', function (e) {
 });
 
 // ---------------------------------------------------------------
-// Grille compacte (mode d'impression "compact") : meme donnees que la
-// liste detaillee, mais rendues sous forme de cartes (date en evidence,
-// titre, departement, heure), sans regroupement par jour. Ce conteneur
-// reste cache en toute circonstance sauf quand on imprime en mode
-// compact (voir bouton "Imprimer (compact)" plus bas et la regle CSS
+// Grille compacte (mode d'impression "compact") : mêmes données que la
+// liste détaillée, mais rendues sous forme de cartes (date en évidence,
+// titre, département, heure), sans regroupement par jour. Ce conteneur
+// reste caché en toute circonstance sauf quand on imprime en mode
+// compact (voir bouton "Imprimer (compact)" plus bas et la règle CSS
 // "body.impression-compacte").
 // ---------------------------------------------------------------
 

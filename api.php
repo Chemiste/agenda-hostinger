@@ -1,6 +1,6 @@
 <?php
 /**
- * API JSON utilisee par index.php (fetch cote navigateur).
+ * API JSON utilisée par index.php (fetch côté navigateur).
  * Actions : list, add, update, delete, bulk_add.
  */
 
@@ -12,7 +12,7 @@ header('Content-Type: application/json; charset=utf-8');
 
 if (!isLoggedIn()) {
     http_response_code(401);
-    echo json_encode(['error' => 'Non connecte.']);
+    echo json_encode(['error' => 'Non connecté.']);
     exit;
 }
 
@@ -63,7 +63,7 @@ try {
 function validateAppt($appt) {
     global $PERSONNES_VALIDES;
     if (empty($appt['date']) || empty($appt['time']) || empty($appt['person'])) {
-        throw new Exception("Merci de remplir la date, l'heure et la personne concernee.");
+        throw new Exception("Merci de remplir la date, l'heure et la personne concernée.");
     }
     if (!in_array($appt['person'], $PERSONNES_VALIDES, true)) {
         throw new Exception('Personne invalide.');

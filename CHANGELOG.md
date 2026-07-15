@@ -1,5 +1,52 @@
 # Journal des versions
 
+## v1.13.0 — 2026-07-15
+
+- Correction des accents manquants dans tous les textes affichés du site
+  (pages, boutons, messages d'erreur, titres) : "Agenda medical" →
+  "Agenda médical", "Deconnexion" → "Déconnexion", "Charger les
+  evenements de cette periode" → "Charger les événements de cette
+  période", etc. Concerne `index.php`, `login.php`, `admin_login.php`,
+  `generate_password.php`, `migrate.php`, `import_calendar.php`,
+  `admin_nettoyage.php`, `backup.php`, `api.php`, `assets/app.js` et
+  `assets/admin.js`. Les commentaires de code ont aussi été corrigés au
+  passage.
+
+## v1.12.0 — 2026-07-15
+
+- **Deuxieme mot de passe pour l'administration.** `admin_nettoyage.php`
+  (et toute la zone d'administration) demande desormais, en plus du mot
+  de passe familial, un second mot de passe distinct
+  (`admin_password_hash` dans `config.php`, nouvelles pages
+  `admin_login.php` / `admin_logout.php`). Le lien vers cette page a ete
+  retire de l'agenda principal : elle n'est plus accessible qu'en
+  connaissant directement son adresse.
+- **Import .ics deplace dans l'administration.** Le bouton "Importer un
+  fichier .ics" et sa fenetre de previsualisation ne sont plus sur la
+  page principale (`index.php`) : ils vivent maintenant dans
+  `admin_nettoyage.php`, avec le reste des outils de maintenance. Le
+  code JS correspondant est passe de `assets/app.js` a un nouveau
+  fichier `assets/admin.js`.
+- **Sauvegardes automatiques et restauration.** Nouveau script
+  `backup.php`, destine a etre appele chaque jour par un Cron Job
+  Hostinger (voir le guide d'installation) : il exporte tous les
+  rendez-vous dans un fichier JSON horodate (dossier `backups/`,
+  proteges par leur propre `.htaccess`, conserves 60 jours). Nouvelle
+  section "Sauvegardes" dans `admin_nettoyage.php` : choisissez une
+  sauvegarde, les rendez-vous qui y figurent mais qui ont disparu de
+  l'agenda actuel (ex : suppression accidentelle) sont proposes a la
+  restauration, avec recreation de l'evenement Google Calendar si la
+  synchro est active.
+- Migration/config : nouvelles cles `admin_password_hash` et
+  `backup_token` dans `config.php` (voir `config.example.php` et le
+  guide d'installation, section "Protéger les outils d'administration"
+  et "Sauvegardes automatiques").
+
+## v1.11.3 — 2026-07-15
+
+- Impression compacte : les adresses tres longues sont maintenant limitees
+  a 2 lignes avec "..." au lieu de s'etaler et de trop agrandir la carte.
+
 ## v1.11.2 — 2026-07-15
 
 - L'impression compacte (mode grille) affiche desormais aussi l'adresse

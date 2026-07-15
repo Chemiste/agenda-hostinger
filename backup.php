@@ -1,28 +1,28 @@
 <?php
 /**
- * SAUVEGARDE AUTOMATIQUE (a usage Cron, pas de connexion interactive).
+ * SAUVEGARDE AUTOMATIQUE (à usage Cron, pas de connexion interactive).
  *
- * Destine a etre appele periodiquement par un Cron Job Hostinger (hPanel
- * > Avance > Cron Jobs), par exemple chaque nuit a 3h, en visitant :
+ * Destiné à être appelé périodiquement par un Cron Job Hostinger (hPanel
+ * > Avancé > Cron Jobs), par exemple chaque nuit à 3h, en visitant :
  *
  *   https://votre-domaine/backup.php?token=VOTRE_JETON
  *
  * VOTRE_JETON est la valeur de 'backup_token' dans config.php : ce n'est
  * pas un mot de passe interactif (il n'y a pas de formulaire), juste une
- * chaine secrete dans l'URL pour eviter que n'importe qui puisse
- * declencher une sauvegarde en tombant sur cette page. Generez-la par
- * exemple avec `openssl rand -hex 20` ou un generateur de mots de passe.
+ * chaîne secrète dans l'URL pour éviter que n'importe qui puisse
+ * déclencher une sauvegarde en tombant sur cette page. Générez-la par
+ * exemple avec `openssl rand -hex 20` ou un générateur de mots de passe.
  *
- * A chaque appel : exporte l'integralite de la table "appointments" dans
- * un fichier JSON horodate, dans le dossier backups/ (protege par
- * .htaccess : aucun acces direct possible depuis un navigateur, meme en
+ * À chaque appel : exporte l'intégralité de la table "appointments" dans
+ * un fichier JSON horodaté, dans le dossier backups/ (protégé par
+ * .htaccess : aucun accès direct possible depuis un navigateur, même en
  * connaissant le nom exact du fichier). Les sauvegardes de plus de
- * RETENTION_JOURS jours sont supprimees automatiquement pour ne pas
- * accumuler indefiniment.
+ * RETENTION_JOURS jours sont supprimées automatiquement pour ne pas
+ * accumuler indéfiniment.
  *
  * En cas de suppression accidentelle d'un rendez-vous, la page
  * admin_nettoyage.php (section "Sauvegardes") permet de comparer une
- * sauvegarde a l'etat actuel et de restaurer les rendez-vous disparus.
+ * sauvegarde à l'état actuel et de restaurer les rendez-vous disparus.
  */
 
 require_once __DIR__ . '/lib/db.php';
@@ -36,7 +36,7 @@ header('Content-Type: text/plain; charset=utf-8');
 
 if ($token === '' || $token === 'REMPLACER_PAR_UNE_CHAINE_ALEATOIRE') {
     http_response_code(403);
-    echo "Sauvegarde desactivee : definissez 'backup_token' dans config.php.";
+    echo "Sauvegarde désactivée : définissez 'backup_token' dans config.php.";
     exit;
 }
 
@@ -57,7 +57,7 @@ try {
     $lignes = $db->query('SELECT * FROM appointments ORDER BY id')->fetchAll();
 } catch (Exception $e) {
     http_response_code(500);
-    echo 'Erreur base de donnees : ' . $e->getMessage();
+    echo 'Erreur base de données : ' . $e->getMessage();
     exit;
 }
 
@@ -73,4 +73,4 @@ foreach (glob($dossier . '/appointments-*.json') as $f) {
     }
 }
 
-echo 'OK : ' . count($lignes) . ' rendez-vous sauvegardes dans ' . basename($fichier) . '.';
+echo 'OK : ' . count($lignes) . ' rendez-vous sauvegardés dans ' . basename($fichier) . '.';

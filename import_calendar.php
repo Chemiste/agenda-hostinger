@@ -2,16 +2,16 @@
 /**
  * IMPORT PONCTUEL depuis Google Calendar.
  *
- * A utiliser UNE SEULE FOIS pour recuperer dans le site les rendez-vous
- * deja presents dans le calendrier Google que vous utilisiez avant.
+ * À utiliser UNE SEULE FOIS pour récupérer dans le site les rendez-vous
+ * déjà présents dans le calendrier Google que vous utilisiez avant.
  *
- * Necessite que la synchronisation Google Calendar soit deja configuree
+ * Nécessite que la synchronisation Google Calendar soit déjà configurée
  * dans config.php (google_calendar_id + service-account.json), voir le
  * guide d'installation.
  *
- * Une fois l'import termine et verifie, supprimez ou renommez ce fichier
+ * Une fois l'import terminé et vérifié, supprimez ou renommez ce fichier
  * du serveur (comme generate_password.php) : le relancer par erreur ne
- * cree pas de doublons (les evenements deja importes sont detectes via
+ * crée pas de doublons (les événements déjà importés sont détectés via
  * leur identifiant Google Calendar), mais il n'a plus de raison de
  * rester accessible en ligne.
  */
@@ -35,16 +35,16 @@ $evenements = [];
 $resultatImport = null;
 
 if (!$sync->isEnabled()) {
-    $erreur = "La synchronisation Google Calendar n'est pas configuree (google_calendar_id / service-account.json dans config.php). Configurez-la d'abord (voir le guide), meme si vous ne voulez pas garder la synchro active ensuite.";
+    $erreur = "La synchronisation Google Calendar n'est pas configurée (google_calendar_id / service-account.json dans config.php). Configurez-la d'abord (voir le guide), même si vous ne voulez pas garder la synchro active ensuite.";
 }
 
 $dateDebut = isset($_POST['date_debut']) ? $_POST['date_debut'] : date('Y-m-d', strtotime('-3 months'));
 $dateFin = isset($_POST['date_fin']) ? $_POST['date_fin'] : date('Y-m-d', strtotime('+1 year'));
 
-// Reconnait un prefixe generique "[Quelque chose] " en debut de titre (c'est
-// le format utilise par la synchronisation du site, quels que soient les
-// noms configures). Si aucun prefixe n'est trouve, on retombe sur la
-// premiere personne configuree, a corriger manuellement dans l'apercu si
+// Reconnaît un préfixe générique "[Quelque chose] " en début de titre (c'est
+// le format utilisé par la synchronisation du site, quels que soient les
+// noms configurés). Si aucun préfixe n'est trouvé, on retombe sur la
+// première personne configurée, à corriger manuellement dans l'aperçu si
 // besoin (un rendez-vous ne concerne toujours qu'une seule personne).
 function prefixeVersPersonne($summary, $labelParDefaut) {
     if (preg_match('/^\[(.+?)\]\s*/', $summary, $m)) {
@@ -91,7 +91,7 @@ function dejaImporte($db, $googleEventId) {
 function importerLigne($db, $item) {
     global $PERSONNES_VALIDES;
     if (empty($item['date']) || empty($item['time']) || empty($item['person']) || !in_array($item['person'], $PERSONNES_VALIDES, true)) {
-        throw new Exception('Donnee invalide pour un des rendez-vous selectionnes.');
+        throw new Exception('Donnée invalide pour un des rendez-vous sélectionnés.');
     }
     if (dejaImporte($db, isset($item['googleEventId']) ? $item['googleEventId'] : '')) {
         return false;
@@ -159,7 +159,7 @@ if (!$erreur && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])
 </head>
 <body>
   <h1>Import ponctuel depuis Google Calendar</h1>
-  <p class="sous-titre">A utiliser une seule fois, puis supprimez ce fichier du serveur.</p>
+  <p class="sous-titre">À utiliser une seule fois, puis supprimez ce fichier du serveur.</p>
 
   <?php if ($erreur): ?>
     <p class="erreur"><?= htmlspecialchars($erreur) ?></p>
@@ -167,12 +167,12 @@ if (!$erreur && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])
 
   <?php if ($resultatImport !== null): ?>
     <p class="info">
-      <?= (int) $resultatImport['importes'] ?> rendez-vous importe(s).
+      <?= (int) $resultatImport['importes'] ?> rendez-vous importé(s).
       <?php if ($resultatImport['ignores'] > 0): ?>
-        <?= (int) $resultatImport['ignores'] ?> ignore(s) (deja importes precedemment).
+        <?= (int) $resultatImport['ignores'] ?> ignoré(s) (déjà importés précédemment).
       <?php endif; ?>
     </p>
-    <p><a href="index.php">Voir l'agenda</a> · <a href="import_calendar.php">Relancer un import</a> (sur une autre periode par exemple)</p>
+    <p><a href="index.php">Voir l'agenda</a> · <a href="import_calendar.php">Relancer un import</a> (sur une autre période par exemple)</p>
 
   <?php else: ?>
 
@@ -186,7 +186,7 @@ if (!$erreur && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])
         <label>Au</label>
         <input type="date" name="date_fin" value="<?= htmlspecialchars($dateFin) ?>">
       </div>
-      <button class="principal" type="submit">Charger les evenements de cette periode</button>
+      <button class="principal" type="submit">Charger les événements de cette période</button>
     </form>
 
     <?php if (!empty($evenements)): ?>
@@ -194,7 +194,7 @@ if (!$erreur && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])
         <input type="hidden" name="action" value="importer">
         <input type="hidden" name="selection" id="selectionChamp">
 
-        <p><?= count($evenements) ?> evenement(s) trouve(s). Decochez ceux a ne pas importer, et corrigez la personne si le calendrier ne le precisait pas.</p>
+        <p><?= count($evenements) ?> événement(s) trouvé(s). Décochez ceux à ne pas importer, et corrigez la personne si le calendrier ne le précisait pas.</p>
 
         <div id="listeEvenements">
           <?php foreach ($evenements as $i => $e): ?>
@@ -206,8 +206,8 @@ if (!$erreur && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])
                   <div style="font-size:13px; color:#999;"><?= htmlspecialchars($e['location']) ?></div>
                 <?php endif; ?>
                 <div style="font-size:14px; color:#777;">
-                  <?= htmlspecialchars($e['date']) ?> a <?= htmlspecialchars($e['time']) ?>
-                  <?= $e['toutelaJournee'] ? ' (toute la journee, heure a verifier)' : '' ?>
+                  <?= htmlspecialchars($e['date']) ?> à <?= htmlspecialchars($e['time']) ?>
+                  <?= $e['toutelaJournee'] ? ' (toute la journée, heure à vérifier)' : '' ?>
                 </div>
               </div>
               <select class="evt-person" data-idx="<?= $i ?>">
@@ -238,11 +238,11 @@ if (!$erreur && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])
         });
       </script>
     <?php elseif ($_SERVER['REQUEST_METHOD'] === 'POST'): ?>
-      <p class="vide">Aucun evenement trouve sur cette periode.</p>
+      <p class="vide">Aucun événement trouvé sur cette période.</p>
     <?php endif; ?>
 
   <?php endif; ?>
 
-  <p style="margin-top:2rem;"><a href="index.php">Retour a l'agenda</a></p>
+  <p style="margin-top:2rem;"><a href="index.php">Retour à l'agenda</a></p>
 </body>
 </html>

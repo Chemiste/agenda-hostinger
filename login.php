@@ -21,12 +21,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Connexion - Agenda medical</title>
+<title>Connexion - Agenda médical</title>
 <link rel="stylesheet" href="assets/style.css">
 </head>
 <body class="page-login">
   <div class="login-card">
-    <h1>Agenda medical</h1>
+    <h1>Agenda médical</h1>
     <p class="sous-titre">Entrez le mot de passe familial</p>
     <?php if ($erreur): ?>
       <p class="erreur"><?= htmlspecialchars($erreur) ?></p>

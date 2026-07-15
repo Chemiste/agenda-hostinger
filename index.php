@@ -11,7 +11,7 @@ $p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Agenda medical</title>
+<title>Agenda médical</title>
 <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
@@ -19,10 +19,10 @@ $p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
   <div class="topbar">
     <div class="entete">
       <div>
-        <h1>Agenda medical</h1>
+        <h1>Agenda médical</h1>
         <p class="sous-titre">Rendez-vous de <?= htmlspecialchars($p1) ?> et <?= htmlspecialchars($p2) ?></p>
       </div>
-      <a class="deconnexion" href="logout.php">Deconnexion</a>
+      <a class="deconnexion" href="logout.php">Déconnexion</a>
     </div>
 
     <div class="tabs" id="tabs">
@@ -32,14 +32,14 @@ $p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
     </div>
 
     <div class="tabs tabs-temps" id="tabsTemps">
-      <div class="tab-temps active" data-temps="avenir">A venir</div>
-      <div class="tab-temps" data-temps="passes">Passes</div>
+      <div class="tab-temps active" data-temps="avenir">À venir</div>
+      <div class="tab-temps" data-temps="passes">Passés</div>
       <div class="tab-temps" data-temps="tous">Tous</div>
     </div>
   </div>
 
   <div id="entete-impression">
-    <h1>Rendez-vous medicaux — <span id="filtreImpression">Tous</span></h1>
+    <h1>Rendez-vous médicaux — <span id="filtreImpression">Tous</span></h1>
   </div>
 
   <div class="actions">
@@ -82,11 +82,11 @@ $p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
         </div>
       </div>
       <div class="champ">
-        <label>Medecin / consultation</label>
+        <label>Médecin / consultation</label>
         <input type="text" id="fMedecin" placeholder="Dr Martin, cardiologue">
       </div>
       <div class="champ">
-        <label>Departement (facultatif)</label>
+        <label>Département (facultatif)</label>
         <input type="text" id="fDepartement" placeholder="Cardiologie">
       </div>
       <div class="champ">
@@ -95,7 +95,7 @@ $p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
       </div>
       <div class="champ-ligne">
         <div class="champ">
-          <label>Telephone (facultatif)</label>
+          <label>Téléphone (facultatif)</label>
           <input type="tel" id="fTelephone" placeholder="02 764 28 12">
         </div>
         <div class="champ">

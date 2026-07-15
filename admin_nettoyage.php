@@ -2,35 +2,35 @@
 /**
  * ADMINISTRATION : nettoyage des rendez-vous, import .ics et sauvegardes.
  *
- * Outil de maintenance, protege par un DEUXIEME mot de passe (distinct
+ * Outil de maintenance, protégé par un DEUXIÈME mot de passe (distinct
  * du mot de passe familial, voir requireAdminLogin() / admin_login.php)
- * pour que le reste de la famille n'y ait pas acces meme s'il tombe sur
+ * pour que le reste de la famille n'y ait pas accès même s'il tombe sur
  * l'URL de cette page.
  *
  * Outils disponibles :
  *  1. "Importer un fichier .ics" : import ponctuel de rendez-vous depuis
- *     un fichier .ics exporte d'un autre agenda.
- *  2. "Raccourcir les noms complets" : detecte tout seul "pour <Prenom>
- *     <Nom de famille>" (le prenom configure suivi d'un nom de famille
- *     colle par certains imports) et raccourcit en "pour <Prenom>", vu
- *     que la personne est deja indiquee par le badge colore.
+ *     un fichier .ics exporté d'un autre agenda.
+ *  2. "Raccourcir les noms complets" : détecte tout seul "pour <Prénom>
+ *     <Nom de famille>" (le prénom configuré suivi d'un nom de famille
+ *     collé par certains imports) et raccourcit en "pour <Prénom>", vu
+ *     que la personne est déjà indiquée par le badge coloré.
  *  3. "Retirer un texte" : on tape un texte exact (ex: une adresse, ou une
- *     phrase comme "Le lieu du rendez-vous"), et on choisit ou le ranger
- *     (Adresse, Telephone, ou nulle part si c'est juste une mention a
+ *     phrase comme "Le lieu du rendez-vous"), et on choisit où le ranger
+ *     (Adresse, Téléphone, ou nulle part si c'est juste une mention à
  *     supprimer).
- *  4. "Extraction automatique du telephone et de la route" : detecte tout
- *     seul les numeros de telephone (et les mentions "Route NNN" a cote)
- *     colles dans le texte (avec ou sans la mention complete "Le lieu du
- *     rendez-vous ... Route NNN Tel : ...") et les range dans les champs
- *     Telephone et Route.
+ *  4. "Extraction automatique du téléphone et de la route" : détecte tout
+ *     seul les numéros de téléphone (et les mentions "Route NNN" à côté)
+ *     collés dans le texte (avec ou sans la mention complète "Le lieu du
+ *     rendez-vous ... Route NNN Tél : ...") et les range dans les champs
+ *     Téléphone et Route.
  *  5. "Sauvegardes" : consulte les sauvegardes automatiques (voir
- *     backup.php) et restaure un rendez-vous supprime par erreur.
+ *     backup.php) et restaure un rendez-vous supprimé par erreur.
  *
- * Pour les outils 2 a 4, si le rendez-vous est deja synchronise avec
- * Google Calendar, l'evenement est mis a jour.
+ * Pour les outils 2 à 4, si le rendez-vous est déjà synchronisé avec
+ * Google Calendar, l'événement est mis à jour.
  *
- * A garder sur le serveur : contrairement a import_calendar.php, cet outil
- * n'est pas a usage unique, pas besoin de le supprimer apres usage.
+ * À garder sur le serveur : contrairement à import_calendar.php, cet outil
+ * n'est pas à usage unique, pas besoin de le supprimer après usage.
  */
 
 require_once __DIR__ . '/lib/auth.php';
@@ -62,16 +62,16 @@ $dossierBackups = __DIR__ . '/backups';
 $fichiersBackup = [];
 if (is_dir($dossierBackups)) {
     $fichiersBackup = glob($dossierBackups . '/appointments-*.json');
-    rsort($fichiersBackup); // noms horodates -> tri alphabetique = tri chronologique
+    rsort($fichiersBackup); // noms horodates -> tri alphabétique = tri chronologique
 }
 
 function nomBackupValide($nom) {
     return preg_match('/^appointments-[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{4}\.json$/', $nom) === 1;
 }
 
-// Sauvegarde choisie (menu deroulant, requete GET en lecture seule) :
-// on calcule les rendez-vous presents dans cette sauvegarde mais absents
-// de la base actuelle (candidats a une restauration).
+// Sauvegarde choisie (menu déroulant, requête GET en lecture seule) :
+// on calcule les rendez-vous présents dans cette sauvegarde mais absents
+// de la base actuelle (candidats à une restauration).
 $backupSelectionnee = isset($_GET['sauvegarde']) ? basename($_GET['sauvegarde']) : '';
 $rendezVousDisparus = [];
 $erreurBackup = '';
@@ -90,7 +90,7 @@ if ($backupSelectionnee !== '') {
                     $rendezVousDisparus[] = $ligne;
                 }
             }
-            // Les plus recents en premier (plus probable que ce soit ce qu'on cherche).
+            // Les plus récents en premier (plus probable que ce soit ce qu'on cherche).
             usort($rendezVousDisparus, function ($a, $b) {
                 return strcmp($b['appt_date'] . $b['appt_time'], $a['appt_date'] . $a['appt_time']);
             });
@@ -98,8 +98,8 @@ if ($backupSelectionnee !== '') {
     }
 }
 
-// Restauration effective (creation en base + recreation de l'evenement
-// Google Calendar si la synchro est active) des rendez-vous coches.
+// Restauration effective (création en base + recréation de l'événement
+// Google Calendar si la synchro est active) des rendez-vous cochés.
 $nbRestaures = null;
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'restaurer_sauvegarde') {
     $nomFichier = basename($_POST['fichier'] ?? '');
@@ -119,9 +119,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 if (!isset($parId[$id])) continue;
                 $ligne = $parId[$id];
 
-                // Par securite (ex: double clic, ou id deja repris entre
+                // Par sécurité (ex: double clic, ou id déjà repris entre
                 // temps par un autre rendez-vous) : on ne restaure pas si
-                // cet id existe deja dans la base.
+                // cet id existe déjà dans la base.
                 $existe = $db->prepare('SELECT COUNT(*) FROM appointments WHERE id = ?');
                 $existe->execute([$id]);
                 if ((int) $existe->fetchColumn() > 0) continue;
@@ -138,7 +138,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     isset($ligne['phone']) ? $ligne['phone'] : '',
                     isset($ligne['route']) ? $ligne['route'] : '',
                     isset($ligne['notes']) ? $ligne['notes'] : '',
-                    '', // nouvel evenement Calendar recree ci-dessous (l'ancien id est perime)
+                    '', // nouvel événement Calendar recréé ci-dessous (l'ancien id est périmé)
                     isset($ligne['created_at']) ? $ligne['created_at'] : date('Y-m-d H:i:s'),
                 ]);
 
@@ -178,7 +178,7 @@ function parseMotifs($texte) {
 }
 
 // Retire le motif du texte (peu importe la casse) puis nettoie les
-// separateurs qui trainent (tirets, virgules, espaces multiples...).
+// séparateurs qui traînent (tirets, virgules, espaces multiples...).
 function retirerMotif($texte, $motif) {
     $texte = str_ireplace($motif, '', $texte);
     $texte = preg_replace('/\s*[-—:]\s*$/', '', $texte);
@@ -193,11 +193,11 @@ function normaliserTelephone($texte) {
     return trim(preg_replace('/\s{2,}/', ' ', $texte));
 }
 
-// Essaie de reperer un numero de telephone (et, s'il est present juste a
-// cote, un numero de "Route") dans un texte. Priorite au format connu
-// "Le lieu du rendez-vous : Route NNN Tel.: NN NNN NN NN" (confirmations
-// de certains hopitaux), sinon repli sur un numero belge "isole" (avec ou
-// sans le mot "Tel" devant).
+// Essaie de repérer un numéro de téléphone (et, s'il est présent juste à
+// côté, un numéro de "Route") dans un texte. Priorité au format connu
+// "Le lieu du rendez-vous : Route NNN Tél.: NN NNN NN NN" (confirmations
+// de certains hôpitaux), sinon repli sur un numéro belge "isolé" (avec ou
+// sans le mot "Tél" devant).
 function detecterTelephone($texte) {
     if ($texte === '') return null;
 
@@ -214,11 +214,11 @@ function detecterTelephone($texte) {
     return null;
 }
 
-// Reperer une mention "Route NNN" isolee (sans telephone a cote, par
-// exemple parce qu'il a deja ete extrait lors d'un nettoyage precedent).
+// Repérer une mention "Route NNN" isolée (sans téléphone à côté, par
+// exemple parce qu'il a déjà été extrait lors d'un nettoyage précédent).
 // Pas de limite de mot en fin de motif : certains imports collent le
-// numero directement au mot suivant sans espace (ex. "Route 411Merci..."),
-// le "\d+" s'arrete de toute facon au premier caractere non numerique.
+// numéro directement au mot suivant sans espace (ex. "Route 411Merci..."),
+// le "\d+" s'arrête de toute façon au premier caractère non numérique.
 function detecterRouteSeule($texte) {
     if ($texte === '') return null;
     if (preg_match('/\bRoute\s*\d+/iu', $texte, $m)) {
@@ -227,10 +227,10 @@ function detecterRouteSeule($texte) {
     return null;
 }
 
-// Analyse un champ de texte (doctor ou notes) : detecte et retire un
-// eventuel telephone (avec sa mention "Route NNN" associee si presente),
-// puis, s'il reste une mention "Route NNN" isolee, la detecte et la
-// retire aussi. Renvoie null si rien trouve dans ce champ.
+// Analyse un champ de texte (doctor ou notes) : détecte et retire un
+// éventuel téléphone (avec sa mention "Route NNN" associée si présente),
+// puis, s'il reste une mention "Route NNN" isolée, la détecte et la
+// retire aussi. Renvoie null si rien trouvé dans ce champ.
 function analyserTelRoute($texte) {
     if ($texte === '') return null;
     $motifs = [];
@@ -298,10 +298,10 @@ function chercherTelephones($db) {
     return $trouves;
 }
 
-// Reperer "pour Michel Louis" (prenom configure + nom de famille colle
-// derriere) et proposer de raccourcir en "pour Michel", puisque le nom de
-// la personne est deja affiche a part (badge colore). Le nom de famille
-// peut faire 1 ou 2 mots (ex : noms composes).
+// Repérer "pour Michel Louis" (prénom configuré + nom de famille collé
+// derrière) et proposer de raccourcir en "pour Michel", puisque le nom de
+// la personne est déjà affiché à part (badge coloré). Le nom de famille
+// peut faire 1 ou 2 mots (ex : noms composés).
 function detecterNomComplet($texte, $prenom) {
     if ($texte === '' || $prenom === '') return null;
     $pattern = '/\bpour\s+' . preg_quote($prenom, '/') . '\s+[\p{L}\'-]+(?:\s+[\p{L}\'-]+)?/iu';
@@ -328,7 +328,7 @@ function chercherNomsComplets($db, $p1, $p2) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'rechercher') {
     $motifs = parseMotifs($motifsTexte);
     if (empty($motifs)) {
-        $erreur = 'Merci de saisir au moins un motif (un texte a rechercher) par ligne.';
+        $erreur = 'Merci de saisir au moins un motif (un texte à rechercher) par ligne.';
     } else {
         $resultats = chercherAppointments($db, $motifs);
     }
@@ -379,8 +379,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             if ($route !== '') { $ignoresChampRempli++; continue; }
             $route = $motifTrouve;
         }
-        // $destination === 'supprimer' : rien de plus, le texte est deja
-        // retire des champs doctor/notes ci-dessus.
+        // $destination === 'supprimer' : rien de plus, le texte est déjà
+        // retiré des champs doctor/notes ci-dessus.
 
         $upd = $db->prepare('UPDATE appointments SET doctor = ?, location = ?, phone = ?, route = ?, notes = ? WHERE id = ?');
         $upd->execute([$doctor, $location, $telephone, $route, $notes, $id]);
@@ -521,16 +521,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $resultatApplicationNoms = ['modifies' => $modifies];
 }
 
-// Suggestions : rendez-vous dont le medecin ou les notes contiennent un
+// Suggestions : rendez-vous dont le médecin ou les notes contiennent un
 // code postal (4 chiffres) suivi de lettres, indice classique d'une
-// adresse collee au reste du texte. Juste pour aider a reperer quel texte
+// adresse collée au reste du texte. Juste pour aider à repérer quel texte
 // copier-coller dans la zone "motifs" ci-dessus.
 $suggestions = [];
 try {
     $stmt = $db->query("SELECT DISTINCT doctor AS texte FROM appointments WHERE doctor REGEXP '[0-9]{4}[^0-9]*[A-Za-zÀ-ÿ]' UNION SELECT DISTINCT notes AS texte FROM appointments WHERE notes REGEXP '[0-9]{4}[^0-9]*[A-Za-zÀ-ÿ]'");
     $suggestions = array_column($stmt->fetchAll(), 'texte');
 } catch (Exception $e) {
-    // Pas grave si la suggestion echoue (ex: REGEXP non supporte) : ce
+    // Pas grave si la suggestion échoue (ex: REGEXP non supporté) : ce
     // n'est qu'une aide, le formulaire fonctionne sans.
 }
 ?>
@@ -563,29 +563,29 @@ try {
   <div class="barre-admin">
     <h1 style="margin:0;">Administration</h1>
     <div>
-      <a href="index.php">Retour a l'agenda</a>
+      <a href="index.php">Retour à l'agenda</a>
       &nbsp;·&nbsp;
-      <a href="admin_logout.php">Deconnexion admin</a>
+      <a href="admin_logout.php">Déconnexion admin</a>
     </div>
   </div>
   <p class="sous-titre">Import .ics, correction des rendez-vous existants et sauvegardes.</p>
 
   <div class="outil">
     <h2>Importer un fichier .ics</h2>
-    <p class="sous-titre">Importe des rendez-vous depuis un fichier .ics exporte d'un autre agenda (Google Calendar, Outlook, etc.).</p>
+    <p class="sous-titre">Importe des rendez-vous depuis un fichier .ics exporté d'un autre agenda (Google Calendar, Outlook, etc.).</p>
     <button class="secondaire" id="btnImportIcs">Choisir un fichier .ics</button>
     <input type="file" id="fichierIcs" accept=".ics,text/calendar" style="display:none;">
   </div>
 
   <div class="outil">
-    <h2>Extraction automatique du telephone et de la route</h2>
-    <p class="sous-titre">Detecte tout seul les numeros de telephone (et les mentions "Route NNN" a cote) dans "Medecin / consultation" et "Notes" — avec ou sans la mention complete "Le lieu du rendez-vous ... Route NNN Tel : ..." — les retire du texte et remplit les champs Telephone et Route.</p>
+    <h2>Extraction automatique du téléphone et de la route</h2>
+    <p class="sous-titre">Détecte tout seul les numéros de téléphone (et les mentions "Route NNN" à côté) dans "Médecin / consultation" et "Notes" — avec ou sans la mention complète "Le lieu du rendez-vous ... Route NNN Tél : ..." — les retire du texte et remplit les champs Téléphone et Route.</p>
 
     <?php if ($resultatApplicationTel !== null): ?>
       <p class="info">
-        <?= (int) $resultatApplicationTel['modifies'] ?> rendez-vous corrige(s).
+        <?= (int) $resultatApplicationTel['modifies'] ?> rendez-vous corrigé(s).
         <?php if ($resultatApplicationTel['ignores'] > 0): ?>
-          <?= (int) $resultatApplicationTel['ignores'] ?> avaient deja le champ Telephone ou Route rempli (texte tout de meme nettoye, valeur existante conservee).
+          <?= (int) $resultatApplicationTel['ignores'] ?> avaient déjà le champ Téléphone ou Route rempli (texte tout de même nettoyé, valeur existante conservée).
         <?php endif; ?>
       </p>
       <p><a href="admin_nettoyage.php">Relancer une recherche</a></p>
@@ -594,21 +594,21 @@ try {
       <form method="post">
         <input type="hidden" name="action" value="rechercher_tel">
         <div class="form-boutons">
-          <button class="principal" type="submit">Rechercher les numeros de telephone</button>
+          <button class="principal" type="submit">Rechercher les numéros de téléphone</button>
         </div>
       </form>
 
       <?php if (!empty($resultatsTel)): ?>
         <form method="post" style="margin-top:20px;">
           <input type="hidden" name="action" value="appliquer_tel">
-          <p><?= count($resultatsTel) ?> rendez-vous trouve(s). Decochez ceux a ne pas corriger.</p>
+          <p><?= count($resultatsTel) ?> rendez-vous trouvé(s). Décochez ceux à ne pas corriger.</p>
 
           <?php foreach ($resultatsTel as $r): ?>
             <div class="rangee-nett">
               <input type="checkbox" checked name="selection[]" value="<?= (int) $r['id'] ?>">
               <div class="details">
-                <div style="font-weight:600;"><?= htmlspecialchars($r['date']) ?> a <?= htmlspecialchars(substr($r['time'], 0, 5)) ?> — <?= htmlspecialchars($r['person']) ?></div>
-                <?php foreach (['doctor' => 'Medecin / consultation', 'notes' => 'Notes'] as $champCle => $champLabel):
+                <div style="font-weight:600;"><?= htmlspecialchars($r['date']) ?> à <?= htmlspecialchars(substr($r['time'], 0, 5)) ?> — <?= htmlspecialchars($r['person']) ?></div>
+                <?php foreach (['doctor' => 'Médecin / consultation', 'notes' => 'Notes'] as $champCle => $champLabel):
                   $d = $r['detect'][$champCle];
                   if (!$d) continue;
                   $texteChamp = htmlspecialchars($r[$champCle]);
@@ -618,17 +618,17 @@ try {
                 ?>
                   <div class="champ-avant"><?= htmlspecialchars($champLabel) ?> : <?= $texteChamp ?></div>
                   <?php if ($d['telephone'] !== ''): ?>
-                    <div class="champ-apres">Telephone detecte : <?= htmlspecialchars($d['telephone']) ?></div>
+                    <div class="champ-apres">Téléphone détecté : <?= htmlspecialchars($d['telephone']) ?></div>
                   <?php endif; ?>
                   <?php if ($d['route'] !== ''): ?>
-                    <div class="champ-apres">Route detectee : <?= htmlspecialchars($d['route']) ?></div>
+                    <div class="champ-apres">Route détectée : <?= htmlspecialchars($d['route']) ?></div>
                   <?php endif; ?>
                 <?php endforeach; ?>
                 <?php if ($r['phone'] !== ''): ?>
-                  <div class="champ-avant" style="color:#c60;">Champ Telephone deja rempli ("<?= htmlspecialchars($r['phone']) ?>").</div>
+                  <div class="champ-avant" style="color:#c60;">Champ Téléphone déjà rempli ("<?= htmlspecialchars($r['phone']) ?>").</div>
                 <?php endif; ?>
                 <?php if ($r['route'] !== ''): ?>
-                  <div class="champ-avant" style="color:#c60;">Champ Route deja rempli ("<?= htmlspecialchars($r['route']) ?>").</div>
+                  <div class="champ-avant" style="color:#c60;">Champ Route déjà rempli ("<?= htmlspecialchars($r['route']) ?>").</div>
                 <?php endif; ?>
               </div>
             </div>
@@ -639,7 +639,7 @@ try {
           </div>
         </form>
       <?php elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'rechercher_tel'): ?>
-        <p class="vide">Aucun numero de telephone detecte.</p>
+        <p class="vide">Aucun numéro de téléphone détecté.</p>
       <?php endif; ?>
 
     <?php endif; ?>
@@ -647,10 +647,10 @@ try {
 
   <div class="outil">
     <h2>Raccourcir les noms complets</h2>
-    <p class="sous-titre">Detecte "pour <?= htmlspecialchars($p1) ?> Nom-de-famille" ou "pour <?= htmlspecialchars($p2) ?> Nom-de-famille" dans "Medecin / consultation" (nom de famille colle par certains imports) et le raccourcit en "pour <?= htmlspecialchars($p1) ?>" / "pour <?= htmlspecialchars($p2) ?>" — la personne est de toute facon deja indiquee par le badge colore.</p>
+    <p class="sous-titre">Détecte "pour <?= htmlspecialchars($p1) ?> Nom-de-famille" ou "pour <?= htmlspecialchars($p2) ?> Nom-de-famille" dans "Médecin / consultation" (nom de famille collé par certains imports) et le raccourcit en "pour <?= htmlspecialchars($p1) ?>" / "pour <?= htmlspecialchars($p2) ?>" — la personne est de toute façon déjà indiquée par le badge coloré.</p>
 
     <?php if ($resultatApplicationNoms !== null): ?>
-      <p class="info"><?= (int) $resultatApplicationNoms['modifies'] ?> rendez-vous corrige(s).</p>
+      <p class="info"><?= (int) $resultatApplicationNoms['modifies'] ?> rendez-vous corrigé(s).</p>
       <p><a href="admin_nettoyage.php">Relancer une recherche</a></p>
     <?php else: ?>
 
@@ -664,7 +664,7 @@ try {
       <?php if (!empty($resultatsNoms)): ?>
         <form method="post" style="margin-top:20px;">
           <input type="hidden" name="action" value="appliquer_noms">
-          <p><?= count($resultatsNoms) ?> rendez-vous trouve(s). Decochez ceux a ne pas corriger.</p>
+          <p><?= count($resultatsNoms) ?> rendez-vous trouvé(s). Décochez ceux à ne pas corriger.</p>
 
           <?php foreach ($resultatsNoms as $r):
             $surligne = preg_replace('/(' . preg_quote($r['detect']['motif'], '/') . ')/i', '<mark>$1</mark>', htmlspecialchars($r['doctor']));
@@ -672,8 +672,8 @@ try {
             <div class="rangee-nett">
               <input type="checkbox" checked name="selection[]" value="<?= (int) $r['id'] ?>">
               <div class="details">
-                <div style="font-weight:600;"><?= htmlspecialchars($r['date']) ?> a <?= htmlspecialchars(substr($r['time'], 0, 5)) ?> — <?= htmlspecialchars($r['person']) ?></div>
-                <div class="champ-avant">Medecin / consultation : <?= $surligne ?></div>
+                <div style="font-weight:600;"><?= htmlspecialchars($r['date']) ?> à <?= htmlspecialchars(substr($r['time'], 0, 5)) ?> — <?= htmlspecialchars($r['person']) ?></div>
+                <div class="champ-avant">Médecin / consultation : <?= $surligne ?></div>
                 <div class="champ-apres">Deviendra : "<?= htmlspecialchars(str_ireplace($r['detect']['motif'], $r['detect']['remplacement'], $r['doctor'])) ?>"</div>
               </div>
             </div>
@@ -684,7 +684,7 @@ try {
           </div>
         </form>
       <?php elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'rechercher_noms'): ?>
-        <p class="vide">Aucun nom complet detecte.</p>
+        <p class="vide">Aucun nom complet détecté.</p>
       <?php endif; ?>
 
     <?php endif; ?>
@@ -700,9 +700,9 @@ try {
 
     <?php if ($resultatApplication !== null): ?>
       <p class="info">
-        <?= (int) $resultatApplication['modifies'] ?> rendez-vous corrige(s).
+        <?= (int) $resultatApplication['modifies'] ?> rendez-vous corrigé(s).
         <?php if ($resultatApplication['ignores'] > 0): ?>
-          <?= (int) $resultatApplication['ignores'] ?> ignore(s) car le champ de destination etait deja rempli (a corriger manuellement si besoin).
+          <?= (int) $resultatApplication['ignores'] ?> ignoré(s) car le champ de destination était déjà rempli (à corriger manuellement si besoin).
         <?php endif; ?>
       </p>
       <p><a href="index.php">Voir l'agenda</a> · <a href="admin_nettoyage.php">Faire un autre nettoyage</a></p>
@@ -712,15 +712,15 @@ try {
       <form method="post">
         <input type="hidden" name="action" value="rechercher">
         <div class="champ">
-          <label>Motifs a rechercher (un texte exact par ligne)</label>
+          <label>Motifs à rechercher (un texte exact par ligne)</label>
           <textarea class="motifs" name="motifs" placeholder="Avenue Hippocrate, 10, 1200 Bruxelles, Belgique"><?= htmlspecialchars($motifsTexte) ?></textarea>
         </div>
 
         <div class="champ">
-          <label>Ou ranger ce texte ?</label>
+          <label>Où ranger ce texte ?</label>
           <div class="destination-choix">
             <label><input type="radio" name="destination" value="location" <?= $destination === 'location' ? 'checked' : '' ?>> Dans le champ Adresse</label>
-            <label><input type="radio" name="destination" value="phone" <?= $destination === 'phone' ? 'checked' : '' ?>> Dans le champ Telephone</label>
+            <label><input type="radio" name="destination" value="phone" <?= $destination === 'phone' ? 'checked' : '' ?>> Dans le champ Téléphone</label>
             <label><input type="radio" name="destination" value="route" <?= $destination === 'route' ? 'checked' : '' ?>> Dans le champ Route</label>
             <label><input type="radio" name="destination" value="supprimer" <?= $destination === 'supprimer' ? 'checked' : '' ?>> Nulle part, juste le supprimer</label>
           </div>
@@ -728,7 +728,7 @@ try {
 
         <?php if (!empty($suggestions)): ?>
           <div class="suggestions">
-            Textes actuellement enregistres qui contiennent un code postal (a copier-coller ci-dessus si c'est une adresse a retirer) :
+            Textes actuellement enregistrés qui contiennent un code postal (à copier-coller ci-dessus si c'est une adresse à retirer) :
             <ul>
               <?php foreach ($suggestions as $s): ?>
                 <li><?= htmlspecialchars($s) ?></li>
@@ -748,26 +748,26 @@ try {
           <input type="hidden" name="motifs" value="<?= htmlspecialchars($motifsTexte) ?>">
           <input type="hidden" name="destination" value="<?= htmlspecialchars($destination) ?>">
 
-          <p><?= count($resultats) ?> rendez-vous trouve(s). Decochez ceux a ne pas corriger.</p>
+          <p><?= count($resultats) ?> rendez-vous trouvé(s). Décochez ceux à ne pas corriger.</p>
 
           <?php foreach ($resultats as $r): ?>
             <div class="rangee-nett">
               <input type="checkbox" checked name="selection[]" value="<?= (int) $r['id'] ?>">
               <div class="details">
-                <div style="font-weight:600;"><?= htmlspecialchars($r['date']) ?> a <?= htmlspecialchars(substr($r['time'], 0, 5)) ?> — <?= htmlspecialchars($r['person']) ?></div>
+                <div style="font-weight:600;"><?= htmlspecialchars($r['date']) ?> à <?= htmlspecialchars(substr($r['time'], 0, 5)) ?> — <?= htmlspecialchars($r['person']) ?></div>
                 <?php foreach ($r['matches'] as $m):
-                  $label = $m['champ'] === 'doctor' ? 'Medecin / consultation' : 'Notes';
+                  $label = $m['champ'] === 'doctor' ? 'Médecin / consultation' : 'Notes';
                   $valeurBrute = $m['champ'] === 'doctor' ? $r['doctor'] : $r['notes'];
                   $surligne = preg_replace('/(' . preg_quote($m['motif'], '/') . ')/i', '<mark>$1</mark>', htmlspecialchars($valeurBrute));
                 ?>
                   <div class="champ-avant"><?= htmlspecialchars($label) ?> : <?= $surligne ?></div>
                 <?php endforeach; ?>
                 <?php if ($destination === 'location' && $r['location'] !== ''): ?>
-                  <div class="champ-avant" style="color:#c60;">Champ Adresse deja rempli ("<?= htmlspecialchars($r['location']) ?>") : cette ligne sera ignoree.</div>
+                  <div class="champ-avant" style="color:#c60;">Champ Adresse déjà rempli ("<?= htmlspecialchars($r['location']) ?>") : cette ligne sera ignorée.</div>
                 <?php elseif ($destination === 'phone' && $r['phone'] !== ''): ?>
-                  <div class="champ-avant" style="color:#c60;">Champ Telephone deja rempli ("<?= htmlspecialchars($r['phone']) ?>") : cette ligne sera ignoree.</div>
+                  <div class="champ-avant" style="color:#c60;">Champ Téléphone déjà rempli ("<?= htmlspecialchars($r['phone']) ?>") : cette ligne sera ignorée.</div>
                 <?php elseif ($destination === 'route' && $r['route'] !== ''): ?>
-                  <div class="champ-avant" style="color:#c60;">Champ Route deja rempli ("<?= htmlspecialchars($r['route']) ?>") : cette ligne sera ignoree.</div>
+                  <div class="champ-avant" style="color:#c60;">Champ Route déjà rempli ("<?= htmlspecialchars($r['route']) ?>") : cette ligne sera ignorée.</div>
                 <?php endif; ?>
               </div>
             </div>
@@ -786,15 +786,15 @@ try {
 
   <div class="outil">
     <h2>Sauvegardes</h2>
-    <p class="sous-titre">Une sauvegarde automatique (voir backup.php et le guide d'installation pour la configurer via un Cron Job Hostinger) exporte tous les rendez-vous chaque jour. En cas de suppression accidentelle, choisissez une sauvegarde d'avant la suppression : les rendez-vous qui y figurent mais qui ont disparu de l'agenda actuel sont proposes a la restauration.</p>
+    <p class="sous-titre">Une sauvegarde automatique (voir backup.php et le guide d'installation pour la configurer via un Cron Job Hostinger) exporte tous les rendez-vous chaque jour. En cas de suppression accidentelle, choisissez une sauvegarde d'avant la suppression : les rendez-vous qui y figurent mais qui ont disparu de l'agenda actuel sont proposés à la restauration.</p>
 
     <?php if (empty($fichiersBackup)): ?>
-      <p class="vide">Aucune sauvegarde trouvee pour l'instant. Verifiez que le Cron Job de sauvegarde est bien configure (voir le guide d'installation).</p>
+      <p class="vide">Aucune sauvegarde trouvée pour l'instant. Vérifiez que le Cron Job de sauvegarde est bien configuré (voir le guide d'installation).</p>
     <?php else: ?>
 
       <?php if ($nbRestaures !== null): ?>
         <p class="info">
-          <?= (int) $nbRestaures ?> rendez-vous restaure(s)<?= $nbRestaures > 0 ? ' (et resynchronise(s) avec Google Calendar si active)' : '' ?>.
+          <?= (int) $nbRestaures ?> rendez-vous restauré(s)<?= $nbRestaures > 0 ? ' (et resynchronisé(s) avec Google Calendar si activé)' : '' ?>.
         </p>
         <p><a href="admin_nettoyage.php">Retour aux sauvegardes</a></p>
       <?php else: ?>
@@ -803,10 +803,10 @@ try {
           <div class="champ">
             <label for="sauvegarde">Choisir une sauvegarde</label>
             <select name="sauvegarde" id="sauvegarde" onchange="this.form.submit()" style="width:100%; font-size:16px; padding:12px; border-radius:8px; border:1.5px solid var(--border);">
-              <option value="">— Selectionner une date —</option>
+              <option value="">— Sélectionner une date —</option>
               <?php foreach ($fichiersBackup as $chemin):
                 $nom = basename($chemin);
-                $horodatage = preg_replace('/^appointments-([0-9]{4})-([0-9]{2})-([0-9]{2})-([0-9]{2})([0-9]{2})\.json$/', '$3/$2/$1 a $4:$5', $nom);
+                $horodatage = preg_replace('/^appointments-([0-9]{4})-([0-9]{2})-([0-9]{2})-([0-9]{2})([0-9]{2})\.json$/', '$3/$2/$1 à $4:$5', $nom);
               ?>
                 <option value="<?= htmlspecialchars($nom) ?>" <?= $nom === $backupSelectionnee ? 'selected' : '' ?>><?= htmlspecialchars($horodatage) ?></option>
               <?php endforeach; ?>
@@ -823,13 +823,13 @@ try {
             <form method="post">
               <input type="hidden" name="action" value="restaurer_sauvegarde">
               <input type="hidden" name="fichier" value="<?= htmlspecialchars($backupSelectionnee) ?>">
-              <p><?= count($rendezVousDisparus) ?> rendez-vous de cette sauvegarde manque(nt) actuellement. Decochez ceux a ne pas restaurer.</p>
+              <p><?= count($rendezVousDisparus) ?> rendez-vous de cette sauvegarde manque(nt) actuellement. Décochez ceux à ne pas restaurer.</p>
 
               <?php foreach ($rendezVousDisparus as $r): ?>
                 <div class="rangee-nett">
                   <input type="checkbox" checked name="selection[]" value="<?= (int) $r['id'] ?>">
                   <div class="details">
-                    <div style="font-weight:600;"><?= htmlspecialchars($r['appt_date']) ?> a <?= htmlspecialchars(substr($r['appt_time'], 0, 5)) ?> — <?= htmlspecialchars($r['person']) ?></div>
+                    <div style="font-weight:600;"><?= htmlspecialchars($r['appt_date']) ?> à <?= htmlspecialchars(substr($r['appt_time'], 0, 5)) ?> — <?= htmlspecialchars($r['person']) ?></div>
                     <div class="champ-avant"><?= htmlspecialchars(isset($r['doctor']) ? $r['doctor'] : '') ?></div>
                     <?php if (!empty($r['department'])): ?>
                       <div class="champ-avant"><?= htmlspecialchars($r['department']) ?></div>
@@ -842,7 +842,7 @@ try {
               <?php endforeach; ?>
 
               <div class="form-boutons" style="margin-top:16px;">
-                <button class="principal" type="submit">Restaurer la selection</button>
+                <button class="principal" type="submit">Restaurer la sélection</button>
               </div>
             </form>
           <?php endif; ?>
@@ -852,18 +852,18 @@ try {
     <?php endif; ?>
   </div>
 
-  <p style="margin-top:2rem;"><a href="index.php">Retour a l'agenda</a></p>
+  <p style="margin-top:2rem;"><a href="index.php">Retour à l'agenda</a></p>
 
   <div class="overlay" id="overlay"></div>
 
   <div id="icsCard" class="modal">
     <div class="modal-corps">
-      <h2>Rendez-vous trouves dans le fichier</h2>
+      <h2>Rendez-vous trouvés dans le fichier</h2>
       <p class="erreur" id="erreurIcs"></p>
       <div id="listeIcs"></div>
     </div>
     <div class="form-boutons">
-      <button class="principal" id="btnImporterSelection">Importer la selection</button>
+      <button class="principal" id="btnImporterSelection">Importer la sélection</button>
       <button class="secondaire" id="btnAnnulerIcs">Annuler</button>
     </div>
   </div>

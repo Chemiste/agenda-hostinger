@@ -22,13 +22,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Administration - Agenda medical</title>
+<title>Administration - Agenda médical</title>
 <link rel="stylesheet" href="assets/style.css">
 </head>
 <body class="page-login">
   <div class="login-card">
     <h1>Administration</h1>
-    <p class="sous-titre">Cette section est reservee : entrez le mot de passe d'administration.</p>
+    <p class="sous-titre">Cette section est réservée : entrez le mot de passe d'administration.</p>
     <?php if ($erreur): ?>
       <p class="erreur"><?= htmlspecialchars($erreur) ?></p>
     <?php endif; ?>
@@ -36,7 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <input type="password" name="password" placeholder="Mot de passe admin" autofocus required>
       <button class="principal" type="submit">Entrer</button>
     </form>
-    <p style="margin-top:16px;"><a href="index.php">Retour a l'agenda</a></p>
+    <p style="margin-top:16px;"><a href="index.php">Retour à l'agenda</a></p>
   </div>
 </body>
 </html>
