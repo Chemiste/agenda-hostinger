@@ -345,6 +345,9 @@ button.secondaire:active { transform: scale(0.97); }
   .fab { display: flex; align-items: center; justify-content: center; }
   .actions .principal { display: none; }
   .actions { margin-bottom: 12px; }
+  /* Le badge n'affiche que 4 lettres sur petit ecran (voir nomBadge() dans
+     app.js) : largeur reduite en consequence pour recuperer la place. */
+  .badge { width: 4.5ch; padding: 5px 4px; }
 }
 
 #btnImportIcs.ics-ligne { display: block; }

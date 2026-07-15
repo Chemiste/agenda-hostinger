@@ -75,6 +75,14 @@ function classeBadge(personne) {
   return 'deux';
 }
 
+// Sur petit ecran (telephone), le badge n'affiche que les 4 premieres
+// lettres du prenom (ex. "Mich" au lieu de "Michel") pour gagner de la
+// place dans la liste. Sur ecran plus large, le nom complet reste affiche.
+var MOBILE_MQ = window.matchMedia('(max-width: 640px)');
+function nomBadge(personne) {
+  return MOBILE_MQ.matches ? personne.slice(0, 4) : personne;
+}
+
 function escapeHtml(s) {
   var div = document.createElement('div');
   div.textContent = s || '';
@@ -119,7 +127,7 @@ function afficherListe() {
     var contact = [r.location, r.phone, r.route].filter(function (v) { return v; }).map(escapeHtml).join(' · ');
     html += '<div class="rdv" data-id="' + r.id + '">' +
       '<div class="heure">' + r.time + '</div>' +
-      '<span class="badge ' + classeBadge(r.person) + '">' + r.person + '</span>' +
+      '<span class="badge ' + classeBadge(r.person) + '">' + escapeHtml(nomBadge(r.person)) + '</span>' +
       '<div class="details">' +
         '<div class="medecin">' + escapeHtml(r.doctor || 'Rendez-vous') + '</div>' +
         (r.department ? '<div class="departement">' + escapeHtml(r.department) + '</div>' : '') +
@@ -158,6 +166,12 @@ document.getElementById('tabsTemps').addEventListener('click', function (e) {
   tab.classList.add('active');
   filtreTemps = tab.dataset.temps;
   afficherListe();
+});
+
+// Reaffiche la liste si on passe le seuil mobile/large (ex: rotation de
+// l'ecran du telephone), pour que le badge affiche le bon format de nom.
+MOBILE_MQ.addEventListener('change', function () {
+  if (tousLesRdv.length > 0) afficherListe();
 });
 
 // ---------------------------------------------------------------

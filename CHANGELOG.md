@@ -1,5 +1,13 @@
 # Journal des versions
 
+## v1.13.2 — 2026-07-15
+
+- Sur telephone (largeur d'ecran <= 640px), le badge de la personne dans
+  la liste n'affiche que les 4 premieres lettres du prenom (ex. "Mich"
+  au lieu de "Michel") pour gagner de la place. Le nom complet reste
+  affiche sur les ecrans plus larges (tablette, ordinateur) et a
+  l'impression. Se met a jour automatiquement si on tourne l'ecran.
+
 ## v1.13.1 — 2026-07-15
 
 - Le bouton de suppression d'un rendez-vous n'est plus sur chaque ligne
