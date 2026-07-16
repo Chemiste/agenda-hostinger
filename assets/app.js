@@ -287,14 +287,32 @@ document.getElementById('btnSupprimer').addEventListener('click', function () {
     });
 });
 
+// Sur certains navigateurs mobiles (Chrome Android notamment), l'apercu
+// avant impression est genere par un pipeline different de celui du
+// bureau : appeler window.print() juste apres avoir change une classe
+// CSS peut capturer la page avant que ce changement soit vraiment pris
+// en compte (l'apercu ressemble alors a l'ancienne mise en page). Le
+// double requestAnimationFrame attend que le navigateur ait fini un
+// cycle complet de style/mise en page avant de lancer l'impression -
+// solution standard pour ce genre de decalage, sans impact visible sur
+// les navigateurs qui n'en ont pas besoin (l'attente est de 1-2 frames,
+// donc imperceptible).
+function imprimerApresRendu() {
+  window.requestAnimationFrame(function () {
+    window.requestAnimationFrame(function () {
+      window.print();
+    });
+  });
+}
+
 document.getElementById('btnImprimer').addEventListener('click', function () {
   document.body.classList.remove('impression-compacte');
-  window.print();
+  imprimerApresRendu();
 });
 
 document.getElementById('btnImprimerCompact').addEventListener('click', function () {
   document.body.classList.add('impression-compacte');
-  window.print();
+  imprimerApresRendu();
 });
 
 window.addEventListener('afterprint', function () {
