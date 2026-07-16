@@ -3,6 +3,27 @@ var filtreActuel = 'Tous';
 var filtreTemps = 'avenir';
 var idEnEdition = null;
 
+// Si la page a ete rechargee pour lancer une impression automatique (voir
+// plus bas et index.php), restaure le filtre qui etait affiche au moment
+// du clic sur "Imprimer" / "Imprimer (compact)", pour que l'impression
+// corresponde bien a ce que la personne regardait.
+if (window.FILTRE_PERSONNE_INIT) {
+  var ongletPersonne = document.querySelector('.tab[data-filtre="' + window.FILTRE_PERSONNE_INIT + '"]');
+  if (ongletPersonne) {
+    document.querySelectorAll('.tab').forEach(function (t) { t.classList.remove('active'); });
+    ongletPersonne.classList.add('active');
+    filtreActuel = window.FILTRE_PERSONNE_INIT;
+  }
+}
+if (window.FILTRE_TEMPS_INIT) {
+  var ongletTemps = document.querySelector('.tab-temps[data-temps="' + window.FILTRE_TEMPS_INIT + '"]');
+  if (ongletTemps) {
+    document.querySelectorAll('.tab-temps').forEach(function (t) { t.classList.remove('active'); });
+    ongletTemps.classList.add('active');
+    filtreTemps = window.FILTRE_TEMPS_INIT;
+  }
+}
+
 var MOIS_ABREGES = ['Jan', 'Fév', 'Mars', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
 function formatDateCompacte(dateStr) {
   var p = dateStr.split('-');
@@ -57,6 +78,7 @@ function charger() {
     .then(function (rdvs) {
       tousLesRdv = rdvs;
       afficherListe();
+      if (window.IMPRESSION_AUTO) lancerImpressionAuto();
     })
     .catch(function (err) {
       document.getElementById('liste').innerHTML =
@@ -287,36 +309,42 @@ document.getElementById('btnSupprimer').addEventListener('click', function () {
     });
 });
 
-// Sur certains navigateurs mobiles (Chrome Android notamment), l'apercu
-// avant impression est genere par un pipeline different de celui du
-// bureau : appeler window.print() juste apres avoir change une classe
-// CSS peut capturer la page avant que ce changement soit vraiment pris
-// en compte (l'apercu ressemble alors a l'ancienne mise en page). Le
-// double requestAnimationFrame attend que le navigateur ait fini un
-// cycle complet de style/mise en page avant de lancer l'impression -
-// solution standard pour ce genre de decalage, sans impact visible sur
-// les navigateurs qui n'en ont pas besoin (l'attente est de 1-2 frames,
-// donc imperceptible).
-function imprimerApresRendu() {
-  window.requestAnimationFrame(function () {
-    window.requestAnimationFrame(function () {
-      window.print();
-    });
-  });
+// Deux tentatives precedentes (delai de rendu avant window.print(), puis
+// l'evenement "beforeprint") n'ont pas suffi sur certains navigateurs
+// mobiles (Chrome Android) : l'apercu affichait quand meme la mise en
+// page normale au lieu de la grille compacte. Solution fiable a 100% :
+// recharger la page avec le mode d'impression en parametre d'URL, pour
+// que la classe "impression-compacte" soit deja presente dans le tout
+// premier HTML envoye par le serveur (voir index.php) - avant meme que
+// ce script ne s'execute, donc aucune course possible avec le moteur
+// d'impression. L'impression se lance ensuite automatiquement une fois
+// les rendez-vous rechauges (voir plus haut, dans charger()).
+function lancerImpression(mode) {
+  var params = new URLSearchParams();
+  params.set('impression', mode);
+  params.set('personne', filtreActuel);
+  params.set('temps', filtreTemps);
+  window.location.href = '/index.php?' + params.toString();
 }
 
-document.getElementById('btnImprimer').addEventListener('click', function () {
-  document.body.classList.remove('impression-compacte');
-  imprimerApresRendu();
-});
-
-document.getElementById('btnImprimerCompact').addEventListener('click', function () {
-  document.body.classList.add('impression-compacte');
-  imprimerApresRendu();
-});
+function lancerImpressionAuto() {
+  // Nettoie l'URL tout de suite : si on ne le faisait qu'apres coup (ex:
+  // sur l'evenement "afterprint", pas fiable partout), un rechargement ou
+  // un retour arriere ulterieur relancerait l'impression automatiquement.
+  window.history.replaceState(null, '', window.location.pathname);
+  window.print();
+}
 
 window.addEventListener('afterprint', function () {
   document.body.classList.remove('impression-compacte');
+});
+
+document.getElementById('btnImprimer').addEventListener('click', function () {
+  lancerImpression('normal');
+});
+
+document.getElementById('btnImprimerCompact').addEventListener('click', function () {
+  lancerImpression('compact');
 });
 
 document.getElementById('btnEnregistrer').addEventListener('click', function () {

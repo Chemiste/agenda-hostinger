@@ -5,6 +5,27 @@ requireLogin();
 $config = require __DIR__ . '/config.php';
 $p1 = isset($config['personne_1']) ? $config['personne_1'] : 'Papa';
 $p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
+
+// Impression automatique au chargement (voir assets/app.js) : sur
+// certains navigateurs mobiles (Chrome Android notamment), ajouter la
+// classe "impression-compacte" en JS juste avant d'appeler window.print()
+// n'est pas fiable - le generateur d'apercu peut capturer la page avant
+// que le changement soit pris en compte (essaye avec un delai de rendu,
+// puis avec l'evenement "beforeprint", insuffisant sur certains
+// appareils). Solution fiable a 100% : le mode compact est ici decide
+// cote serveur (classe presente des le tout premier HTML envoye, avant
+// meme que la moindre ligne de JS ne s'execute), impossible a rater.
+// Les boutons "Imprimer" / "Imprimer (compact)" rechargent donc la page
+// avec ce parametre plutot que de basculer une classe en JS.
+$impressionValides = ['normal', 'compact'];
+$modeImpression = (isset($_GET['impression']) && in_array($_GET['impression'], $impressionValides, true))
+    ? $_GET['impression'] : '';
+$personneValides = ['Tous', $p1, $p2];
+$personneGet = (isset($_GET['personne']) && in_array($_GET['personne'], $personneValides, true))
+    ? $_GET['personne'] : '';
+$tempsValides = ['avenir', 'passes', 'tous'];
+$tempsGet = (isset($_GET['temps']) && in_array($_GET['temps'], $tempsValides, true))
+    ? $_GET['temps'] : '';
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -14,7 +35,7 @@ $p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
 <title>Agenda médical</title>
 <link rel="stylesheet" href="/assets/style.css">
 </head>
-<body>
+<body<?= $modeImpression === 'compact' ? ' class="impression-compacte"' : '' ?>>
 
   <div class="topbar">
     <div class="entete">
@@ -52,11 +73,15 @@ $p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
   </div>
 
   <div id="liste">
-    <div class="squelette">
-      <div class="squelette-ligne"></div>
-      <div class="squelette-ligne"></div>
-      <div class="squelette-ligne"></div>
-    </div>
+    <?php if ($modeImpression !== ''): ?>
+      <p class="vide">Préparation de l'impression…</p>
+    <?php else: ?>
+      <div class="squelette">
+        <div class="squelette-ligne"></div>
+        <div class="squelette-ligne"></div>
+        <div class="squelette-ligne"></div>
+      </div>
+    <?php endif; ?>
   </div>
   <div id="listeCompacte"></div>
 
@@ -124,6 +149,9 @@ $p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
   <script>
     window.PERSONNE_1 = <?= json_encode($p1) ?>;
     window.PERSONNE_2 = <?= json_encode($p2) ?>;
+    window.IMPRESSION_AUTO = <?= json_encode($modeImpression) ?>;
+    window.FILTRE_PERSONNE_INIT = <?= json_encode($personneGet) ?>;
+    window.FILTRE_TEMPS_INIT = <?= json_encode($tempsGet) ?>;
   </script>
   <script src="/assets/app.js"></script>
 </body>
