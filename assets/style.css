@@ -433,7 +433,7 @@ button.secondaire:active { transform: scale(0.97); }
      cartes courtes plutot que la liste detaillee. */
   body.impression-compacte #liste { display: none !important; }
   body.impression-compacte #listeCompacte {
-    display: grid;
+    display: grid !important;
     grid-template-columns: repeat(3, 1fr);
     gap: 8px;
   }
