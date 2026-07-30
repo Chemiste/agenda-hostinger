@@ -113,8 +113,9 @@ class CalendarSync {
 
     private function buildEventPayload($appt) {
         $start = $appt['date'] . 'T' . $appt['time'] . ':00';
+        $duree = (!empty($appt['duration']) && (int) $appt['duration'] > 0) ? (int) $appt['duration'] : 30;
         $endDt = new DateTime($start);
-        $endDt->modify('+30 minutes');
+        $endDt->modify('+' . $duree . ' minutes');
 
         return [
             'summary' => $this->eventPrefix($appt['person']) . (!empty($appt['doctor']) ? $appt['doctor'] : 'Rendez-vous'),

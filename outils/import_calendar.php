@@ -59,6 +59,7 @@ function convertirEvenementGoogle($event, $labelParDefaut) {
     list($summary, $personne) = prefixeVersPersonne($summaryBrut, $labelParDefaut);
 
     $toutelaJournee = isset($event['start']['date']);
+    $duree = 30; // repli par defaut, notamment pour les evenements toute la journee
     if ($toutelaJournee) {
         $date = $event['start']['date'];
         $heure = '09:00';
@@ -67,6 +68,17 @@ function convertirEvenementGoogle($event, $labelParDefaut) {
         $dt->setTimezone(new DateTimeZone('Europe/Paris'));
         $date = $dt->format('Y-m-d');
         $heure = $dt->format('H:i');
+
+        // Duree reelle calculee depuis start/end de l'evenement Google, pour
+        // ne pas retomber sur 30 minutes par defaut si l'evenement d'origine
+        // durait plus (ou moins) longtemps.
+        if (isset($event['end']['dateTime'])) {
+            $finDt = new DateTime($event['end']['dateTime']);
+            $diffMinutes = (int) round(($finDt->getTimestamp() - $dt->getTimestamp()) / 60);
+            if ($diffMinutes > 0) {
+                $duree = $diffMinutes;
+            }
+        }
     }
 
     return [
@@ -76,6 +88,7 @@ function convertirEvenementGoogle($event, $labelParDefaut) {
         'description' => isset($event['description']) ? $event['description'] : '',
         'date' => $date,
         'time' => $heure,
+        'duration' => $duree,
         'person' => $personne,
         'toutelaJournee' => $toutelaJournee,
     ];
@@ -98,10 +111,12 @@ function importerLigne($db, $item) {
     }
     $doctor = trim($item['summary']);
     $location = isset($item['location']) ? $item['location'] : '';
-    $stmt = $db->prepare('INSERT INTO appointments (appt_date, appt_time, person, doctor, location, notes, calendar_event_id) VALUES (?, ?, ?, ?, ?, ?, ?)');
+    $duree = (!empty($item['duration']) && (int) $item['duration'] > 0) ? (int) $item['duration'] : 30;
+    $stmt = $db->prepare('INSERT INTO appointments (appt_date, appt_time, duration_minutes, person, doctor, location, notes, calendar_event_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
     $stmt->execute([
         $item['date'],
         $item['time'],
+        $duree,
         $item['person'],
         $doctor,
         $location,
@@ -207,7 +222,11 @@ if (!$erreur && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])
                 <?php endif; ?>
                 <div style="font-size:14px; color:#777;">
                   <?= htmlspecialchars($e['date']) ?> à <?= htmlspecialchars($e['time']) ?>
-                  <?= $e['toutelaJournee'] ? ' (toute la journée, heure à vérifier)' : '' ?>
+                  <?php if (!$e['toutelaJournee']): ?>
+                    (<?= (int) $e['duration'] ?> min)
+                  <?php else: ?>
+                    (toute la journée, heure à vérifier)
+                  <?php endif; ?>
                 </div>
               </div>
               <select class="evt-person" data-idx="<?= $i ?>">

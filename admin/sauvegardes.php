@@ -87,11 +87,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 $existe->execute([$id]);
                 if ((int) $existe->fetchColumn() > 0) continue;
 
-                $stmt = $db->prepare('INSERT INTO appointments (id, appt_date, appt_time, person, doctor, department, location, phone, route, notes, calendar_event_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+                // duration_minutes n'existe pas dans les sauvegardes faites
+                // avant l'ajout de ce champ : on retombe alors sur 30 (meme
+                // valeur par defaut que la colonne en base).
+                $dureeRestauree = (!empty($ligne['duration_minutes']) && (int) $ligne['duration_minutes'] > 0)
+                    ? (int) $ligne['duration_minutes'] : 30;
+
+                $stmt = $db->prepare('INSERT INTO appointments (id, appt_date, appt_time, duration_minutes, person, doctor, department, location, phone, route, notes, calendar_event_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
                 $stmt->execute([
                     $id,
                     $ligne['appt_date'],
                     $ligne['appt_time'],
+                    $dureeRestauree,
                     $ligne['person'],
                     isset($ligne['doctor']) ? $ligne['doctor'] : '',
                     isset($ligne['department']) ? $ligne['department'] : '',
@@ -106,6 +113,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 $appt = [
                     'date' => $ligne['appt_date'],
                     'time' => substr($ligne['appt_time'], 0, 5),
+                    'duration' => $dureeRestauree,
                     'person' => $ligne['person'],
                     'doctor' => isset($ligne['doctor']) ? $ligne['doctor'] : '',
                     'department' => isset($ligne['department']) ? $ligne['department'] : '',

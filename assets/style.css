@@ -198,7 +198,7 @@ button.secondaire:active { transform: scale(0.97); }
 .champ label { display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 6px; font-weight: 600; }
 .champ-ligne { display: flex; gap: 10px; }
 .champ-ligne .champ { flex: 1; min-width: 0; }
-.champ input[type=date], .champ input[type=time], .champ input[type=text], .champ input[type=tel], .champ textarea {
+.champ input[type=date], .champ input[type=time], .champ input[type=text], .champ input[type=tel], .champ select, .champ textarea {
   width: 100%;
   font-size: 16px;
   padding: 12px;
@@ -213,7 +213,7 @@ button.secondaire:active { transform: scale(0.97); }
   min-height: 80px;
   line-height: 1.4;
 }
-.champ input:focus, .champ textarea:focus {
+.champ input:focus, .champ select:focus, .champ textarea:focus {
   outline: none;
   border-color: var(--accent);
 }
@@ -468,6 +468,7 @@ button.secondaire:active { transform: scale(0.97); }
     text-overflow: ellipsis;
     max-height: 2.4em;
   }
+  .cc-route { font-size: 7.5pt; font-weight: 700; margin-top: 1px; }
   .cc-bas { font-size: 7.5pt; color: #666; margin-top: 1px; }
   .cc-personne { font-weight: 700; }
   .cc-personne.cc-papa { color: var(--papa); }

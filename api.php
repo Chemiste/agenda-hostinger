@@ -71,21 +71,28 @@ function validateAppt($appt) {
 }
 
 function listAppointments($db) {
-    $stmt = $db->query('SELECT id, appt_date AS date, appt_time AS time, person, doctor, department, location, phone, route, notes FROM appointments ORDER BY appt_date, appt_time');
+    $stmt = $db->query('SELECT id, appt_date AS date, appt_time AS time, duration_minutes AS duration, person, doctor, department, location, phone, route, notes FROM appointments ORDER BY appt_date, appt_time');
     $rows = $stmt->fetchAll();
     foreach ($rows as &$r) {
         $r['id'] = (string) $r['id'];
         $r['time'] = substr($r['time'], 0, 5);
+        $r['duration'] = (int) $r['duration'];
     }
     return $rows;
 }
 
+function dureeAppt($appt) {
+    $duree = isset($appt['duration']) ? (int) $appt['duration'] : 30;
+    return $duree > 0 ? $duree : 30;
+}
+
 function addAppointment($db, $sync, $appt) {
     validateAppt($appt);
-    $stmt = $db->prepare('INSERT INTO appointments (appt_date, appt_time, person, doctor, department, location, phone, route, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
+    $stmt = $db->prepare('INSERT INTO appointments (appt_date, appt_time, duration_minutes, person, doctor, department, location, phone, route, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
     $stmt->execute([
         $appt['date'],
         $appt['time'],
+        dureeAppt($appt),
         $appt['person'],
         isset($appt['doctor']) ? $appt['doctor'] : '',
         isset($appt['department']) ? $appt['department'] : '',
@@ -136,13 +143,14 @@ function updateAppointmentAction($db, $sync, $appt) {
     $dateHeureChangee = ($row['appt_date'] !== $appt['date']) || (substr($row['appt_time'], 0, 5) !== $appt['time']);
 
     $upd = $db->prepare(
-        'UPDATE appointments SET appt_date = ?, appt_time = ?, person = ?, doctor = ?, department = ?, location = ?, phone = ?, route = ?, notes = ?'
+        'UPDATE appointments SET appt_date = ?, appt_time = ?, duration_minutes = ?, person = ?, doctor = ?, department = ?, location = ?, phone = ?, route = ?, notes = ?'
         . ($dateHeureChangee ? ', reminder_sent_at = NULL' : '')
         . ' WHERE id = ?'
     );
     $upd->execute([
         $appt['date'],
         $appt['time'],
+        dureeAppt($appt),
         $appt['person'],
         isset($appt['doctor']) ? $appt['doctor'] : '',
         isset($appt['department']) ? $appt['department'] : '',

@@ -76,6 +76,17 @@ $p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
         </div>
       </div>
       <div class="champ">
+        <label>Durée</label>
+        <select id="fDuree">
+          <option value="15">15 min</option>
+          <option value="30" selected>30 min</option>
+          <option value="45">45 min</option>
+          <option value="60">1 h</option>
+          <option value="90">1 h 30</option>
+          <option value="120">2 h</option>
+        </select>
+      </div>
+      <div class="champ">
         <label>Pour qui ?</label>
         <div class="personnes" id="personnes">
           <input type="radio" name="personne" value="<?= htmlspecialchars($p1) ?>" id="pPapa">

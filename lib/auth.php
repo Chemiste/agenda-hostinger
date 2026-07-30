@@ -3,7 +3,25 @@
  * Gestion de la connexion (un seul mot de passe familial partage).
  */
 
+// Par defaut, PHP utilise un cookie de session "de navigateur" (expire a la
+// fermeture du navigateur) et une duree de vie cote serveur assez courte
+// (souvent 24 min d'inactivite chez la plupart des hebergeurs). Sur
+// telephone, le navigateur/l'appli est tres souvent ferme ou mis en arriere-
+// plan par le systeme pour liberer de la memoire, ce qui a le meme effet
+// qu'une fermeture reelle - la connexion est alors perdue tres souvent,
+// meme en visitant le site plusieurs fois par jour. On etend ici la duree
+// du cookie et de la session cote serveur a 90 jours, pour rester connecte
+// beaucoup plus longtemps sur un appareil personnel.
 if (session_status() === PHP_SESSION_NONE) {
+    $dureeSession = 60 * 60 * 24 * 90; // 90 jours
+    ini_set('session.gc_maxlifetime', (string) $dureeSession);
+    session_set_cookie_params([
+        'lifetime' => $dureeSession,
+        'path' => '/',
+        'secure' => true,
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
     session_start();
 }
 

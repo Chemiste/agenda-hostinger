@@ -124,7 +124,11 @@ function afficherListe() {
       html += '<div class="jour-groupe"><p class="jour-titre">' + joursDepuis(r.date) + '</p>';
       dernierJour = r.date;
     }
-    var contact = [r.location, r.phone, r.route].filter(function (v) { return v; }).map(escapeHtml).join(' · ');
+    var contactParts = [];
+    if (r.location) contactParts.push(escapeHtml(r.location));
+    if (r.phone) contactParts.push(escapeHtml(r.phone));
+    if (r.route) contactParts.push('<strong>' + escapeHtml(r.route) + '</strong>');
+    var contact = contactParts.join(' · ');
     html += '<div class="rdv" data-id="' + r.id + '">' +
       '<div class="heure">' + r.time + '</div>' +
       '<span class="badge ' + classeBadge(r.person) + '">' + escapeHtml(nomBadge(r.person)) + '</span>' +
@@ -202,7 +206,8 @@ function genererGrilleCompacte(filtres) {
         '<div class="cc-titre">' + escapeHtml(r.doctor || 'Rendez-vous') + '</div>' +
         (r.department ? '<div class="cc-sous">' + escapeHtml(r.department) + '</div>' : '') +
         (r.location ? '<div class="cc-adresse">' + escapeHtml(r.location) + '</div>' : '') +
-        '<div class="cc-bas"><span class="cc-personne cc-' + cls + '">' + escapeHtml(r.person) + '</span> · ' + r.time + (r.route ? ' · ' + escapeHtml(r.route) : '') + '</div>' +
+        (r.route ? '<div class="cc-route">' + escapeHtml(r.route) + '</div>' : '') +
+        '<div class="cc-bas"><span class="cc-personne cc-' + cls + '">' + escapeHtml(r.person) + '</span> · ' + r.time + '</div>' +
       '</div>' +
     '</div>';
   }).join('');
@@ -211,6 +216,7 @@ function genererGrilleCompacte(filtres) {
 function viderFormulaire() {
   document.getElementById('fDate').value = '';
   document.getElementById('fHeure').value = '';
+  document.getElementById('fDuree').value = '30';
   document.getElementById('fMedecin').value = '';
   document.getElementById('fDepartement').value = '';
   document.getElementById('fAdresse').value = '';
@@ -230,6 +236,7 @@ function ouvrirEnEdition(id) {
   idEnEdition = r.id;
   document.getElementById('fDate').value = r.date;
   document.getElementById('fHeure').value = r.time;
+  document.getElementById('fDuree').value = r.duration || 30;
   document.getElementById('fMedecin').value = r.doctor || '';
   document.getElementById('fDepartement').value = r.department || '';
   document.getElementById('fAdresse').value = r.location || '';
@@ -305,6 +312,7 @@ document.getElementById('btnImprimerCompact').addEventListener('click', function
 document.getElementById('btnEnregistrer').addEventListener('click', function () {
   var date = document.getElementById('fDate').value;
   var heure = document.getElementById('fHeure').value;
+  var duree = parseInt(document.getElementById('fDuree').value, 10) || 30;
   var personneInput = document.querySelector('.personnes input:checked');
   var medecin = document.getElementById('fMedecin').value;
   var departement = document.getElementById('fDepartement').value;
@@ -323,6 +331,7 @@ document.getElementById('btnEnregistrer').addEventListener('click', function () 
     id: idEnEdition,
     date: date,
     time: heure,
+    duration: duree,
     person: personneInput.value,
     doctor: medecin,
     department: departement,

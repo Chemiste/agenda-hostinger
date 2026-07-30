@@ -1,5 +1,28 @@
 # Journal des versions
 
+## Non publié
+
+- **Ajout de la durée du rendez-vous.** Jusqu'ici, l'événement synchronisé
+  vers Google Calendar durait systématiquement 30 minutes (valeur fixe
+  dans le code), quelle que soit la réalité du rendez-vous. Ajout d'un
+  champ "Durée" dans le formulaire d'ajout/édition (15 min à 2h,
+  30 min par défaut) :
+  - `migrations/0009_add_duration.sql` : nouvelle colonne
+    `duration_minutes` (défaut 30, pour ne rien casser sur les rendez-vous
+    existants).
+  - `api.php`, `assets/app.js`, `index.php` : le champ est capturé,
+    envoyé et stocké comme les autres.
+  - `lib/calendar_sync.php` : l'événement Google Calendar utilise
+    désormais la vraie durée du rendez-vous au lieu des 30 minutes fixes.
+  - `outils/import_calendar.php` : lors d'un import depuis Google
+    Calendar, la durée réelle de l'événement d'origine (calculée depuis
+    son heure de début/fin) est récupérée et affichée dans l'aperçu,
+    plutôt que de retomber sur 30 minutes par défaut.
+  - `admin/sauvegardes.php` : la restauration d'une sauvegarde tient
+    compte de la durée si présente (sauvegardes plus anciennes : repli
+    sur 30 minutes).
+  - Penser à lancer `outils/migrate.php` après déploiement.
+
 ## v2.1.0 — 2026-07-15
 
 - **Refonte de l'administration : accueil groupé par thème + une page
