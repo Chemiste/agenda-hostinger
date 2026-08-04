@@ -197,17 +197,22 @@ function genererGrilleCompacte(filtres) {
     var d = formatDateCompacte(r.date);
     var cls = classeBadge(r.person);
     return '<div class="carte-compacte">' +
-      '<div class="cc-date cc-' + cls + '">' +
-        '<span class="cc-jour">' + d.jour + '</span>' +
-        '<span class="cc-mois">' + d.mois + '</span>' +
-        '<span class="cc-annee">' + d.annee + '</span>' +
+      '<div class="cc-entete cc-' + cls + '">' +
+        '<span class="cc-entete-nom">' + escapeHtml(r.person) + '</span>' +
       '</div>' +
-      '<div class="cc-contenu">' +
-        '<div class="cc-titre">' + escapeHtml(r.doctor || 'Rendez-vous') + '</div>' +
-        (r.department ? '<div class="cc-sous">' + escapeHtml(r.department) + '</div>' : '') +
-        (r.location ? '<div class="cc-adresse">' + escapeHtml(r.location) + '</div>' : '') +
-        (r.route ? '<div class="cc-route">' + escapeHtml(r.route) + '</div>' : '') +
-        '<div class="cc-bas"><span class="cc-personne cc-' + cls + '">' + escapeHtml(r.person) + '</span> · ' + r.time + '</div>' +
+      '<div class="cc-corps">' +
+        '<div class="cc-date cc-' + cls + '">' +
+          '<span class="cc-jour">' + d.jour + '</span>' +
+          '<span class="cc-mois">' + d.mois + '</span>' +
+          '<span class="cc-annee">' + d.annee + '</span>' +
+          '<span class="cc-heure">' + r.time + '</span>' +
+        '</div>' +
+        '<div class="cc-contenu">' +
+          '<div class="cc-titre">' + escapeHtml(r.doctor || 'Rendez-vous') + '</div>' +
+          (r.department ? '<div class="cc-sous">' + escapeHtml(r.department) + '</div>' : '') +
+          (r.location ? '<div class="cc-adresse">' + escapeHtml(r.location) + '</div>' : '') +
+          (r.route ? '<div class="cc-route">' + escapeHtml(r.route) + '</div>' : '') +
+        '</div>' +
       '</div>' +
     '</div>';
   }).join('');

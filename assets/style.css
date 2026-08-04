@@ -439,18 +439,38 @@ button.secondaire:active { transform: scale(0.97); }
   }
   .carte-compacte {
     display: flex;
-    gap: 8px;
-    align-items: flex-start;
+    flex-direction: column;
     border: 1px solid #ddd;
     border-radius: 6px;
-    padding: 7px 8px;
+    overflow: hidden;
     break-inside: avoid;
     page-break-inside: avoid;
   }
+  /* Bandeau en haut de la carte, pleine largeur, pour repérer en un coup
+     d'oeil qui est concerné (couleur + nom), sans devoir lire le petit
+     texte en bas de la carte comme avant. print-color-adjust force
+     l'impression du fond colore meme si "graphiques d'arriere-plan" n'est
+     pas coche dans la boite de dialogue d'impression. */
+  .cc-entete {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 8px;
+    color: #fff;
+    background: var(--tous);
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    color-adjust: exact;
+  }
+  .cc-entete.cc-papa { background: var(--papa); }
+  .cc-entete.cc-maman { background: var(--maman); }
+  .cc-entete-nom { font-size: 8.5pt; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cc-corps { display: flex; gap: 8px; align-items: flex-start; padding: 7px 8px; }
   .cc-date { min-width: 32px; text-align: center; line-height: 1.1; }
   .cc-jour { display: block; font-size: 15pt; font-weight: 700; color: var(--papa); }
   .cc-mois { display: block; font-size: 7.5pt; text-transform: uppercase; color: var(--papa); }
   .cc-annee { display: block; font-size: 6.5pt; color: #999; }
+  .cc-heure { display: block; font-size: 7.5pt; font-weight: 700; color: var(--text); margin-top: 1px; }
   .cc-date.cc-maman .cc-jour, .cc-date.cc-maman .cc-mois { color: var(--maman); }
   .cc-date.cc-deux .cc-jour, .cc-date.cc-deux .cc-mois { color: var(--tous); }
   .cc-contenu { min-width: 0; }
@@ -469,11 +489,6 @@ button.secondaire:active { transform: scale(0.97); }
     max-height: 2.4em;
   }
   .cc-route { font-size: 7.5pt; font-weight: 700; margin-top: 1px; }
-  .cc-bas { font-size: 7.5pt; color: #666; margin-top: 1px; }
-  .cc-personne { font-weight: 700; }
-  .cc-personne.cc-papa { color: var(--papa); }
-  .cc-personne.cc-maman { color: var(--maman); }
-  .cc-personne.cc-deux { color: var(--tous); }
 }
 #entete-impression { display: none; }
 @media print {
