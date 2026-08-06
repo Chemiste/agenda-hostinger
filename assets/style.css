@@ -286,8 +286,9 @@ button.secondaire:active { transform: scale(0.97); }
 .badge.deux { background: var(--tous-bg); color: var(--tous); }
 .details { flex: 1; min-width: 0; }
 .medecin { font-size: 16px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.departement { font-size: 14px; color: var(--text-secondary); font-style: italic; }
+.departement { font-size: 16px; font-weight: 700; color: var(--text-secondary); font-style: italic; }
 .contact { font-size: 13px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.route { font-size: 13px; font-weight: 700; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .notes { font-size: 14px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .lien-danger {
@@ -419,11 +420,12 @@ button.secondaire:active { transform: scale(0.97); }
   .heure { font-size: 10.5pt; min-width: 34px; }
   .badge { font-size: 8.5pt; padding: 2px 4px; }
   .medecin { font-size: 10.5pt; }
-  .departement, .contact, .notes { font-size: 9pt; }
+  .departement { font-size: 10pt; font-weight: 700; }
+  .contact, .route, .notes { font-size: 9pt; }
 
   /* Le texte complet doit rester lisible a l'impression : pas de
      troncature avec "..." comme dans la liste a l'ecran. */
-  .medecin, .departement, .contact, .notes {
+  .medecin, .departement, .contact, .route, .notes {
     white-space: normal !important;
     overflow: visible !important;
     text-overflow: clip !important;
@@ -475,7 +477,7 @@ button.secondaire:active { transform: scale(0.97); }
   .cc-date.cc-deux .cc-jour, .cc-date.cc-deux .cc-mois { color: var(--tous); }
   .cc-contenu { min-width: 0; }
   .cc-titre { font-size: 9pt; font-weight: 600; line-height: 1.25; }
-  .cc-sous { font-size: 7.5pt; color: #666; font-style: italic; margin-top: 1px; }
+  .cc-sous { font-size: 8.5pt; font-weight: 700; color: #666; font-style: italic; margin-top: 1px; }
   .cc-adresse {
     font-size: 7.5pt;
     color: #666;

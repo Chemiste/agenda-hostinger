@@ -97,29 +97,29 @@ $p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
       </div>
       <div class="champ">
         <label>Médecin / consultation</label>
-        <input type="text" id="fMedecin" placeholder="Dr Martin, cardiologue">
+        <input type="text" id="fMedecin">
       </div>
       <div class="champ">
         <label>Département (facultatif)</label>
-        <input type="text" id="fDepartement" placeholder="Cardiologie">
+        <input type="text" id="fDepartement">
       </div>
       <div class="champ">
         <label>Adresse (facultatif)</label>
-        <input type="text" id="fAdresse" placeholder="Avenue Hippocrate 10, 1200 Bruxelles">
+        <input type="text" id="fAdresse">
       </div>
       <div class="champ-ligne">
         <div class="champ">
           <label>Téléphone (facultatif)</label>
-          <input type="tel" id="fTelephone" placeholder="02 764 28 12">
+          <input type="tel" id="fTelephone">
         </div>
         <div class="champ">
           <label>Route (facultatif)</label>
-          <input type="text" id="fRoute" placeholder="Route 555">
+          <input type="text" id="fRoute">
         </div>
       </div>
       <div class="champ">
         <label>Notes (facultatif)</label>
-        <textarea id="fNotes" rows="4" placeholder="Apporter les résultats de prise de sang"></textarea>
+        <textarea id="fNotes" rows="4"></textarea>
       </div>
       <p class="erreur" id="erreurForm"></p>
       <button type="button" class="lien-danger" id="btnSupprimer" style="display:none;">Supprimer ce rendez-vous</button>

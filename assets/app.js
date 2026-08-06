@@ -89,6 +89,31 @@ function escapeHtml(s) {
   return div.innerHTML;
 }
 
+function echapperRegex(s) {
+  return (s || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// Construit le titre affiché à l'écran et à l'impression : le département
+// (s'il existe) sur sa propre ligne, puis le médecin/consultation sur la
+// ligne suivante — certains départements ont un nom long, les mettre sur
+// une seule ligne avec " - " les faisait déborder ou passer à la ligne
+// n'importe où. On retire au passage un éventuel résidu "pour <Prénom>"
+// laissé par d'anciens imports .ics dans le champ médecin/consultation :
+// la personne concernée est de toute façon déjà indiquée par ailleurs
+// (badge/bandeau coloré), pas la peine de le répéter dans le titre.
+// Purement un effet d'affichage : ni le champ "doctor" en base ni la
+// synchro Google Calendar ne sont modifiés.
+function titreAffichage(r) {
+  var doc = r.doctor || 'Rendez-vous';
+  var noms = [window.PERSONNE_1, window.PERSONNE_2].filter(Boolean).map(echapperRegex).join('|');
+  if (noms) {
+    var re = new RegExp('\\s*[-,]?\\s*\\bpour\\s+(' + noms + ')\\b\\.?', 'gi');
+    doc = doc.replace(re, '').replace(/\s{2,}/g, ' ').replace(/^[\s,-]+|[\s,-]+$/g, '').trim();
+  }
+  if (!doc) doc = 'Rendez-vous';
+  return { departement: r.department || '', medecin: doc };
+}
+
 function afficherListe() {
   var aujourdhui = new Date().toISOString().slice(0, 10);
   var filtres = tousLesRdv.filter(function (r) {
@@ -127,15 +152,16 @@ function afficherListe() {
     var contactParts = [];
     if (r.location) contactParts.push(escapeHtml(r.location));
     if (r.phone) contactParts.push(escapeHtml(r.phone));
-    if (r.route) contactParts.push('<strong>' + escapeHtml(r.route) + '</strong>');
     var contact = contactParts.join(' · ');
+    var t = titreAffichage(r);
     html += '<div class="rdv" data-id="' + r.id + '">' +
       '<div class="heure">' + r.time + '</div>' +
       '<span class="badge ' + classeBadge(r.person) + '">' + escapeHtml(nomBadge(r.person)) + '</span>' +
       '<div class="details">' +
-        '<div class="medecin">' + escapeHtml(r.doctor || 'Rendez-vous') + '</div>' +
-        (r.department ? '<div class="departement">' + escapeHtml(r.department) + '</div>' : '') +
+        (t.departement ? '<div class="departement">' + escapeHtml(t.departement) + '</div>' : '') +
+        '<div class="medecin">' + escapeHtml(t.medecin) + '</div>' +
         (contact ? '<div class="contact">' + contact + '</div>' : '') +
+        (r.route ? '<div class="route">' + escapeHtml(r.route) + '</div>' : '') +
         (r.notes ? '<div class="notes">' + escapeHtml(r.notes) + '</div>' : '') +
       '</div>' +
     '</div>';
@@ -196,6 +222,7 @@ function genererGrilleCompacte(filtres) {
   conteneur.innerHTML = filtres.map(function (r) {
     var d = formatDateCompacte(r.date);
     var cls = classeBadge(r.person);
+    var t = titreAffichage(r);
     return '<div class="carte-compacte">' +
       '<div class="cc-entete cc-' + cls + '">' +
         '<span class="cc-entete-nom">' + escapeHtml(r.person) + '</span>' +
@@ -208,8 +235,8 @@ function genererGrilleCompacte(filtres) {
           '<span class="cc-heure">' + r.time + '</span>' +
         '</div>' +
         '<div class="cc-contenu">' +
-          '<div class="cc-titre">' + escapeHtml(r.doctor || 'Rendez-vous') + '</div>' +
-          (r.department ? '<div class="cc-sous">' + escapeHtml(r.department) + '</div>' : '') +
+          (t.departement ? '<div class="cc-sous">' + escapeHtml(t.departement) + '</div>' : '') +
+          '<div class="cc-titre">' + escapeHtml(t.medecin) + '</div>' +
           (r.location ? '<div class="cc-adresse">' + escapeHtml(r.location) + '</div>' : '') +
           (r.route ? '<div class="cc-route">' + escapeHtml(r.route) + '</div>' : '') +
         '</div>' +
