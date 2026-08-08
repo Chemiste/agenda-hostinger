@@ -1,0 +1,33 @@
+# Fichiers et dossiers a ne JAMAIS televerser vers la production avec
+# deployer.php, meme s'ils ont ete modifies recemment.
+#
+# Un motif par ligne :
+#   - se terminant par "/"  -> exclut tout un dossier (et tout son contenu)
+#   - sinon                 -> nom de fichier exact, ou motif avec "*"
+#                               (ex: *.bak), compare au chemin complet
+#                               ET au seul nom de fichier
+# Les lignes vides et celles commencant par "#" sont ignorees.
+#
+# Modifiez cette liste selon vos besoins - c'est fait pour.
+# Le dossier deploiement/ est de toute facon TOUJOURS exclu (code en dur
+# dans deployer.php), meme si vous le retirez d'ici par erreur.
+
+.git/
+deploiement/
+
+# Secrets propres a chaque environnement : ne partent jamais vers un
+# autre environnement, chacun a le sien deja en place sur le serveur.
+config.php
+config_dev.php
+config_prod.php
+service-account.json
+
+# Sauvegardes locales/generees, jamais a redeployer.
+backups/*.json
+
+# Documentation interne au developpement : utile en local, pas sur le
+# site en ligne (aucun lien ne pointe dessus, mais pas la peine).
+CHANGELOG.md
+Guide_dev_local_et_versions.md
+Guide_installation_hostinger.md
+.gitignore

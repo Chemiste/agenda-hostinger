@@ -100,18 +100,15 @@ h1 { font-size: 24px; margin: 0 0 2px; letter-spacing: -0.01em; }
 .bouton-compact:active { transform: scale(0.96); }
 .bouton-compact-principal { background: var(--accent); color: #fff; }
 .bouton-compact-principal:hover { background: var(--accent-hover); }
-.deconnexion {
+.qui-connecte {
   display: inline-flex;
   align-items: center;
   font-size: 13px;
-  color: var(--text-muted);
-  text-decoration: none;
+  font-weight: 600;
+  color: var(--text-secondary);
   padding: 6px 10px;
-  border-radius: var(--radius-sm);
-  transition: background var(--dur) var(--ease);
 }
-.deconnexion .icone { margin-right: 5px; vertical-align: middle; }
-.deconnexion:hover { background: rgba(0,0,0,0.05); }
+.qui-connecte .icone { margin-right: 5px; vertical-align: middle; }
 
 .tabs { display: flex; gap: 8px; margin-bottom: 16px; padding-bottom: 14px; }
 .tab {
@@ -213,28 +210,37 @@ button.danger:active { transform: scale(0.97); }
    (plutot que deux boutons Normal/Compact a poids egal) qui ouvre un
    petit choix Normal/Compact - allege la barre et met en avant "Ajouter"
    comme action principale. */
-.menu-impression { position: relative; }
-#btnMenuImprimer { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+/* Mecanique generique de menu deroulant (bouton -> liste d'options),
+   reutilisee pour le menu "Imprimer" (Normal/Compact) et le menu de
+   compte (Administration/Historique/Rappels/Deconnexion) - un seul
+   mecanisme CSS+JS (voir initMenuSuspendu() dans app.js) plutot que du
+   code duplique pour chaque nouveau menu. */
+.menu-suspendu { position: relative; }
+.bouton-menu-suspendu { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
 .icone-chevron { margin-left: 2px; transition: transform var(--dur) var(--ease); }
-.menu-impression.ouvert .icone-chevron { transform: rotate(180deg); }
+.menu-suspendu.ouvert .icone-chevron { transform: rotate(180deg); }
 .menu-deroulant {
   display: none;
   flex-direction: column;
   position: absolute;
   top: calc(100% + 6px);
   right: 0;
-  min-width: 180px;
+  min-width: 200px;
   background: var(--surface);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-md);
   padding: 6px;
   z-index: 25;
 }
-.menu-impression.ouvert .menu-deroulant { display: flex; }
-.menu-deroulant button {
+.menu-suspendu.ouvert .menu-deroulant { display: flex; }
+.menu-deroulant button, .menu-deroulant a {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   background: none;
   border: none;
   text-align: left;
+  text-decoration: none;
   padding: 10px 12px;
   font-size: 14px;
   font-weight: 600;
@@ -243,7 +249,7 @@ button.danger:active { transform: scale(0.97); }
   cursor: pointer;
   transition: background var(--dur) var(--ease);
 }
-.menu-deroulant button:hover { background: var(--page-bg); }
+.menu-deroulant button:hover, .menu-deroulant a:hover { background: var(--page-bg); }
 
 #btnImportIcs { width: 100%; margin-bottom: 22px; }
 
@@ -615,6 +621,10 @@ button.danger:active { transform: scale(0.97); }
   border: 1.5px solid var(--border);
   margin: 12px 0;
 }
+
+.choix-personnes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 18px; }
+.choix-personnes button { padding: 22px 10px; font-size: 17px; }
+@media (max-width: 360px) { .choix-personnes { grid-template-columns: 1fr; } }
 
 .outils-footer { text-align: center; font-size: 13px; margin: 32px 0 12px; }
 .outils-footer a { color: var(--text-muted); }

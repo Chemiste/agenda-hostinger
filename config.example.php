@@ -64,6 +64,15 @@ return [
     'personne_1' => 'Papa',
     'personne_2' => 'Maman',
 
+    // --- Membres de la famille pouvant se connecter (facultatif) ---
+    // Juste apres la connexion avec le mot de passe familial (partage),
+    // on demande "qui etes-vous ?" parmi cette liste, pour savoir qui a
+    // ajoute/modifie/supprime un rendez-vous (voir historique.php et
+    // admin/historique.php). Si cette cle est absente, la liste par
+    // defaut ci-dessous est utilisee automatiquement - pas obligatoire de
+    // la decommenter.
+    // 'membres_famille' => ['Michel', 'Christiane', 'Helene', 'Laurent'],
+
     // --- Synchronisation Google Calendar (facultatif) ---
     'google_calendar_id' => '',
     'google_service_account_path' => __DIR__ . '/service-account.json',

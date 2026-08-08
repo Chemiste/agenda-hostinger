@@ -8,6 +8,7 @@ require_once __DIR__ . '/lib/auth.php';
 require_once __DIR__ . '/lib/db.php';
 require_once __DIR__ . '/lib/calendar_sync.php';
 require_once __DIR__ . '/lib/address_aliases.php';
+require_once __DIR__ . '/lib/activity_log.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -120,6 +121,8 @@ function addAppointment($db, $sync, $appt) {
         $upd->execute([$eventId, $id]);
     }
 
+    enregistrerActivite($db, 'ajout', personneSessionActuelle(), resumeActivite($appt), $id);
+
     return ['id' => (string) $id];
 }
 
@@ -178,6 +181,8 @@ function updateAppointmentAction($db, $sync, $appt) {
         $upd2->execute([$nouvelId, $appt['id']]);
     }
 
+    enregistrerActivite($db, 'modification', personneSessionActuelle(), resumeActivite($appt), $appt['id']);
+
     return ['ok' => true];
 }
 
@@ -185,7 +190,9 @@ function deleteAppointment($db, $sync, $id) {
     if (!$id) {
         throw new Exception('Identifiant manquant.');
     }
-    $stmt = $db->prepare('SELECT calendar_event_id FROM appointments WHERE id = ?');
+    // Recupere les infos du rendez-vous AVANT suppression, pour que le
+    // resume du journal reste lisible une fois la ligne effacee.
+    $stmt = $db->prepare('SELECT calendar_event_id, appt_date AS date, appt_time AS time, doctor, person FROM appointments WHERE id = ?');
     $stmt->execute([$id]);
     $row = $stmt->fetch();
     if ($row) {
@@ -193,5 +200,10 @@ function deleteAppointment($db, $sync, $id) {
     }
     $del = $db->prepare('DELETE FROM appointments WHERE id = ?');
     $del->execute([$id]);
+
+    if ($row) {
+        enregistrerActivite($db, 'suppression', personneSessionActuelle(), resumeActivite($row), $id);
+    }
+
     return ['ok' => true];
 }

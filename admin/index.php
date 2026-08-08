@@ -96,6 +96,15 @@ $reminderDelai = getSetting($db, 'reminder_hours_before', '24');
     </a>
   </div>
 
+  <div class="groupe-titre">Journal d'activité</div>
+  <a class="carte-accueil carte-large carte-adresse" href="/admin/historique.php">
+    <div>
+      <div class="titre">Voir le journal complet</div>
+      <div class="detail">Connexions, ajouts, modifications, suppressions</div>
+    </div>
+    <span class="fleche">›</span>
+  </a>
+
   <div class="groupe-titre">Affichage</div>
   <a class="carte-accueil carte-large carte-adresse" href="/admin/alias_adresses.php">
     <div>

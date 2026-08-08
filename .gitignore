@@ -13,3 +13,7 @@ generate_password.php.bak
  
 # Sauvegardes automatiques (donnees, generees par backup.php, jamais committees)
 backups/*.json
+
+# Script de deploiement FTP (deploiement/deployer.php) : contient un mot
+# de passe, propre a chaque environnement.
+deploiement/deploy.config.php

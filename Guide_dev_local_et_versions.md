@@ -97,13 +97,39 @@ Dès que vous modifiez la table `appointments` (nouvelle colonne, nouvel index, 
 
 ## 7. Déployer une nouvelle version en production
 
-1. Envoyez sur Hostinger uniquement les fichiers qui ont changé (via le Gestionnaire de fichiers ou FTP), y compris les nouveaux fichiers dans `migrations/` s'il y en a.
+1. Envoyez sur Hostinger les fichiers qui ont changé, y compris les nouveaux fichiers dans `migrations/` s'il y en a. Deux façons de faire :
+   - **Via le script `deploiement/deployer.php`** (recommandé, voir section 7bis ci-dessous) : détecte tout seul les fichiers modifiés et les envoie par FTP.
+   - **À la main** (Gestionnaire de fichiers Hostinger ou un client FTP comme FileZilla) : reprenez la liste des fichiers modifiés depuis le dernier déploiement (`git status`/`git diff --name-only` si tout est commité) et envoyez-les un par un.
 2. Si de nouvelles migrations existent, appliquez-les sur le serveur :
    - **Avec accès SSH** (si votre plan Hostinger le propose) : connectez-vous et lancez `php outils/migrate.php`.
    - **Sans accès SSH** : ouvrez `https://agenda.hellau.be/outils/migrate.php` dans le navigateur, connectez-vous avec le mot de passe familial, la page liste les migrations en attente, cliquez sur **Lancer les migrations**.
 3. Rechargez le site et vérifiez que tout fonctionne.
 
 `config.php` reste propre à chaque environnement : ne le copiez jamais de votre machine vers le serveur (les identifiants de base de données et le mot de passe familial sont différents entre local et production).
+
+## 7bis. Déploiement automatique par FTP (`deploiement/deployer.php`)
+
+Script à lancer manuellement depuis votre machine (jamais depuis le serveur) : il compare chaque fichier local au fichier réellement présent sur le serveur (via FTP, contenu octet par octet — pas une date), et n'envoie que ceux qui diffèrent ou sont absents. Les fichiers sensibles (`config.php`, `service-account.json`...) et tout ce que vous listez vous-même dans `deploiement/exclusions.txt` sont systématiquement exclus.
+
+**Configuration, une seule fois :**
+```
+cp deploiement/deploy.config.example.php deploiement/deploy.config.php
+```
+Remplissez `deploiement/deploy.config.php` avec vos identifiants FTP Hostinger (hPanel > Fichiers > Comptes FTP) et le chemin distant vers la racine du site (`ftp_remote_path`, souvent `/public_html`). Ce fichier contient un mot de passe : il est exclu de Git, ne le committez jamais.
+
+**Utilisation :**
+```
+php deploiement/deployer.php            # compare au FTP, televerse ce qui differe (ou est absent), apres confirmation
+php deploiement/deployer.php --test      # meme comparaison, affiche juste la liste sans rien televerser
+php deploiement/deployer.php --tout      # televerse TOUT le depot (fichiers non exclus), sans comparer au FTP
+```
+`--testftp` reste accepté comme synonyme de `--test`, par habitude.
+
+Le script se connecte toujours au FTP (y compris en `--test`) pour comparer le contenu réel de chaque fichier candidat à sa copie en ligne, affiche la liste de ce qui diffère ou est absent, puis demande une confirmation (`o`/N) avant d'envoyer quoi que ce soit — sauf en `--test`, qui n'envoie jamais rien. Comme la comparaison est toujours la même (le contenu réel sur le serveur), le mode normal et `--test` donnent toujours des résultats cohérents entre eux.
+
+Si `php deploiement/deployer.php` répond que l'extension `ftp` n'est pas installée : `sudo dnf install php-ftp`.
+
+Pour exclure un fichier ou dossier supplémentaire, ajoutez une ligne dans `deploiement/exclusions.txt` (une ligne se terminant par `/` exclut tout un dossier, sinon c'est un nom de fichier ou un motif avec `*`).
 
 ## 8. Récupérer les vraies données de production en local
 

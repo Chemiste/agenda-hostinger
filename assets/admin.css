@@ -122,3 +122,15 @@ textarea.motifs { width:100%; min-height:100px; font-family:inherit; font-size:1
 .champs-secondaires.inactifs { opacity:0.45; }
 .callout { background:var(--tous-bg); border-radius:var(--radius-md); padding:14px 16px; font-size:14px; color:var(--text); }
 .callout a { font-weight:600; }
+
+/* --- Journal d'activite (historique.php, admin/historique.php) --- */
+.ligne-historique { display:flex; align-items:center; gap:12px; padding:10px 12px; border:1px solid var(--border); border-radius:var(--radius-sm); margin:8px 0; flex-wrap:wrap; }
+.ligne-historique .detail-historique { flex:1; min-width:0; }
+.ligne-historique .quand-historique { font-size:12px; color:var(--text-muted); }
+.ligne-historique .resume-historique { font-size:14px; color:var(--text); font-weight:600; margin-top:2px; }
+.ligne-historique .qui-historique { font-size:13px; font-weight:700; color:var(--text-secondary); flex:none; }
+.badge-action { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.02em; padding:4px 9px; border-radius:999px; flex:none; white-space:nowrap; }
+.badge-ajout { background:#e6f7f1; color:#0f766e; }
+.badge-modification { background:#e6f3fb; color:#0369a1; }
+.badge-suppression { background:#fdeceb; color:#b42318; }
+.badge-connexion { background:var(--tous-bg); color:var(--text-secondary); }

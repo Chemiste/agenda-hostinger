@@ -609,38 +609,57 @@ function restaurerRdv(r) {
     });
 }
 
-// Menu deroulant "Imprimer" (un seul bouton, choix Normal/Compact dans un
-// petit menu plutot que deux boutons cote a cote).
-var menuImpression = document.getElementById('menuImpression');
-document.getElementById('btnMenuImprimer').addEventListener('click', function (e) {
-  e.stopPropagation();
-  var ouvert = menuImpression.classList.toggle('ouvert');
-  this.setAttribute('aria-expanded', ouvert ? 'true' : 'false');
-});
+// Mecanique generique de menu deroulant (bouton -> liste d'options) :
+// utilisee pour le menu "Imprimer" (Normal/Compact) et le menu de compte
+// (Administration/Historique/Rappels/Deconnexion), pour ne pas dupliquer
+// la meme logique d'ouverture/fermeture a chaque nouveau menu de ce genre.
+var menusSuspendus = [];
+function initMenuSuspendu(idConteneur, idBouton) {
+  var conteneur = document.getElementById(idConteneur);
+  var bouton = document.getElementById(idBouton);
+  if (!conteneur || !bouton) return;
+  var entree = { conteneur: conteneur, bouton: bouton };
+  menusSuspendus.push(entree);
+  bouton.addEventListener('click', function (e) {
+    e.stopPropagation();
+    var etaitOuvert = conteneur.classList.contains('ouvert');
+    fermerMenusSuspendus();
+    if (!etaitOuvert) {
+      conteneur.classList.add('ouvert');
+      bouton.setAttribute('aria-expanded', 'true');
+    }
+  });
+}
+function fermerMenusSuspendus() {
+  menusSuspendus.forEach(function (m) {
+    m.conteneur.classList.remove('ouvert');
+    m.bouton.setAttribute('aria-expanded', 'false');
+  });
+}
 document.addEventListener('click', function (e) {
-  if (menuImpression.classList.contains('ouvert') && !menuImpression.contains(e.target)) {
-    fermerMenuImpression();
-  }
+  var unOuvertHorsClic = menusSuspendus.some(function (m) {
+    return m.conteneur.classList.contains('ouvert') && !m.conteneur.contains(e.target);
+  });
+  if (unOuvertHorsClic) fermerMenusSuspendus();
 });
 document.addEventListener('keydown', function (e) {
   if (e.key === 'Escape') {
-    fermerMenuImpression();
+    fermerMenusSuspendus();
     fermerModalActif();
   }
 });
-function fermerMenuImpression() {
-  menuImpression.classList.remove('ouvert');
-  document.getElementById('btnMenuImprimer').setAttribute('aria-expanded', 'false');
-}
+
+initMenuSuspendu('menuCompte', 'btnMenuCompte');
+initMenuSuspendu('menuImpression', 'btnMenuImprimer');
 
 document.getElementById('btnImprimer').addEventListener('click', function () {
-  fermerMenuImpression();
+  fermerMenusSuspendus();
   document.body.classList.remove('impression-compacte');
   window.print();
 });
 
 document.getElementById('btnImprimerCompact').addEventListener('click', function () {
-  fermerMenuImpression();
+  fermerMenusSuspendus();
   document.body.classList.add('impression-compacte');
 
   // On ajoute le délai ici pour Android

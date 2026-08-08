@@ -58,6 +58,36 @@ function logout() {
 }
 
 /**
+ * Identite de la personne actuellement connectee (Michel, Christiane,
+ * Helene, Laurent...) - distincte du mot de passe familial partage : le
+ * mot de passe donne acces au site, ce choix (qui_est_ce.php) permet de
+ * savoir QUI a fait quoi pour le journal d'activite (voir historique.php
+ * et admin/historique.php, lib/activity_log.php).
+ */
+function personneSessionActuelle() {
+    return isset($_SESSION['personne_courante']) ? $_SESSION['personne_courante'] : null;
+}
+
+function definirPersonneSession($nom) {
+    $_SESSION['personne_courante'] = $nom;
+}
+
+/**
+ * Comme requireLogin(), mais exige en plus que la personne ait indique
+ * qui elle est (une fois par session) avant d'acceder a la page. Utilise
+ * par les pages familiales (index.php, mes_rappels.php, historique.php) -
+ * pas par l'admin, qui reste une identite unique (Chem) protegee par son
+ * propre mot de passe.
+ */
+function requireIdentite() {
+    requireLogin();
+    if (personneSessionActuelle() === null) {
+        header('Location: /qui_est_ce.php');
+        exit;
+    }
+}
+
+/**
  * Deuxieme niveau de protection pour les pages d'administration
  * (nettoyage des donnees, import .ics, sauvegardes...), avec un mot de
  * passe distinct du mot de passe familial. Objectif : meme si quelqu'un

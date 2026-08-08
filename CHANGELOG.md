@@ -2,6 +2,58 @@
 
 ## Non publié
 
+- **Script de déploiement FTP manuel.** `deploiement/deployer.php`,
+  lancé à la main depuis la machine de dev (`php deploiement/deployer.php`) :
+  se connecte au FTP/FTPS de Hostinger, compare le contenu de chaque fichier
+  local à sa copie distante (identique/différent/absent) et n'envoie que les
+  fichiers différents ou absents, après confirmation. Exclut toujours les
+  fichiers sensibles (`config.php`, `service-account.json`...) et tout ce
+  qui est listé dans `deploiement/exclusions.txt` (personnalisable). Voir
+  `deploiement/deploy.config.example.php` pour la configuration (FTP,
+  jamais committée) et `Guide_dev_local_et_versions.md`, section 7bis.
+  Options : `--test` (même comparaison réelle sur le FTP, mais affiche
+  seulement la liste des fichiers à envoyer, sans rien envoyer —
+  `--testftp` reste accepté comme alias, par habitude), `--tout`
+  (redéploiement complet, sans comparaison).
+
+- **Barre du haut allégée.** Avec l'ajout du journal d'activité, la barre
+  d'en-tête comptait 7 éléments sur une ligne (identité, Ajouter,
+  Imprimer, Administration, Historique, Rappels par email, Déconnexion) —
+  trop chargée. Administration/Historique/Rappels par email/Déconnexion
+  sont maintenant regroupés derrière un menu déroulant "Prénom ▾", sur le
+  même principe que le menu "Imprimer" déjà existant. Il ne reste que 3
+  éléments dans la barre : le menu de compte, "Ajouter" et "Imprimer".
+  - `assets/app.js` : la logique d'ouverture/fermeture du menu "Imprimer"
+    est généralisée (`initMenuSuspendu()`) pour être réutilisée par
+    n'importe quel menu déroulant de ce type, sans dupliquer le code.
+  - `assets/style.css` : `.menu-impression` renommé en `.menu-suspendu`
+    (mécanique générique), `.menu-deroulant` accepte maintenant des liens
+    en plus des boutons.
+
+- **Qui a fait quoi : journal d'activité.** Juste après la connexion avec
+  le mot de passe familial, l'agenda demande désormais "Qui êtes-vous ?"
+  (Michel, Christiane, Hélène ou Laurent par défaut — configurable via
+  `membres_famille` dans `config.php`) : ce choix reste en mémoire pour
+  toute la session (jusqu'à déconnexion), et sert à savoir qui a fait quoi.
+  - `migrations/0011_add_activity_log.sql` : nouvelle table `activity_log`
+    (type d'action, personne, résumé du rendez-vous concerné, date/heure).
+  - `lib/activity_log.php` : enregistrement et lecture du journal.
+  - `lib/auth.php` : `personneSessionActuelle()` / `definirPersonneSession()`
+    / `requireIdentite()` (comme `requireLogin()`, mais exige aussi le
+    choix de la personne).
+  - `qui_est_ce.php` : nouvel écran de choix (une seule fois par session),
+    enregistre une entrée "connexion" dans le journal.
+  - `index.php`, `mes_rappels.php` : utilisent désormais `requireIdentite()`
+    au lieu de `requireLogin()`.
+  - `api.php` : chaque ajout/modification/suppression de rendez-vous
+    enregistre une entrée dans le journal, avec un résumé du rendez-vous
+    (date, médecin, pour qui) qui reste lisible même après suppression.
+  - `historique.php` (nouveau, lien "Historique" dans l'en-tête) : vue
+    familiale — ajouts/modifications/suppressions, sans les connexions.
+  - `admin/historique.php` (nouveau, section "Journal d'activité" de
+    l'accueil admin) : vue complète, connexions incluses.
+  - Penser à lancer `outils/migrate.php` après déploiement.
+
 - **Annuler une suppression.** Le toast affiché après la suppression d'un
   rendez-vous propose maintenant un bouton "Annuler" (visible 6 secondes) :
   cliquer dessus recrée le rendez-vous avec les mêmes informations (nouvel

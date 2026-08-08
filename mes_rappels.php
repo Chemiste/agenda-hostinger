@@ -11,7 +11,7 @@
  */
 
 require_once __DIR__ . '/lib/auth.php';
-requireLogin();
+requireIdentite();
 require_once __DIR__ . '/lib/db.php';
 require_once __DIR__ . '/lib/settings.php';
 require_once __DIR__ . '/lib/mailer.php';
@@ -108,6 +108,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <div class="barre-admin">
     <h1 style="margin:0;">Rappels par email</h1>
     <div>
+      <span class="qui-connecte"><?= htmlspecialchars(personneSessionActuelle()) ?></span>
       <a href="/index.php">Retour à l'agenda</a>
     </div>
   </div>
