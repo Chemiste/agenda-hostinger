@@ -32,7 +32,12 @@ body {
   line-height: 1.5;
   color: var(--text);
   background: var(--page-bg);
-  max-width: 720px;
+  /* Assez large pour que la liste de rendez-vous (voir #liste / .jour-groupe
+     plus bas) puisse s'étaler sur plusieurs colonnes façon grille sur un
+     écran large, plutôt que de rester coincée dans une longue colonne
+     unique comme avant. Sur mobile ça ne change rien (le viewport est de
+     toute façon plus étroit que ce max-width). */
+  max-width: 1100px;
   margin: 0 auto;
   padding: 0 16px 100px;
 }
@@ -244,18 +249,31 @@ button.secondaire:active { transform: scale(0.97); }
   margin: 20px 2px 8px;
   text-transform: uppercase;
   letter-spacing: 0.03em;
+  /* Le titre du jour doit prendre toute la largeur au-dessus de la grille
+     de cartes de ce jour-la (voir .jour-groupe juste en dessous), pas
+     rester coince dans une seule colonne. */
+  grid-column: 1 / -1;
 }
 .jour-groupe:first-child .jour-titre { margin-top: 2px; }
 
+/* Chaque jour regroupe ses rendez-vous dans une grille responsive (façon
+   grille de cartes de l'impression compacte, mais en plus spacieux) au
+   lieu d'une longue liste empilée sur une seule colonne : sur un écran
+   large, plusieurs rendez-vous cote a cote ; sur mobile, une colonne
+   unique comme avant (le viewport est plus etroit que minmax()). */
+.jour-groupe {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 12px;
+}
+
 .rdv {
   display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 14px;
+  flex-direction: column;
   background: var(--surface);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
-  margin-bottom: 8px;
+  overflow: hidden;
   cursor: pointer;
   transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
   animation: entree 220ms var(--ease) both;
@@ -268,23 +286,25 @@ button.secondaire:active { transform: scale(0.97); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-.heure { font-size: 16px; font-weight: 700; min-width: 50px; color: var(--text); }
-.badge {
-  display: inline-block;
-  font-size: 12px;
-  font-weight: 700;
-  padding: 5px 6px;
-  border-radius: var(--radius-sm);
-  white-space: nowrap;
-  width: 13ch;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  text-align: center;
+/* Bandeau en tete de carte : nom de la personne concernee (+ couleur de
+   fond associee) et heure du rendez-vous, repris du meme principe que la
+   grille d'impression compacte, pour reperer d'un coup d'oeil qui est
+   concerne sans devoir lire du petit texte. */
+.rdv-entete {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 14px;
+  color: #fff;
+  background: var(--tous);
 }
-.badge.papa { background: var(--papa-bg); color: var(--papa); }
-.badge.maman { background: var(--maman-bg); color: var(--maman); }
-.badge.deux { background: var(--tous-bg); color: var(--tous); }
-.details { flex: 1; min-width: 0; }
+.rdv-entete.rdv-papa { background: var(--papa); }
+.rdv-entete.rdv-maman { background: var(--maman); }
+.rdv-entete-nom { font-size: 14px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rdv-entete-heure { font-size: 14px; font-weight: 700; white-space: nowrap; }
+
+.rdv-corps { padding: 12px 14px 14px; }
 .medecin { font-size: 16px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .departement { font-size: 16px; font-weight: 700; color: var(--text-secondary); font-style: italic; }
 .contact { font-size: 13px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -346,9 +366,6 @@ button.secondaire:active { transform: scale(0.97); }
   .fab { display: flex; align-items: center; justify-content: center; }
   .actions .principal { display: none; }
   .actions { margin-bottom: 12px; }
-  /* Le badge n'affiche que 4 lettres sur petit ecran (voir nomBadge() dans
-     app.js) : largeur reduite en consequence pour recuperer la place. */
-  .badge { width: 4.5ch; padding: 5px 4px; }
 }
 
 #btnImportIcs.ics-ligne { display: block; }
@@ -393,9 +410,16 @@ button.secondaire:active { transform: scale(0.97); }
   .topbar, .actions, .modal, .overlay, .fab, .entete .deconnexion, .outils-footer { display: none !important; }
   body { padding: 0; font-size: 10.5pt; line-height: 1.3; max-width: 100%; background: #fff; }
 
+  /* A l'impression normale, on revient a une liste simple sur une seule
+     colonne (pas la grille de cartes multi-colonnes de l'ecran) pour
+     economiser le papier - la grille de cartes couleur, c'est le role du
+     mode "Imprimer (compact)" plus bas. Le regroupement se fait par mois
+     desormais (potentiellement beaucoup de rendez-vous) : pas de "avoid"
+     sur le groupe entier (ca forcerait tout un mois charge sur une seule
+     page avec un gros blanc avant), seulement sur chaque carte via .rdv
+     plus bas, pour ne jamais couper une carte en deux entre deux pages. */
   .jour-groupe {
-    break-inside: avoid;
-    page-break-inside: avoid;
+    display: block;
   }
 
   .jour-titre {
@@ -407,18 +431,30 @@ button.secondaire:active { transform: scale(0.97); }
   .jour-groupe:first-child .jour-titre { margin-top: 0; }
 
   .rdv {
+    display: block;
     box-shadow: none;
     animation: none;
     break-inside: avoid;
     page-break-inside: avoid;
-    align-items: flex-start;
     padding: 5px 4px;
     margin-bottom: 2px;
     border-radius: 0;
     border-bottom: 1px solid #e2e2e2;
   }
-  .heure { font-size: 10.5pt; min-width: 34px; }
-  .badge { font-size: 8.5pt; padding: 2px 4px; }
+  /* Bandeau colore garde pour l'ecran, mais a l'impression on repasse en
+     texte simple (pas de fond colore plein, economie d'encre) : le nom
+     reste identifiable par sa couleur de texte plutot que par un fond. */
+  .rdv-entete {
+    background: none !important;
+    color: var(--text) !important;
+    padding: 0;
+    gap: 8px;
+  }
+  .rdv-entete-nom { font-size: 8.5pt; font-weight: 700; }
+  .rdv-entete.rdv-papa .rdv-entete-nom { color: var(--papa); }
+  .rdv-entete.rdv-maman .rdv-entete-nom { color: var(--maman); }
+  .rdv-entete-heure { font-size: 10.5pt; }
+  .rdv-corps { padding: 2px 0 0; }
   .medecin { font-size: 10.5pt; }
   .departement { font-size: 10pt; font-weight: 700; }
   .contact, .route, .notes { font-size: 9pt; }

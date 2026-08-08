@@ -64,9 +64,20 @@ function charger() {
     });
 }
 
-function joursDepuis(dateStr) {
+// Regroupement par mois (ex. "Août 2026") au lieu d'un titre par jour :
+// avec beaucoup de rendez-vous, un titre par mois donne une vue plus
+// synthetique. La date precise de chaque rendez-vous est alors affichee
+// directement sur sa carte (voir dateCourte), puisqu'elle n'est plus
+// portee par le titre du groupe.
+function moisAnnee(dateStr) {
   var d = new Date(dateStr + 'T00:00:00');
-  return d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  var texte = d.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+  return texte.charAt(0).toUpperCase() + texte.slice(1);
+}
+
+function dateCourte(dateStr) {
+  var d = new Date(dateStr + 'T00:00:00');
+  return d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric' });
 }
 
 function classeBadge(personne) {
@@ -75,13 +86,10 @@ function classeBadge(personne) {
   return 'deux';
 }
 
-// Sur petit ecran (telephone), le badge n'affiche que les 4 premieres
-// lettres du prenom (ex. "Mich" au lieu de "Michel") pour gagner de la
-// place dans la liste. Sur ecran plus large, le nom complet reste affiche.
+// Reutilise pour re-afficher la liste quand on bascule mobile/desktop
+// (voir plus bas), la grille de cartes s'adapte deja toute seule en CSS
+// mais certains recalculs cote JS en dependent aussi.
 var MOBILE_MQ = window.matchMedia('(max-width: 640px)');
-function nomBadge(personne) {
-  return MOBILE_MQ.matches ? personne.slice(0, 4) : personne;
-}
 
 function escapeHtml(s) {
   var div = document.createElement('div');
@@ -136,28 +144,32 @@ function afficherListe() {
     return;
   }
 
-  // Chaque jour est regroupé dans un conteneur ".jour-groupe" (titre +
-  // ses rendez-vous) pour qu'à l'impression le navigateur garde le titre
-  // collé à ses rendez-vous : un "avoid" sur le conteneur entier est bien
-  // mieux respecté par les navigateurs qu'un "avoid" posé seulement sur
-  // le titre (qui laissait parfois le titre seul en bas d'une page).
+  // Chaque mois est regroupé dans un conteneur ".jour-groupe" (titre du
+  // mois + ses rendez-vous) pour qu'à l'impression le navigateur garde le
+  // titre collé à ses rendez-vous : un "avoid" sur le conteneur entier est
+  // bien mieux respecté par les navigateurs qu'un "avoid" posé seulement
+  // sur le titre (qui laissait parfois le titre seul en bas d'une page).
   var html = '';
-  var dernierJour = null;
+  var dernierMois = null;
   filtres.forEach(function (r) {
-    if (r.date !== dernierJour) {
-      if (dernierJour !== null) html += '</div>';
-      html += '<div class="jour-groupe"><p class="jour-titre">' + joursDepuis(r.date) + '</p>';
-      dernierJour = r.date;
+    var moisCourant = r.date.slice(0, 7);
+    if (moisCourant !== dernierMois) {
+      if (dernierMois !== null) html += '</div>';
+      html += '<div class="jour-groupe"><p class="jour-titre">' + moisAnnee(r.date) + '</p>';
+      dernierMois = moisCourant;
     }
     var contactParts = [];
     if (r.location) contactParts.push(escapeHtml(r.location));
     if (r.phone) contactParts.push(escapeHtml(r.phone));
     var contact = contactParts.join(' · ');
     var t = titreAffichage(r);
+    var cls = classeBadge(r.person);
     html += '<div class="rdv" data-id="' + r.id + '">' +
-      '<div class="heure">' + r.time + '</div>' +
-      '<span class="badge ' + classeBadge(r.person) + '">' + escapeHtml(nomBadge(r.person)) + '</span>' +
-      '<div class="details">' +
+      '<div class="rdv-entete rdv-' + cls + '">' +
+        '<span class="rdv-entete-nom">' + escapeHtml(r.person) + '</span>' +
+        '<span class="rdv-entete-heure">' + dateCourte(r.date) + ' · ' + r.time + '</span>' +
+      '</div>' +
+      '<div class="rdv-corps">' +
         (t.departement ? '<div class="departement">' + escapeHtml(t.departement) + '</div>' : '') +
         '<div class="medecin">' + escapeHtml(t.medecin) + '</div>' +
         (contact ? '<div class="contact">' + contact + '</div>' : '') +
@@ -166,7 +178,7 @@ function afficherListe() {
       '</div>' +
     '</div>';
   });
-  if (dernierJour !== null) html += '</div>';
+  if (dernierMois !== null) html += '</div>';
   document.getElementById('liste').innerHTML = html;
   genererGrilleCompacte(filtres);
 
