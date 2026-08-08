@@ -74,6 +74,16 @@ h1 { font-size: 24px; margin: 0 0 2px; letter-spacing: -0.01em; }
 .entete { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
 .entete-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 
+/* Sur mobile, "Ajouter" cede sa place au bouton rond flottant (.fab, voir
+   plus bas) : il ne reste qu'Imprimer + le menu du compte, qui passent a
+   la ligne sous le titre faute de place. Sans consigne d'alignement, ce
+   groupe se retrouve colle a gauche sous le titre (aligne avec lui) avec
+   beaucoup de vide a droite - moins naturel qu'un alignement a droite,
+   qui distingue mieux le titre (a gauche) des actions (a droite). */
+@media (max-width: 640px) {
+  .entete-actions { width: 100%; justify-content: flex-end; }
+}
+
 /* Boutons "Ajouter"/"Imprimer" ramenes dans la barre du titre, en version
    compacte plutot qu'une grosse barre dediee en dessous (qui prenait
    beaucoup de place, surtout "+ Ajouter un rendez-vous" en toutes

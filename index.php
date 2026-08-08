@@ -21,7 +21,6 @@ $p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
     <div class="entete">
       <div>
         <h1>Agenda médical</h1>
-        <p class="sous-titre">Rendez-vous de <?= htmlspecialchars($p1) ?> et <?= htmlspecialchars($p2) ?></p>
       </div>
       <div class="entete-actions">
         <button class="bouton-compact bouton-compact-principal" id="btnAjouter">
