@@ -1,8 +1,12 @@
 :root {
-  --papa: #2563eb;
-  --papa-bg: #eaf0fe;
-  --maman: #db2777;
-  --maman-bg: #fdeef5;
+  /* Couleurs desaturees par rapport aux bleu/rose vifs d'origine : rendu
+     plus calme et "clinique", plus proche des logiciels medicaux que des
+     apps grand public. Les deux restent bien distinguables l'une de
+     l'autre et suffisamment contrastees avec du texte blanc. */
+  --papa: #2f6690;
+  --papa-bg: #d8e7f1;
+  --maman: #99436d;
+  --maman-bg: #f3dce8;
   --tous: #52525b;
   --tous-bg: #f1f1f3;
   --border: #e6e6ea;
@@ -26,6 +30,19 @@
 }
 * { box-sizing: border-box; }
 html { -webkit-tap-highlight-color: transparent; }
+
+/* Contour de focus coherent au clavier (Tab) sur tous les elements
+   interactifs, y compris les div "boutonnifiees" via tabindex (cartes,
+   onglets) qui n'ont par defaut aucun indice visuel de focus. */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
 body {
   font-family: -apple-system, "SF Pro Text", "Segoe UI", Roboto, Arial, sans-serif;
   font-size: 17px;
@@ -54,8 +71,38 @@ h1 { font-size: 24px; margin: 0 0 2px; letter-spacing: -0.01em; }
   padding-left: 16px;
   padding-right: 16px;
 }
-.entete { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 14px; }
+.entete { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+.entete-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+
+/* Boutons "Ajouter"/"Imprimer" ramenes dans la barre du titre, en version
+   compacte plutot qu'une grosse barre dediee en dessous (qui prenait
+   beaucoup de place, surtout "+ Ajouter un rendez-vous" en toutes
+   lettres). Sur mobile, "Ajouter" reste cache (voir plus bas) : le bouton
+   rond flottant (.fab) prend deja ce role. */
+.bouton-compact {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: transform var(--dur) var(--ease), background var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+.bouton-compact:hover { background: #fbfbfc; }
+.bouton-compact:active { transform: scale(0.96); }
+.bouton-compact-principal { background: var(--accent); color: #fff; }
+.bouton-compact-principal:hover { background: var(--accent-hover); }
 .deconnexion {
+  display: inline-flex;
+  align-items: center;
   font-size: 13px;
   color: var(--text-muted);
   text-decoration: none;
@@ -63,6 +110,7 @@ h1 { font-size: 24px; margin: 0 0 2px; letter-spacing: -0.01em; }
   border-radius: var(--radius-sm);
   transition: background var(--dur) var(--ease);
 }
+.deconnexion .icone { margin-right: 5px; vertical-align: middle; }
 .deconnexion:hover { background: rgba(0,0,0,0.05); }
 
 .tabs { display: flex; gap: 8px; margin-bottom: 16px; padding-bottom: 14px; }
@@ -85,29 +133,50 @@ h1 { font-size: 24px; margin: 0 0 2px; letter-spacing: -0.01em; }
 .tab.active.papa { background: var(--papa); color: #fff; box-shadow: var(--shadow-md); }
 .tab.active.maman { background: var(--maman); color: #fff; box-shadow: var(--shadow-md); }
 
-.tabs-temps { margin-top: -8px; padding-bottom: 14px; }
+/* Filtre temps (A venir/Passes/Tout l'historique) : volontairement plus
+   discret que le filtre personne juste au-dessus (pilules pleines,
+   couleur vive). Les deux etaient auparavant traites avec le meme style
+   de pilule, empiles l'un sur l'autre - ca faisait deux rangees quasi
+   identiques et pretait a confusion avec un "Tous" qui apparaissait deux
+   fois avec un sens different a chaque fois. Ici : simples onglets
+   soulignes, sans fond, toujours alignes a gauche (pas etires meme sur
+   mobile - c'est un filtre secondaire, pas la peine de grandes cibles
+   pleine largeur). */
+.tabs-temps {
+  display: flex;
+  gap: 18px;
+  margin-top: -4px;
+  padding-bottom: 14px;
+}
 .tab-temps {
-  flex: 1;
-  padding: 8px 6px;
+  flex: 0 0 auto;
+  padding: 0 2px 6px;
   font-size: 13px;
   font-weight: 600;
-  border-radius: var(--radius-sm);
   border: none;
-  background: transparent;
+  border-bottom: 2px solid transparent;
+  background: none;
   color: var(--text-muted);
   cursor: pointer;
-  text-align: center;
-  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+  transition: color var(--dur) var(--ease), border-color var(--dur) var(--ease);
 }
-.tab-temps:active { transform: scale(0.96); }
-.tab-temps.active { background: var(--surface); color: var(--accent); box-shadow: var(--shadow-sm); }
+.tab-temps.active { color: var(--accent); border-bottom-color: var(--accent); }
 
-.actions { display: flex; gap: 10px; margin-bottom: 14px; }
+/* Sur mobile, le filtre personne s'etire sur toute la largeur pour de
+   grandes cibles faciles a toucher. Sur un ecran large (la page fait
+   1100px maintenant), le meme etirement laissait chaque onglet avec
+   beaucoup de vide interieur - on repasse a une largeur naturelle,
+   alignee a gauche, des que la place le permet. */
+@media (min-width: 641px) {
+  .tabs { justify-content: flex-start; }
+  .tab { flex: 0 0 auto; padding-left: 22px; padding-right: 22px; }
+}
+
 button {
   font-family: inherit;
   -webkit-tap-highlight-color: transparent;
 }
-button.principal, button.secondaire {
+button.principal, button.secondaire, button.danger {
   flex: 1;
   padding: 14px;
   font-size: 16px;
@@ -132,6 +201,49 @@ button.secondaire {
 }
 button.secondaire:hover { background: #fbfbfc; }
 button.secondaire:active { transform: scale(0.97); }
+button.danger {
+  background: var(--danger);
+  color: #fff;
+  box-shadow: var(--shadow-sm);
+}
+button.danger:hover { opacity: 0.92; }
+button.danger:active { transform: scale(0.97); }
+
+/* Menu deroulant "Imprimer" : un seul bouton dans la barre d'actions
+   (plutot que deux boutons Normal/Compact a poids egal) qui ouvre un
+   petit choix Normal/Compact - allege la barre et met en avant "Ajouter"
+   comme action principale. */
+.menu-impression { position: relative; }
+#btnMenuImprimer { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.icone-chevron { margin-left: 2px; transition: transform var(--dur) var(--ease); }
+.menu-impression.ouvert .icone-chevron { transform: rotate(180deg); }
+.menu-deroulant {
+  display: none;
+  flex-direction: column;
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 180px;
+  background: var(--surface);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  padding: 6px;
+  z-index: 25;
+}
+.menu-impression.ouvert .menu-deroulant { display: flex; }
+.menu-deroulant button {
+  background: none;
+  border: none;
+  text-align: left;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background var(--dur) var(--ease);
+}
+.menu-deroulant button:hover { background: var(--page-bg); }
 
 #btnImportIcs { width: 100%; margin-bottom: 22px; }
 
@@ -163,6 +275,8 @@ button.secondaire:active { transform: scale(0.97); }
   min-height: 0;
   padding: 20px 20px 4px;
 }
+.modal-dialogue #dialogueMessage { font-size: 16px; line-height: 1.5; margin: 4px 0; text-align: center; }
+
 .modal .form-boutons {
   flex-shrink: 0;
   margin-top: 0;
@@ -198,6 +312,22 @@ button.secondaire:active { transform: scale(0.97); }
   }
   .modal.ouvert { transform: translateY(0); }
 }
+
+/* Petits intitules de section dans le formulaire (Quand / Qui / Details
+   medicaux / Coordonnees / Notes), pour aerer un formulaire autrement
+   long et plat - meme traitement typographique que .jour-titre pour
+   rester coherent avec le reste du site. */
+.section-titre {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 22px 0 10px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+.modal h2 + .section-titre { margin-top: 0; padding-top: 0; border-top: none; }
 
 .champ { margin-bottom: 14px; }
 .champ label { display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 6px; font-weight: 600; }
@@ -268,6 +398,7 @@ button.secondaire:active { transform: scale(0.97); }
 }
 
 .rdv {
+  position: relative;
   display: flex;
   flex-direction: column;
   background: var(--surface);
@@ -281,30 +412,65 @@ button.secondaire:active { transform: scale(0.97); }
 .rdv:hover { box-shadow: var(--shadow-md); }
 .rdv:active { transform: scale(0.985); }
 
+/* Petit crayon discret en coin de carte : sur ecran tactile il n'y a pas
+   de survol pour deviner qu'une carte est cliquable, ce repere visuel
+   reste toujours present (contrairement a l'ombre au survol, souris
+   seulement). */
+.rdv-modifier {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  color: var(--text-muted);
+  opacity: 0.45;
+  pointer-events: none;
+}
+.rdv-modifier svg { display: block; width: 14px; height: 14px; }
+
 @keyframes entree {
   from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* Bandeau en tete de carte : nom de la personne concernee (+ couleur de
-   fond associee) et heure du rendez-vous, repris du meme principe que la
-   grille d'impression compacte, pour reperer d'un coup d'oeil qui est
-   concerne sans devoir lire du petit texte. */
+/* Bandeau en tete de carte : nom de la personne concernee et heure du
+   rendez-vous, repris du meme principe que la grille d'impression
+   compacte, pour reperer d'un coup d'oeil qui est concerne. Fond
+   legerement teinte + texte colore plutot qu'un aplat plein : avec
+   plusieurs cartes cote a cote, un bandeau plein sur chacune devenait
+   vite tres charge visuellement ; un fond doux + texte colore reste tout
+   aussi reperable sans "crier". */
 .rdv-entete {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
   padding: 8px 14px;
-  color: #fff;
-  background: var(--tous);
+  color: var(--tous);
+  background: var(--tous-bg);
+  border-bottom: 1px solid var(--border);
 }
-.rdv-entete.rdv-papa { background: var(--papa); }
-.rdv-entete.rdv-maman { background: var(--maman); }
+.rdv-entete.rdv-papa { background: var(--papa-bg); color: var(--papa); border-bottom-color: rgba(61, 111, 150, 0.18); }
+.rdv-entete.rdv-maman { background: var(--maman-bg); color: var(--maman); border-bottom-color: rgba(161, 86, 124, 0.18); }
 .rdv-entete-nom { font-size: 14px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rdv-entete-heure { font-size: 14px; font-weight: 700; white-space: nowrap; }
 
+/* Petites icones devant adresse/telephone/route/notes (voir ICONES dans
+   app.js) : taille fixe, alignees sur le texte, couleur heritee du
+   parent pour ne pas avoir a gerer une couleur en plus. */
+.icone { width: 13px; height: 13px; vertical-align: -2px; margin-right: 5px; flex-shrink: 0; }
+.lien-tel { color: inherit; text-decoration: none; }
+.lien-tel:hover { text-decoration: underline; }
+
 .rdv-corps { padding: 12px 14px 14px; }
+.badge-jour {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 9px;
+  border-radius: 999px;
+  margin: 10px 0 0 14px;
+}
+.badge-aujourdhui { background: var(--accent); color: #fff; }
+.badge-demain { background: var(--tous-bg); color: var(--tous); }
 .medecin { font-size: 16px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .departement { font-size: 16px; font-weight: 700; color: var(--text-secondary); font-style: italic; }
 .contact { font-size: 13px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -328,14 +494,27 @@ button.secondaire:active { transform: scale(0.97); }
 .erreur { color: var(--danger); font-size: 14px; margin: 8px 0; }
 .info { color: var(--accent); font-size: 14px; margin: 8px 0; }
 
-.squelette { display: flex; flex-direction: column; gap: 8px; padding-top: 4px; }
-.squelette-ligne {
-  height: 62px;
+/* Forme reprenant les cartes de rendez-vous (bandeau + corps) plutot que
+   de simples barres generiques, pour que le chargement annonce deja la
+   forme de ce qui va apparaitre. */
+.squelette {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 12px;
+  padding-top: 4px;
+}
+.squelette-carte {
   border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+.squelette-bandeau, .squelette-corps {
   background: linear-gradient(90deg, #ececef 25%, #f6f6f8 37%, #ececef 63%);
   background-size: 400% 100%;
   animation: scintille 1.4s ease infinite;
 }
+.squelette-bandeau { height: 32px; }
+.squelette-corps { height: 76px; }
 @keyframes scintille {
   0% { background-position: 100% 50%; }
   100% { background-position: 0 50%; }
@@ -364,8 +543,8 @@ button.secondaire:active { transform: scale(0.97); }
 @media (max-width: 640px) {
   body { font-size: 16px; padding-bottom: 110px; }
   .fab { display: flex; align-items: center; justify-content: center; }
-  .actions .principal { display: none; }
-  .actions { margin-bottom: 12px; }
+  /* Le bouton rond flottant (.fab) remplace "Ajouter" sur mobile. */
+  #btnAjouter { display: none; }
 }
 
 #btnImportIcs.ics-ligne { display: block; }
@@ -407,7 +586,7 @@ button.secondaire:active { transform: scale(0.97); }
 @media print {
   @page { margin: 1.2cm; }
 
-  .topbar, .actions, .modal, .overlay, .fab, .entete .deconnexion, .outils-footer { display: none !important; }
+  .topbar, .modal, .overlay, .fab, .outils-footer { display: none !important; }
   body { padding: 0; font-size: 10.5pt; line-height: 1.3; max-width: 100%; background: #fff; }
 
   /* A l'impression normale, on revient a une liste simple sur une seule
@@ -455,6 +634,8 @@ button.secondaire:active { transform: scale(0.97); }
   .rdv-entete.rdv-maman .rdv-entete-nom { color: var(--maman); }
   .rdv-entete-heure { font-size: 10.5pt; }
   .rdv-corps { padding: 2px 0 0; }
+  .badge-jour { display: none !important; }
+  .rdv-modifier { display: none !important; }
   .medecin { font-size: 10.5pt; }
   .departement { font-size: 10pt; font-weight: 700; }
   .contact, .route, .notes { font-size: 9pt; }

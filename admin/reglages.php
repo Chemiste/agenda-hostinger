@@ -85,6 +85,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Réglages — Administration</title>
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
 <link rel="stylesheet" href="/assets/style.css">
 <style>
   .outil { background:#fff; border-radius:12px; padding:18px; margin-bottom:16px; box-shadow: var(--shadow-sm); }

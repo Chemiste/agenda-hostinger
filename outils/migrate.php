@@ -152,6 +152,7 @@ $enAttente = array_map('basename', migrationsEnAttente($db));
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Migrations - Agenda médical</title>
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
 <link rel="stylesheet" href="/assets/style.css">
 </head>
 <body>

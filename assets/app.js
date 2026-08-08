@@ -4,6 +4,29 @@ var filtreTemps = 'avenir';
 var idEnEdition = null;
 
 var MOIS_ABREGES = ['Jan', 'Fév', 'Mars', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
+
+// Petites icones SVG inline (pas de fichiers a charger, pas de police
+// d'icones externe) pour reperer plus vite les infos d'une carte au lieu
+// de tout deviner par du texte brut. currentColor pour heriter la
+// couleur du texte parent automatiquement.
+var ICONES = {
+  lieu: '<svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.5-7-11a7 7 0 0 1 14 0c0 4.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>',
+  telephone: '<svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.6 10.5c1.4 2.8 3.7 5.1 6.5 6.5l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.5.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.9 21 3 13.1 3 3.7c0-.6.4-1 1-1h3.8c.6 0 1 .4 1 1 0 1.2.2 2.4.6 3.5.1.4 0 .8-.2 1L6.6 10.5z"/></svg>',
+  route: '<svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4v6a4 4 0 0 0 4 4h10"/><path d="M15 10l4 4-4 4"/></svg>',
+  note: '<svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h9l4 4v12H6z"/><path d="M14 4v5h5"/><path d="M9 13h6M9 17h4"/></svg>',
+  medecin: '<svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>',
+  crayon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>'
+};
+
+// new Date().toISOString() convertit en UTC : pres de minuit, dans un
+// fuseau horaire en avance sur UTC (Belgique par ex.), ca peut renvoyer
+// la date de la veille. On calcule plutot la date du jour a partir des
+// composants locaux, pour que "aujourd'hui" corresponde a ce que la
+// personne voit sur son horloge.
+function dateLocaleISO(d) {
+  var pad = function (n) { return String(n).padStart(2, '0'); };
+  return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+}
 function formatDateCompacte(dateStr) {
   var p = dateStr.split('-');
   return { jour: p[2], mois: MOIS_ABREGES[parseInt(p[1], 10) - 1], annee: p[0] };
@@ -14,7 +37,16 @@ function formatDateCompacte(dateStr) {
 // (l'import .ics vit desormais dans assets/admin.js, page admin)
 // ---------------------------------------------------------------
 
+// Pile plutot qu'un simple id actif : la modale de confirmation
+// (dialogueModal, voir plus bas) peut s'ouvrir PAR-DESSUS le formulaire
+// (ex. "Supprimer ce rendez-vous ?" depuis le formulaire d'edition) sans
+// fermer ce dernier - il faut donc savoir qu'il reste un modal ouvert en
+// dessous (fond assombri / defilement bloque tant que la pile n'est pas
+// vide) et fermer seulement le plus recent quand on clique l'overlay.
+var pileModals = [];
+
 function ouvrirModal(id) {
+  pileModals.push(id);
   document.getElementById(id).classList.add('ouvert');
   document.getElementById('overlay').classList.add('visible');
   document.body.style.overflow = 'hidden';
@@ -22,14 +54,72 @@ function ouvrirModal(id) {
 
 function fermerModal(id) {
   document.getElementById(id).classList.remove('ouvert');
-  document.getElementById('overlay').classList.remove('visible');
-  document.body.style.overflow = '';
+  pileModals = pileModals.filter(function (m) { return m !== id; });
+  if (pileModals.length === 0) {
+    document.getElementById('overlay').classList.remove('visible');
+    document.body.style.overflow = '';
+  }
 }
 
-document.getElementById('overlay').addEventListener('click', function () {
-  fermerModal('formCard');
-  viderFormulaire();
-});
+function fermerModalActif() {
+  var actif = pileModals[pileModals.length - 1];
+  if (!actif) return;
+  if (actif === 'formCard') viderFormulaire();
+  if (actif === 'dialogueModal' && dialogueResolveEnAttente) dialogueResolveEnAttente();
+  fermerModal(actif);
+}
+
+document.getElementById('overlay').addEventListener('click', fermerModalActif);
+
+// ---------------------------------------------------------------
+// Modale de confirmation/erreur maison, pour remplacer confirm()/alert()
+// natifs du navigateur (esthetique incoherente avec le reste du site,
+// et pas modifiable). Meme mecanique que le modal du formulaire.
+// ---------------------------------------------------------------
+
+var dialogueResolveEnAttente = null;
+
+function ouvrirDialogue(message, boutons) {
+  document.getElementById('dialogueMessage').textContent = message;
+  var conteneur = document.getElementById('dialogueBoutons');
+  conteneur.innerHTML = '';
+  boutons.forEach(function (b) {
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = b.classe;
+    btn.textContent = b.texte;
+    btn.addEventListener('click', function () {
+      dialogueResolveEnAttente = null;
+      fermerModal('dialogueModal');
+      b.action();
+    });
+    conteneur.appendChild(btn);
+  });
+  ouvrirModal('dialogueModal');
+}
+
+// Remplace confirm(message) : retourne une Promise<boolean> (true si
+// confirme). Fermer via l'overlay ou Echap equivaut a "Annuler".
+function confirmerPerso(message) {
+  return new Promise(function (resolve) {
+    dialogueResolveEnAttente = function () { resolve(false); };
+    ouvrirDialogue(message, [
+      { texte: 'Annuler', classe: 'secondaire', action: function () { resolve(false); } },
+      { texte: 'Supprimer', classe: 'danger', action: function () { resolve(true); } }
+    ]);
+  });
+}
+
+// Remplace alert(message) : retourne une Promise qui se resout quand la
+// personne a ferme le message.
+function alerterPerso(message) {
+  return new Promise(function (resolve) {
+    dialogueResolveEnAttente = function () { resolve(); };
+    ouvrirDialogue(message, [
+      { texte: 'OK', classe: 'principal', action: function () { resolve(); } }
+    ]);
+  });
+}
 
 function appelApi(action, corps) {
   return fetch('/api.php?action=' + action, {
@@ -123,7 +213,7 @@ function titreAffichage(r) {
 }
 
 function afficherListe() {
-  var aujourdhui = new Date().toISOString().slice(0, 10);
+  var aujourdhui = dateLocaleISO(new Date());
   var filtres = tousLesRdv.filter(function (r) {
     var okPersonne = filtreActuel === 'Tous' || r.person === filtreActuel;
     var okTemps = filtreTemps === 'tous' ||
@@ -131,14 +221,19 @@ function afficherListe() {
     return okPersonne && okTemps;
   }).sort(function (a, b) {
     var ca = a.date + ' ' + a.time, cb = b.date + ' ' + b.time;
+    // "Passés" : le plus recent d'abord (plus utile pour retrouver un
+    // rendez-vous recent que de commencer par le plus ancien). Les deux
+    // autres vues restent chronologiques (le plus proche en premier).
+    if (filtreTemps === 'passes') return ca < cb ? 1 : ca > cb ? -1 : 0;
     return ca < cb ? -1 : ca > cb ? 1 : 0;
   });
 
-  var labelTemps = filtreTemps === 'avenir' ? 'À venir' : (filtreTemps === 'passes' ? 'Passés' : 'Tous');
+  var labelTemps = filtreTemps === 'avenir' ? 'À venir' : (filtreTemps === 'passes' ? 'Passés' : 'Tout l\'historique');
   document.getElementById('filtreImpression').textContent = filtreActuel + ' — ' + labelTemps;
 
   if (filtres.length === 0) {
-    var messageVide = filtreTemps === 'passes' ? 'Aucun rendez-vous passé.' : 'Aucun rendez-vous à venir.';
+    var messageVide = filtreTemps === 'passes' ? 'Aucun rendez-vous passé.' :
+      (filtreTemps === 'avenir' ? 'Aucun rendez-vous à venir.' : 'Aucun rendez-vous.');
     document.getElementById('liste').innerHTML = '<p class="vide">' + messageVide + '</p>';
     document.getElementById('listeCompacte').innerHTML = '<p class="vide">' + messageVide + '</p>';
     return;
@@ -149,6 +244,8 @@ function afficherListe() {
   // titre collé à ses rendez-vous : un "avoid" sur le conteneur entier est
   // bien mieux respecté par les navigateurs qu'un "avoid" posé seulement
   // sur le titre (qui laissait parfois le titre seul en bas d'une page).
+  var demain = dateLocaleISO(new Date(Date.now() + 24 * 60 * 60 * 1000));
+
   var html = '';
   var dernierMois = null;
   filtres.forEach(function (r) {
@@ -158,24 +255,30 @@ function afficherListe() {
       html += '<div class="jour-groupe"><p class="jour-titre">' + moisAnnee(r.date) + '</p>';
       dernierMois = moisCourant;
     }
-    var contactParts = [];
-    if (r.location) contactParts.push(escapeHtml(r.location));
-    if (r.phone) contactParts.push(escapeHtml(r.phone));
-    var contact = contactParts.join(' · ');
     var t = titreAffichage(r);
     var cls = classeBadge(r.person);
-    html += '<div class="rdv" data-id="' + r.id + '">' +
+    // Repere visuel perdu depuis le passage au regroupement par mois (on
+    // ne voit plus tout de suite "c'est aujourd'hui" comme avec l'ancien
+    // regroupement par jour) : on le remet sous forme d'etiquette sur la
+    // carte concernee.
+    var badgeJour = '';
+    if (r.date === aujourdhui) badgeJour = '<span class="badge-jour badge-aujourdhui">Aujourd\'hui</span>';
+    else if (r.date === demain) badgeJour = '<span class="badge-jour badge-demain">Demain</span>';
+    html += '<div class="rdv" data-id="' + r.id + '" tabindex="0" role="button" aria-label="Modifier ce rendez-vous">' +
       '<div class="rdv-entete rdv-' + cls + '">' +
         '<span class="rdv-entete-nom">' + escapeHtml(r.person) + '</span>' +
         '<span class="rdv-entete-heure">' + dateCourte(r.date) + ' · ' + r.time + '</span>' +
       '</div>' +
+      badgeJour +
       '<div class="rdv-corps">' +
         (t.departement ? '<div class="departement">' + escapeHtml(t.departement) + '</div>' : '') +
-        '<div class="medecin">' + escapeHtml(t.medecin) + '</div>' +
-        (contact ? '<div class="contact">' + contact + '</div>' : '') +
-        (r.route ? '<div class="route">' + escapeHtml(r.route) + '</div>' : '') +
-        (r.notes ? '<div class="notes">' + escapeHtml(r.notes) + '</div>' : '') +
+        '<div class="medecin">' + ICONES.medecin + escapeHtml(t.medecin) + '</div>' +
+        (r.location ? '<div class="contact">' + ICONES.lieu + escapeHtml(r.location) + '</div>' : '') +
+        (r.phone ? '<div class="contact"><a class="lien-tel" href="tel:' + escapeHtml(r.phone) + '">' + ICONES.telephone + escapeHtml(r.phone) + '</a></div>' : '') +
+        (r.route ? '<div class="route">' + ICONES.route + escapeHtml(r.route) + '</div>' : '') +
+        (r.notes ? '<div class="notes">' + ICONES.note + escapeHtml(r.notes) + '</div>' : '') +
       '</div>' +
+      '<span class="rdv-modifier">' + ICONES.crayon + '</span>' +
     '</div>';
   });
   if (dernierMois !== null) html += '</div>';
@@ -189,25 +292,62 @@ function afficherListe() {
     el.addEventListener('click', function () {
       ouvrirEnEdition(el.dataset.id);
     });
+    // tabindex="0" + role="button" sur la carte (voir plus haut) : Entree
+    // et Espace doivent l'activer comme un clic, pour rester utilisable
+    // au clavier.
+    el.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        ouvrirEnEdition(el.dataset.id);
+      }
+    });
   });
+}
+
+function choisirTab(tab) {
+  document.querySelectorAll('.tab').forEach(function (t) {
+    t.classList.remove('active');
+    t.setAttribute('aria-selected', 'false');
+  });
+  tab.classList.add('active');
+  tab.setAttribute('aria-selected', 'true');
+  filtreActuel = tab.dataset.filtre;
+  afficherListe();
+}
+
+function choisirTabTemps(tab) {
+  document.querySelectorAll('.tab-temps').forEach(function (t) {
+    t.classList.remove('active');
+    t.setAttribute('aria-selected', 'false');
+  });
+  tab.classList.add('active');
+  tab.setAttribute('aria-selected', 'true');
+  filtreTemps = tab.dataset.temps;
+  afficherListe();
 }
 
 document.getElementById('tabs').addEventListener('click', function (e) {
   var tab = e.target.closest('.tab');
+  if (tab) choisirTab(tab);
+});
+document.getElementById('tabs').addEventListener('keydown', function (e) {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  var tab = e.target.closest('.tab');
   if (!tab) return;
-  document.querySelectorAll('.tab').forEach(function (t) { t.classList.remove('active'); });
-  tab.classList.add('active');
-  filtreActuel = tab.dataset.filtre;
-  afficherListe();
+  e.preventDefault();
+  choisirTab(tab);
 });
 
 document.getElementById('tabsTemps').addEventListener('click', function (e) {
   var tab = e.target.closest('.tab-temps');
+  if (tab) choisirTabTemps(tab);
+});
+document.getElementById('tabsTemps').addEventListener('keydown', function (e) {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  var tab = e.target.closest('.tab-temps');
   if (!tab) return;
-  document.querySelectorAll('.tab-temps').forEach(function (t) { t.classList.remove('active'); });
-  tab.classList.add('active');
-  filtreTemps = tab.dataset.temps;
-  afficherListe();
+  e.preventDefault();
+  choisirTabTemps(tab);
 });
 
 // Reaffiche la liste si on passe le seuil mobile/large (ex: rotation de
@@ -310,7 +450,7 @@ document.querySelectorAll('.personnes input').forEach(function (input) {
 
 function ouvrirFormulaireAjout() {
   viderFormulaire();
-  var today = new Date().toISOString().slice(0, 10);
+  var today = dateLocaleISO(new Date());
   document.getElementById('fDate').value = today;
   ouvrirModal('formCard');
 }
@@ -325,27 +465,55 @@ document.getElementById('btnAnnuler').addEventListener('click', function () {
 
 document.getElementById('btnSupprimer').addEventListener('click', function () {
   if (!idEnEdition) return;
-  if (!confirm('Supprimer ce rendez-vous ?')) return;
-  var id = idEnEdition;
-  appelApi('delete', { id: id })
-    .then(function () {
-      fermerModal('formCard');
-      viderFormulaire();
-      charger();
-    })
-    .catch(function (err) {
-      alert(err.message);
-    });
+  confirmerPerso('Supprimer ce rendez-vous ?').then(function (confirme) {
+    if (!confirme) return;
+    var id = idEnEdition;
+    appelApi('delete', { id: id })
+      .then(function () {
+        fermerModal('formCard');
+        viderFormulaire();
+        charger();
+      })
+      .catch(function (err) {
+        alerterPerso(err.message);
+      });
+  });
 });
 
+// Menu deroulant "Imprimer" (un seul bouton, choix Normal/Compact dans un
+// petit menu plutot que deux boutons cote a cote).
+var menuImpression = document.getElementById('menuImpression');
+document.getElementById('btnMenuImprimer').addEventListener('click', function (e) {
+  e.stopPropagation();
+  var ouvert = menuImpression.classList.toggle('ouvert');
+  this.setAttribute('aria-expanded', ouvert ? 'true' : 'false');
+});
+document.addEventListener('click', function (e) {
+  if (menuImpression.classList.contains('ouvert') && !menuImpression.contains(e.target)) {
+    fermerMenuImpression();
+  }
+});
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'Escape') {
+    fermerMenuImpression();
+    fermerModalActif();
+  }
+});
+function fermerMenuImpression() {
+  menuImpression.classList.remove('ouvert');
+  document.getElementById('btnMenuImprimer').setAttribute('aria-expanded', 'false');
+}
+
 document.getElementById('btnImprimer').addEventListener('click', function () {
+  fermerMenuImpression();
   document.body.classList.remove('impression-compacte');
   window.print();
 });
 
 document.getElementById('btnImprimerCompact').addEventListener('click', function () {
+  fermerMenuImpression();
   document.body.classList.add('impression-compacte');
-  
+
   // On ajoute le délai ici pour Android
   setTimeout(function() {
     window.print();
