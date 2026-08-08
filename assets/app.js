@@ -121,6 +121,20 @@ function alerterPerso(message) {
   });
 }
 
+// Petit message discret en bas de l'ecran (ex: "Rendez-vous enregistré."),
+// pour confirmer qu'une action a bien fonctionné sans bloquer l'écran
+// comme le fait la modale de dialogue. Disparaît tout seul.
+var toastTimeoutId = null;
+function afficherToast(message) {
+  var toast = document.getElementById('toast');
+  toast.textContent = message;
+  toast.classList.add('visible');
+  if (toastTimeoutId) clearTimeout(toastTimeoutId);
+  toastTimeoutId = setTimeout(function () {
+    toast.classList.remove('visible');
+  }, 2500);
+}
+
 function appelApi(action, corps) {
   return fetch('/api.php?action=' + action, {
     method: 'POST',
@@ -147,6 +161,8 @@ function charger() {
     .then(function (rdvs) {
       tousLesRdv = rdvs;
       afficherListe();
+      construireInfosParMedecin(rdvs);
+      remplirListeMedecins();
     })
     .catch(function (err) {
       document.getElementById('liste').innerHTML =
@@ -234,7 +250,8 @@ function afficherListe() {
   if (filtres.length === 0) {
     var messageVide = filtreTemps === 'passes' ? 'Aucun rendez-vous passé.' :
       (filtreTemps === 'avenir' ? 'Aucun rendez-vous à venir.' : 'Aucun rendez-vous.');
-    document.getElementById('liste').innerHTML = '<p class="vide">' + messageVide + '</p>';
+    var iconeVide = '<svg class="vide-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>';
+    document.getElementById('liste').innerHTML = '<div class="vide">' + iconeVide + '<p>' + messageVide + '</p></div>';
     document.getElementById('listeCompacte').innerHTML = '<p class="vide">' + messageVide + '</p>';
     return;
   }
@@ -273,7 +290,7 @@ function afficherListe() {
       '<div class="rdv-corps">' +
         (t.departement ? '<div class="departement">' + escapeHtml(t.departement) + '</div>' : '') +
         '<div class="medecin">' + ICONES.medecin + escapeHtml(t.medecin) + '</div>' +
-        (r.location ? '<div class="contact">' + ICONES.lieu + escapeHtml(r.location) + '</div>' : '') +
+        (r.location ? '<div class="contact">' + ICONES.lieu + escapeHtml(r.location_affichage || r.location) + '</div>' : '') +
         (r.phone ? '<div class="contact"><a class="lien-tel" href="tel:' + escapeHtml(r.phone) + '">' + ICONES.telephone + escapeHtml(r.phone) + '</a></div>' : '') +
         (r.route ? '<div class="route">' + ICONES.route + escapeHtml(r.route) + '</div>' : '') +
         (r.notes ? '<div class="notes">' + ICONES.note + escapeHtml(r.notes) + '</div>' : '') +
@@ -389,7 +406,7 @@ function genererGrilleCompacte(filtres) {
         '<div class="cc-contenu">' +
           (t.departement ? '<div class="cc-sous">' + escapeHtml(t.departement) + '</div>' : '') +
           '<div class="cc-titre">' + escapeHtml(t.medecin) + '</div>' +
-          (r.location ? '<div class="cc-adresse">' + escapeHtml(r.location) + '</div>' : '') +
+          (r.location ? '<div class="cc-adresse">' + escapeHtml(r.location_affichage || r.location) + '</div>' : '') +
           (r.route ? '<div class="cc-route">' + escapeHtml(r.route) + '</div>' : '') +
         '</div>' +
       '</div>' +
@@ -473,6 +490,7 @@ document.getElementById('btnSupprimer').addEventListener('click', function () {
         fermerModal('formCard');
         viderFormulaire();
         charger();
+        afficherToast('Rendez-vous supprimé.');
       })
       .catch(function (err) {
         alerterPerso(err.message);
@@ -558,6 +576,7 @@ document.getElementById('btnEnregistrer').addEventListener('click', function () 
   btn.textContent = 'Enregistrement…';
 
   var action = idEnEdition ? 'update' : 'add';
+  var messageConfirmation = idEnEdition ? 'Rendez-vous modifié.' : 'Rendez-vous ajouté.';
   appelApi(action, appt)
     .then(function () {
       btn.disabled = false;
@@ -565,6 +584,7 @@ document.getElementById('btnEnregistrer').addEventListener('click', function () 
       fermerModal('formCard');
       viderFormulaire();
       charger();
+      afficherToast(messageConfirmation);
     })
     .catch(function (err) {
       btn.disabled = false;

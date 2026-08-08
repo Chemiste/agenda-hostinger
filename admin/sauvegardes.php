@@ -141,21 +141,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Sauvegardes — Administration</title>
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
-<link rel="stylesheet" href="/assets/style.css">
-<style>
-  .barre-admin { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; flex-wrap:wrap; gap:8px; }
-  .barre-admin a { font-size:13px; color:var(--text-muted); }
-  .fil-admin { font-size:13px; color:var(--text-muted); margin-bottom:18px; }
-  .fil-admin a { color:var(--text-muted); text-decoration:none; }
-  .fil-admin a:hover { text-decoration:underline; }
-  .fil-admin .sep { margin:0 4px; }
-  .fil-admin .actuel { color:var(--text); font-weight:600; }
-  .outil { background:#fff; border-radius:12px; padding:18px; box-shadow: var(--shadow-sm); }
-  .rangee-nett { display:flex; align-items:flex-start; gap:10px; padding:12px 0; border-bottom:1px solid var(--border); }
-  .rangee-nett input[type=checkbox] { width:20px; height:20px; margin-top:3px; }
-  .rangee-nett .details { flex:1; }
-  .rangee-nett .champ-avant { font-size:13px; color:#999; }
-</style>
+<link rel="stylesheet" href="/assets/style.css?v=<?= filemtime(__DIR__ . '/../assets/style.css') ?>">
+<link rel="stylesheet" href="/assets/admin.css?v=<?= filemtime(__DIR__ . '/../assets/admin.css') ?>">
 </head>
 <body>
   <div class="barre-admin">
@@ -205,16 +192,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
           <?php if (empty($rendezVousDisparus)): ?>
             <p class="vide">Aucun rendez-vous de cette sauvegarde ne manque dans l'agenda actuel.</p>
           <?php else: ?>
-            <form method="post">
+            <form method="post" data-confirm="Restaurer les rendez-vous cochés ? Ils seront recréés dans l'agenda et resynchronisés avec Google Calendar si activé.">
               <input type="hidden" name="action" value="restaurer_sauvegarde">
               <input type="hidden" name="fichier" value="<?= htmlspecialchars($backupSelectionnee) ?>">
-              <p><?= count($rendezVousDisparus) ?> rendez-vous de cette sauvegarde manque(nt) actuellement. Décochez ceux à ne pas restaurer.</p>
+
+              <div class="barre-selection">
+                <span class="compte-resultats"><?= count($rendezVousDisparus) ?> rendez-vous manquant(s) dans cette sauvegarde</span>
+                <span class="actions-selection">
+                  <button type="button" class="lien-select" data-select="all">Tout cocher</button>
+                  <span class="sep">·</span>
+                  <button type="button" class="lien-select" data-select="none">Tout décocher</button>
+                </span>
+              </div>
 
               <?php foreach ($rendezVousDisparus as $r): ?>
                 <div class="rangee-nett">
                   <input type="checkbox" checked name="selection[]" value="<?= (int) $r['id'] ?>">
                   <div class="details">
-                    <div style="font-weight:600;"><?= htmlspecialchars($r['appt_date']) ?> à <?= htmlspecialchars(substr($r['appt_time'], 0, 5)) ?> — <?= htmlspecialchars($r['person']) ?></div>
+                    <div class="rdv-quand"><?= htmlspecialchars($r['appt_date']) ?> à <?= htmlspecialchars(substr($r['appt_time'], 0, 5)) ?> — <?= htmlspecialchars($r['person']) ?></div>
                     <div class="champ-avant"><?= htmlspecialchars(isset($r['doctor']) ? $r['doctor'] : '') ?></div>
                     <?php if (!empty($r['department'])): ?>
                       <div class="champ-avant"><?= htmlspecialchars($r['department']) ?></div>
@@ -236,5 +231,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
       <?php endif; ?>
     <?php endif; ?>
   </div>
+
+  <script>
+    document.querySelectorAll('.lien-select').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var form = btn.closest('form');
+        var coche = btn.dataset.select === 'all';
+        form.querySelectorAll('input[type=checkbox][name="selection[]"]').forEach(function (cb) { cb.checked = coche; });
+      });
+    });
+  </script>
+  <script src="/assets/admin-ui.js?v=<?= filemtime(__DIR__ . '/../assets/admin-ui.js') ?>"></script>
 </body>
 </html>

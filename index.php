@@ -13,7 +13,7 @@ $p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Agenda médical</title>
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
-<link rel="stylesheet" href="/assets/style.css">
+<link rel="stylesheet" href="/assets/style.css?v=<?= filemtime(__DIR__ . '/assets/style.css') ?>">
 </head>
 <body>
 
@@ -39,6 +39,7 @@ $p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
             <button type="button" id="btnImprimerCompact">Compact (grille)</button>
           </div>
         </div>
+        <a class="deconnexion" href="/admin/index.php"><svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20a8 8 0 1 0 0-16 8 8 0 0 0 0 16z"/><path d="M12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>Administration</a>
         <a class="deconnexion" href="/mes_rappels.php"><svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>Rappels par email</a>
         <a class="deconnexion" href="/logout.php"><svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>Déconnexion</a>
       </div>
@@ -112,7 +113,8 @@ $p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
       <p class="section-titre">Détails médicaux</p>
       <div class="champ">
         <label>Médecin / consultation</label>
-        <input type="text" id="fMedecin">
+        <input type="text" id="fMedecin" list="listeMedecins" autocomplete="off">
+        <datalist id="listeMedecins"></datalist>
       </div>
       <div class="champ">
         <label>Département (facultatif)</label>
@@ -162,10 +164,12 @@ $p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
     <div class="form-boutons" id="dialogueBoutons"></div>
   </div>
 
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
   <script>
     window.PERSONNE_1 = <?= json_encode($p1) ?>;
     window.PERSONNE_2 = <?= json_encode($p2) ?>;
   </script>
-  <script src="/assets/app.js"></script>
+  <script src="/assets/app.js?v=<?= filemtime(__DIR__ . '/assets/app.js') ?>"></script>
 </body>
 </html>

@@ -165,7 +165,7 @@ if (!$erreur && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Import depuis Google Calendar</title>
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
-<link rel="stylesheet" href="/assets/style.css">
+<link rel="stylesheet" href="/assets/style.css?v=<?= filemtime(__DIR__ . '/../assets/style.css') ?>">
 <style>
   .rangee-evt { display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--border); }
   .rangee-evt input[type=checkbox] { width:20px; height:20px; }

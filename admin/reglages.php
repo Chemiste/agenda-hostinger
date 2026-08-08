@@ -86,31 +86,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Réglages — Administration</title>
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
-<link rel="stylesheet" href="/assets/style.css">
+<link rel="stylesheet" href="/assets/style.css?v=<?= filemtime(__DIR__ . '/../assets/style.css') ?>">
+<link rel="stylesheet" href="/assets/admin.css?v=<?= filemtime(__DIR__ . '/../assets/admin.css') ?>">
 <style>
-  .outil { background:#fff; border-radius:12px; padding:18px; margin-bottom:16px; box-shadow: var(--shadow-sm); }
+  .outil { margin-bottom:16px; }
   .outil h2 { margin-top:0; font-size:15px; }
-  .barre-admin { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; flex-wrap:wrap; gap:8px; }
-  .barre-admin a { font-size:13px; color:var(--text-muted, #888); }
-  .fil-admin { font-size:13px; color:var(--text-muted); margin-bottom:18px; }
-  .fil-admin a { color:var(--text-muted); text-decoration:none; }
-  .fil-admin a:hover { text-decoration:underline; }
-  .fil-admin .sep { margin:0 4px; }
-  .fil-admin .actuel { color:var(--text); font-weight:600; }
-  .entete-page { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:4px; flex-wrap:wrap; }
-  .entete-page h1 { font-size:20px; margin:0; }
-  .badge-smtp { display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:600; padding:5px 12px; border-radius:999px; white-space:nowrap; }
-  .badge-smtp.ok { background:#e6f7f1; color:#0f766e; }
-  .badge-smtp.attention { background:#fdf1ea; color:#b45309; }
-  .sous-titre-page { margin:2px 0 20px; }
-  .champ-case { display:flex; align-items:center; gap:10px; margin-bottom:2px; }
-  .champ-case input[type=checkbox] { width:22px; height:22px; }
-  .champ-case label { font-weight:600; }
-  .aide { font-size:13px; color:#777; margin-top:4px; }
-  .champs-secondaires { margin-top:16px; padding-top:16px; border-top:1px solid var(--border); transition:opacity var(--dur) var(--ease); }
-  .champs-secondaires.inactifs { opacity:0.45; }
-  .callout { background:var(--tous-bg); border-radius:var(--radius-md); padding:14px 16px; font-size:14px; color:var(--text); }
-  .callout a { font-weight:600; }
 </style>
 </head>
 <body>
@@ -136,7 +116,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <p class="sous-titre sous-titre-page">Réglages techniques utilisés par le Cron Job qui envoie les rappels (<code>cron/rappels.php</code>).</p>
 
   <?php if ($configSmtp === null): ?>
-    <p class="aide" style="color:#b45309; margin:-8px 0 16px;">Aucun serveur SMTP renseigné dans <code>config.php</code> : les emails ont plus de risques d'atterrir en indésirables. Voir le guide d'installation, section "Rappels par email", pour configurer un envoi authentifié — nettement plus fiable.</p>
+    <p class="aide avertissement">Aucun serveur SMTP renseigné dans <code>config.php</code> : les emails ont plus de risques d'atterrir en indésirables. Voir le guide d'installation, section "Rappels par email", pour configurer un envoi authentifié — nettement plus fiable.</p>
   <?php endif; ?>
 
   <?php if ($messageEnregistre): ?>
@@ -184,5 +164,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <div class="callout">
     Les adresses email de tes parents et leurs préférences ("aussi recevoir les rappels de l'autre") ne se règlent pas ici : chacun les gère lui-même depuis <a href="/mes_rappels.php">Rappels par email</a>, accessible avec le mot de passe familial.
   </div>
+
+  <script src="/assets/admin-ui.js?v=<?= filemtime(__DIR__ . '/../assets/admin-ui.js') ?>"></script>
 </body>
 </html>

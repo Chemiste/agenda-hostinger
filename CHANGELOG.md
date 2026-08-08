@@ -2,6 +2,82 @@
 
 ## Non publié
 
+- **Petites finitions d'ergonomie.**
+  - Confirmation discrète ("toast") en bas de l'écran après un ajout, une
+    modification ou une suppression de rendez-vous — jusqu'ici la liste se
+    rafraîchissait silencieusement, sans confirmation explicite.
+  - État "aucun rendez-vous" habillé d'une icône, plutôt que du texte seul.
+  - `mes_rappels.php` (réglages perso de Papa/Maman) : avertit désormais
+    si les rappels sont désactivés globalement côté administration — avant
+    ça, on pouvait remplir son adresse et cocher "je veux un rappel" sans
+    savoir que ça ne servait à rien tant que ce n'était pas réactivé.
+  - `mes_rappels.php` réutilise maintenant `assets/admin.css` au lieu d'un
+    `<style>` dupliqué avec des couleurs codées en dur — c'était la
+    dernière page à ne pas avoir suivi le nettoyage de l'administration.
+  - `admin/alias_adresses.php` : chaque alias affiche désormais le nombre
+    de rendez-vous concernés, pour juger s'il sert encore avant de le
+    supprimer.
+
+- **Alias d'adresses (affichage uniquement).** Possibilité de remplacer
+  une adresse par un nom plus parlant (ex : "Avenue Hippocrate, 10, 1200
+  Bruxelles" → "Hôpital St Luc") à l'écran et à l'impression, sans jamais
+  toucher à l'adresse réelle enregistrée dans le rendez-vous ni envoyée à
+  Google Calendar — Waze/Maps continuent de naviguer depuis la vraie
+  adresse du calendrier.
+  - `migrations/0010_add_address_aliases.sql` : nouvelle table
+    `address_aliases` (motif → remplacement).
+  - `lib/address_aliases.php` : lecture/écriture des alias, et fonction
+    d'application (remplacement insensible à la casse, par sous-chaîne).
+  - `api.php` : `listAppointments()` ajoute un champ `location_affichage`
+    à côté de `location` (inchangé) ; c'est ce nouveau champ qu'utilise
+    `assets/app.js` pour l'affichage des cartes et l'impression compacte.
+    Le formulaire d'édition continue d'utiliser `location` (adresse
+    réelle), pour ne jamais l'écraser par erreur avec l'alias.
+  - `admin/alias_adresses.php` : nouvelle page pour ajouter/supprimer des
+    alias, accessible depuis l'accueil admin (groupe "Affichage"). La
+    liste déroulante ne propose que les adresses réellement utilisées
+    dans un rendez-vous et qui n'ont pas déjà d'alias (pas de ressaisie
+    manuelle, donc pas de risque de faute de frappe qui empêcherait
+    l'alias de correspondre).
+  - Penser à lancer `outils/migrate.php` après déploiement.
+
+- **Nettoyage visuel et comportemental de toute l'administration.** Les
+  pages admin (`corriger.php`, `sauvegardes.php`, `import.php`,
+  `exporter_donnees.php`, `reglages.php`, `index.php`,
+  `outils/importer_donnees_dev.php`) réécrivaient chacune les mêmes
+  règles CSS avec de petites variations qui finissaient par désynchroniser
+  le rendu d'une page à l'autre.
+  - `assets/admin.css` : styles communs regroupés en un seul fichier
+    (fil d'Ariane, cartes d'outil, listes de résultats, choix de
+    destination, badges...). Les cartes "Données de développement" et
+    "Alias d'adresses" ont chacune leur propre couleur pour ne plus se
+    confondre avec les outils "Rendez-vous".
+  - `assets/admin-ui.js` : comportement générique partagé — confirmation
+    avant les actions groupées difficiles à annuler (appliquer une
+    correction, restaurer une sauvegarde, importer des données de dev),
+    et boutons désactivés ("Un instant…") pendant l'envoi pour éviter les
+    doubles clics, avec réactivation automatique après 8s en filet de
+    sécurité (ex : téléchargement d'export, qui ne recharge pas la page).
+  - `admin/corriger.php`, `admin/sauvegardes.php` : compteur de résultats
+    + "Tout cocher / Tout décocher" au-dessus des listes de correction.
+  - `outils/importer_donnees_dev.php` : n'avait quasiment aucun style ;
+    reprend maintenant le même gabarit (fil d'Ariane, carte, icône) que
+    le reste de l'admin.
+  - `index.php` : lien "Administration" ajouté à côté de "Rappels par
+    email" — plus besoin de connaître l'URL par cœur.
+
+- **Outil dev : importer les données de production en local.** Pour
+  tester avec des rendez-vous réalistes plutôt qu'une base de dev vide.
+  - `admin/exporter_donnees.php` : télécharge un export JSON complet
+    (identique au format des sauvegardes automatiques).
+  - `outils/importer_donnees_dev.php` : importe cet export dans la base
+    de dev locale (remplace tout, pas de fusion) ; bloqué par un
+    garde-fou si `config.php` ne pointe pas explicitement vers
+    `agenda_dev`, pour ne jamais pouvoir l'exécuter par erreur en
+    production. Les identifiants d'événements Google Calendar ne sont pas
+    conservés (ils appartiennent au calendrier de production).
+  - Voir `Guide_dev_local_et_versions.md`, section 8.
+
 - **Ajout de la durée du rendez-vous.** Jusqu'ici, l'événement synchronisé
   vers Google Calendar durait systématiquement 30 minutes (valeur fixe
   dans le code), quelle que soit la réalité du rendez-vous. Ajout d'un

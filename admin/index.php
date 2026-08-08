@@ -20,6 +20,9 @@ requireAdminLogin();
 require_once __DIR__ . '/../lib/db.php';
 require_once __DIR__ . '/../lib/settings.php';
 
+$config = require __DIR__ . '/../config.php';
+$estEnvironnementDev = isset($config['db_name']) && $config['db_name'] === 'agenda_dev';
+
 $db = getDb();
 
 $nbAVenir = (int) $db->query('SELECT COUNT(*) FROM appointments WHERE TIMESTAMP(appt_date, appt_time) >= NOW()')->fetchColumn();
@@ -54,34 +57,10 @@ $reminderDelai = getSetting($db, 'reminder_hours_before', '24');
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Administration</title>
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
-<link rel="stylesheet" href="/assets/style.css">
+<link rel="stylesheet" href="/assets/style.css?v=<?= filemtime(__DIR__ . '/../assets/style.css') ?>">
+<link rel="stylesheet" href="/assets/admin.css?v=<?= filemtime(__DIR__ . '/../assets/admin.css') ?>">
 <style>
-  .barre-admin { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; flex-wrap:wrap; gap:8px; }
-  .barre-admin a { font-size:13px; color:var(--text-muted); }
-  .stats-rangee { display:flex; gap:10px; margin-bottom:22px; }
-  .stat { flex:1; background:var(--surface); border-radius:var(--radius-sm); padding:10px 14px; box-shadow:var(--shadow-sm); }
-  .stat .label { font-size:12px; color:var(--text-muted); margin-bottom:2px; }
-  .stat .valeur { font-size:20px; font-weight:700; color:var(--text); }
-  .groupe-titre { font-size:13px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.03em; margin:22px 2px 10px; }
-  .groupe-titre:first-of-type { margin-top:4px; }
-  .grille-cartes { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-  .carte-accueil { display:block; text-decoration:none; border-radius:var(--radius-md); padding:16px; box-shadow:var(--shadow-sm); transition:transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease); }
-  .carte-accueil:hover { box-shadow:var(--shadow-md); }
-  .carte-accueil:active { transform:scale(0.98); }
-  .carte-accueil .titre { font-size:15px; font-weight:700; margin-top:2px; }
-  .carte-accueil .detail { font-size:13px; margin-top:3px; }
-  .carte-large { grid-column:1 / -1; display:flex; align-items:center; justify-content:space-between; }
-  .carte-large .fleche { font-size:18px; }
-  .carte-rdv { background:#efeafd; }
-  .carte-rdv .titre { color:#4c1d95; }
-  .carte-rdv .detail { color:#6d28d9; }
-  .carte-backup { background:#e6f7f1; }
-  .carte-backup .titre { color:#065f46; }
-  .carte-backup .detail { color:#0f766e; }
-  .carte-notif { background:#fdf1ea; }
-  .carte-notif .titre { color:#7c2d12; }
-  .carte-notif .detail { color:#b45309; }
-  @media (max-width:480px) { .grille-cartes { grid-template-columns:1fr; } }
+  .barre-admin { margin-bottom:20px; }
 </style>
 </head>
 <body>
@@ -117,6 +96,15 @@ $reminderDelai = getSetting($db, 'reminder_hours_before', '24');
     </a>
   </div>
 
+  <div class="groupe-titre">Affichage</div>
+  <a class="carte-accueil carte-large carte-adresse" href="/admin/alias_adresses.php">
+    <div>
+      <div class="titre">Alias d'adresses</div>
+      <div class="detail">Simplifier l'affichage sans toucher au calendrier</div>
+    </div>
+    <span class="fleche">›</span>
+  </a>
+
   <div class="groupe-titre">Sauvegardes</div>
   <a class="carte-accueil carte-large carte-backup" href="/admin/sauvegardes.php">
     <div>
@@ -125,6 +113,20 @@ $reminderDelai = getSetting($db, 'reminder_hours_before', '24');
     </div>
     <span class="fleche">›</span>
   </a>
+
+  <div class="groupe-titre">Données de développement</div>
+  <div class="grille-cartes">
+    <a class="carte-accueil carte-dev" href="/admin/exporter_donnees.php">
+      <div class="titre">Exporter les données</div>
+      <div class="detail">Instantané JSON à jour</div>
+    </a>
+    <?php if ($estEnvironnementDev): ?>
+      <a class="carte-accueil carte-dev" href="/outils/importer_donnees_dev.php">
+        <div class="titre">Importer un export</div>
+        <div class="detail">Remplace la base de dev</div>
+      </a>
+    <?php endif; ?>
+  </div>
 
   <div class="groupe-titre">Notifications</div>
   <a class="carte-accueil carte-large carte-notif" href="/admin/reglages.php">

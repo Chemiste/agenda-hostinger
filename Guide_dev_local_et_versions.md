@@ -104,3 +104,15 @@ Dès que vous modifiez la table `appointments` (nouvelle colonne, nouvel index, 
 3. Rechargez le site et vérifiez que tout fonctionne.
 
 `config.php` reste propre à chaque environnement : ne le copiez jamais de votre machine vers le serveur (les identifiants de base de données et le mot de passe familial sont différents entre local et production).
+
+## 8. Récupérer les vraies données de production en local
+
+Pour tester avec des données réalistes plutôt qu'une base de dev vide ou remplie de faux rendez-vous :
+
+1. Sur le site en production, allez dans **Administration > Données de développement > Exporter les données** (`admin/exporter_donnees.php`). Ça télécharge un fichier `agenda-export-AAAA-MM-JJ-HHMM.json` contenant tous les rendez-vous actuels.
+2. En local, allez dans **Administration > Données de développement > Importer un export** (`outils/importer_donnees_dev.php`) et sélectionnez ce fichier.
+3. Confirmez : ça **remplace entièrement** le contenu de la base de dev (pas une fusion) par celui de l'export.
+
+Cet outil d'import refuse de s'exécuter si `config.php` ne pointe pas explicitement vers une base nommée `agenda_dev` — impossible de l'utiliser par erreur en production et d'effacer les vraies données. Le lien "Importer un export" n'apparaît d'ailleurs même pas dans le menu Administration tant que ce n'est pas le cas.
+
+Les identifiants d'événements Google Calendar ne sont jamais importés (ils appartiennent au calendrier de production) : la base de dev n'a donc aucun lien avec le vrai calendrier après un import, ce qui est le comportement voulu.

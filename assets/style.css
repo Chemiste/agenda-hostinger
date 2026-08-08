@@ -277,6 +277,31 @@ button.danger:active { transform: scale(0.97); }
 }
 .modal-dialogue #dialogueMessage { font-size: 16px; line-height: 1.5; margin: 4px 0; text-align: center; }
 
+/* Toast de confirmation (ajout/modification/suppression d'un rendez-vous) :
+   message discret en bas de l'ecran, disparait tout seul, ne bloque rien
+   (contrairement au modal de dialogue). */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  transform: translate(-50%, 12px);
+  background: var(--text);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 12px 20px;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease);
+  z-index: 60;
+  max-width: calc(100vw - 40px);
+  text-align: center;
+}
+.toast.visible { opacity: 1; transform: translate(-50%, 0); }
+@media print { .toast { display: none !important; } }
+
 .modal .form-boutons {
   flex-shrink: 0;
   margin-top: 0;
@@ -491,6 +516,8 @@ button.danger:active { transform: scale(0.97); }
 .lien-danger:hover { opacity: 0.75; }
 
 .vide { color: var(--text-muted); text-align: center; padding: 60px 20px; font-size: 15px; }
+.vide-icone { width: 44px; height: 44px; margin: 0 auto 12px; display: block; color: var(--border-strong); }
+.vide p { margin: 0; }
 .erreur { color: var(--danger); font-size: 14px; margin: 8px 0; }
 .info { color: var(--accent); font-size: 14px; margin: 8px 0; }
 

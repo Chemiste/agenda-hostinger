@@ -24,17 +24,8 @@ $p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Importer un fichier .ics — Administration</title>
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
-<link rel="stylesheet" href="/assets/style.css">
-<style>
-  .barre-admin { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; flex-wrap:wrap; gap:8px; }
-  .barre-admin a { font-size:13px; color:var(--text-muted); }
-  .fil-admin { font-size:13px; color:var(--text-muted); margin-bottom:18px; }
-  .fil-admin a { color:var(--text-muted); text-decoration:none; }
-  .fil-admin a:hover { text-decoration:underline; }
-  .fil-admin .sep { margin:0 4px; }
-  .fil-admin .actuel { color:var(--text); font-weight:600; }
-  .outil { background:#fff; border-radius:12px; padding:18px; box-shadow: var(--shadow-sm); }
-</style>
+<link rel="stylesheet" href="/assets/style.css?v=<?= filemtime(__DIR__ . '/../assets/style.css') ?>">
+<link rel="stylesheet" href="/assets/admin.css?v=<?= filemtime(__DIR__ . '/../assets/admin.css') ?>">
 </head>
 <body>
   <div class="barre-admin">
@@ -73,6 +64,6 @@ $p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
     window.PERSONNE_1 = <?= json_encode($p1) ?>;
     window.PERSONNE_2 = <?= json_encode($p2) ?>;
   </script>
-  <script src="/assets/admin.js"></script>
+  <script src="/assets/admin.js?v=<?= filemtime(__DIR__ . '/../assets/admin.js') ?>"></script>
 </body>
 </html>

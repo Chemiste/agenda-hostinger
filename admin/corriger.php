@@ -438,33 +438,8 @@ try {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Corriger des rendez-vous — Administration</title>
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
-<link rel="stylesheet" href="/assets/style.css">
-<style>
-  .barre-admin { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; flex-wrap:wrap; gap:8px; }
-  .barre-admin a { font-size:13px; color:var(--text-muted); }
-  .fil-admin { font-size:13px; color:var(--text-muted); margin-bottom:18px; }
-  .fil-admin a { color:var(--text-muted); text-decoration:none; }
-  .fil-admin a:hover { text-decoration:underline; }
-  .fil-admin .sep { margin:0 4px; }
-  .fil-admin .actuel { color:var(--text); font-weight:600; }
-  .outil { background:#fff; border-radius:12px; padding:18px; box-shadow: var(--shadow-sm); }
-  .rangee-nett { display:flex; align-items:flex-start; gap:10px; padding:12px 0; border-bottom:1px solid var(--border); }
-  .rangee-nett input[type=checkbox] { width:20px; height:20px; margin-top:3px; }
-  .rangee-nett .details { flex:1; }
-  .rangee-nett .champ-avant { font-size:13px; color:#999; }
-  .rangee-nett .champ-apres { font-size:13px; color: var(--accent, #2a7); }
-  mark { background: #fff3a0; padding: 0 2px; border-radius: 3px; }
-  textarea.motifs { width:100%; min-height:100px; font-family:inherit; font-size:15px; padding:10px; border-radius:8px; border:2px solid var(--border); box-sizing:border-box; }
-  .suggestions { font-size:13px; color:#777; margin-top:8px; }
-  .suggestions ul { margin:6px 0 0; padding-left:18px; max-height:160px; overflow:auto; }
-  .destination-choix { display:flex; flex-direction:column; gap:6px; }
-  .destination-choix label { font-weight:400; font-size:15px; display:flex; align-items:center; gap:8px; cursor:pointer; }
-  .tabs-outils { display:flex; gap:6px; margin-bottom:18px; background:var(--tous-bg); border-radius:var(--radius-md); padding:4px; }
-  .tab-outil { flex:1; border:none; background:transparent; color:var(--text-secondary); font-size:14px; font-weight:600; padding:10px 6px; border-radius:var(--radius-sm); cursor:pointer; transition:background var(--dur) var(--ease), color var(--dur) var(--ease); }
-  .tab-outil.active { background:#fff; color:var(--text); box-shadow:var(--shadow-sm); }
-  .panneau-outil { display:none; }
-  .panneau-outil.active { display:block; }
-</style>
+<link rel="stylesheet" href="/assets/style.css?v=<?= filemtime(__DIR__ . '/../assets/style.css') ?>">
+<link rel="stylesheet" href="/assets/admin.css?v=<?= filemtime(__DIR__ . '/../assets/admin.css') ?>">
 </head>
 <body>
   <div class="barre-admin">
@@ -478,13 +453,26 @@ try {
     <a href="/admin/index.php">Administration</a><span class="sep">/</span><span class="actuel">Corriger des rendez-vous</span>
   </div>
 
-  <div class="tabs-outils">
-    <button type="button" class="tab-outil<?= $ongletActif === 'tel' ? ' active' : '' ?>" data-cible="panneau-tel">Téléphone et route</button>
-    <button type="button" class="tab-outil<?= $ongletActif === 'noms' ? ' active' : '' ?>" data-cible="panneau-noms">Noms complets</button>
-    <button type="button" class="tab-outil<?= $ongletActif === 'texte' ? ' active' : '' ?>" data-cible="panneau-texte">Texte libre</button>
+  <div class="tabs-outils" role="tablist">
+    <button type="button" class="tab-outil<?= $ongletActif === 'tel' ? ' active' : '' ?>" data-cible="panneau-tel" role="tab" aria-selected="<?= $ongletActif === 'tel' ? 'true' : 'false' ?>">
+      <svg class="icone" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+      <span>Téléphone et route</span>
+    </button>
+    <button type="button" class="tab-outil<?= $ongletActif === 'noms' ? ' active' : '' ?>" data-cible="panneau-noms" role="tab" aria-selected="<?= $ongletActif === 'noms' ? 'true' : 'false' ?>">
+      <svg class="icone" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <span>Noms complets</span>
+    </button>
+    <button type="button" class="tab-outil<?= $ongletActif === 'texte' ? ' active' : '' ?>" data-cible="panneau-texte" role="tab" aria-selected="<?= $ongletActif === 'texte' ? 'true' : 'false' ?>">
+      <svg class="icone" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+      <span>Texte libre</span>
+    </button>
   </div>
 
   <div class="outil panneau-outil<?= $ongletActif === 'tel' ? ' active' : '' ?>" id="panneau-tel">
+    <h2 class="panneau-titre">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+      Téléphone et route
+    </h2>
     <p class="sous-titre">Détecte tout seul les numéros de téléphone (et les mentions "Route NNN" à côté) dans "Médecin / consultation" et "Notes" — avec ou sans la mention complète "Le lieu du rendez-vous ... Route NNN Tél : ..." — les retire du texte et remplit les champs Téléphone et Route.</p>
 
     <?php if ($resultatApplicationTel !== null): ?>
@@ -505,15 +493,22 @@ try {
       </form>
 
       <?php if (!empty($resultatsTel)): ?>
-        <form method="post" style="margin-top:20px;">
+        <form method="post" style="margin-top:20px;" data-confirm="Appliquer cette correction aux rendez-vous cochés ? Les événements Google Calendar liés seront aussi mis à jour.">
           <input type="hidden" name="action" value="appliquer_tel">
-          <p><?= count($resultatsTel) ?> rendez-vous trouvé(s). Décochez ceux à ne pas corriger.</p>
+          <div class="barre-selection">
+            <span class="compte-resultats"><?= count($resultatsTel) ?> rendez-vous trouvé(s)</span>
+            <span class="actions-selection">
+              <button type="button" class="lien-select" data-select="all">Tout cocher</button>
+              <span class="sep">·</span>
+              <button type="button" class="lien-select" data-select="none">Tout décocher</button>
+            </span>
+          </div>
 
           <?php foreach ($resultatsTel as $r): ?>
             <div class="rangee-nett">
               <input type="checkbox" checked name="selection[]" value="<?= (int) $r['id'] ?>">
               <div class="details">
-                <div style="font-weight:600;"><?= htmlspecialchars($r['date']) ?> à <?= htmlspecialchars(substr($r['time'], 0, 5)) ?> — <?= htmlspecialchars($r['person']) ?></div>
+                <div class="rdv-quand"><?= htmlspecialchars($r['date']) ?> à <?= htmlspecialchars(substr($r['time'], 0, 5)) ?> — <?= htmlspecialchars($r['person']) ?></div>
                 <?php foreach (['doctor' => 'Médecin / consultation', 'notes' => 'Notes'] as $champCle => $champLabel):
                   $d = $r['detect'][$champCle];
                   if (!$d) continue;
@@ -531,10 +526,10 @@ try {
                   <?php endif; ?>
                 <?php endforeach; ?>
                 <?php if ($r['phone'] !== ''): ?>
-                  <div class="champ-avant" style="color:#c60;">Champ Téléphone déjà rempli ("<?= htmlspecialchars($r['phone']) ?>").</div>
+                  <div class="alerte-champ">Champ Téléphone déjà rempli ("<?= htmlspecialchars($r['phone']) ?>").</div>
                 <?php endif; ?>
                 <?php if ($r['route'] !== ''): ?>
-                  <div class="champ-avant" style="color:#c60;">Champ Route déjà rempli ("<?= htmlspecialchars($r['route']) ?>").</div>
+                  <div class="alerte-champ">Champ Route déjà rempli ("<?= htmlspecialchars($r['route']) ?>").</div>
                 <?php endif; ?>
               </div>
             </div>
@@ -552,6 +547,10 @@ try {
   </div>
 
   <div class="outil panneau-outil<?= $ongletActif === 'noms' ? ' active' : '' ?>" id="panneau-noms">
+    <h2 class="panneau-titre">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Noms complets
+    </h2>
     <p class="sous-titre">Détecte "pour <?= htmlspecialchars($p1) ?> Nom-de-famille" ou "pour <?= htmlspecialchars($p2) ?> Nom-de-famille" dans "Médecin / consultation" (nom de famille collé par certains imports) et le raccourcit en "pour <?= htmlspecialchars($p1) ?>" / "pour <?= htmlspecialchars($p2) ?>" — la personne est de toute façon déjà indiquée par le badge coloré.</p>
 
     <?php if ($resultatApplicationNoms !== null): ?>
@@ -567,9 +566,16 @@ try {
       </form>
 
       <?php if (!empty($resultatsNoms)): ?>
-        <form method="post" style="margin-top:20px;">
+        <form method="post" style="margin-top:20px;" data-confirm="Appliquer cette correction aux rendez-vous cochés ? Les événements Google Calendar liés seront aussi mis à jour.">
           <input type="hidden" name="action" value="appliquer_noms">
-          <p><?= count($resultatsNoms) ?> rendez-vous trouvé(s). Décochez ceux à ne pas corriger.</p>
+          <div class="barre-selection">
+            <span class="compte-resultats"><?= count($resultatsNoms) ?> rendez-vous trouvé(s)</span>
+            <span class="actions-selection">
+              <button type="button" class="lien-select" data-select="all">Tout cocher</button>
+              <span class="sep">·</span>
+              <button type="button" class="lien-select" data-select="none">Tout décocher</button>
+            </span>
+          </div>
 
           <?php foreach ($resultatsNoms as $r):
             $surligne = preg_replace('/(' . preg_quote($r['detect']['motif'], '/') . ')/i', '<mark>$1</mark>', htmlspecialchars($r['doctor']));
@@ -577,7 +583,7 @@ try {
             <div class="rangee-nett">
               <input type="checkbox" checked name="selection[]" value="<?= (int) $r['id'] ?>">
               <div class="details">
-                <div style="font-weight:600;"><?= htmlspecialchars($r['date']) ?> à <?= htmlspecialchars(substr($r['time'], 0, 5)) ?> — <?= htmlspecialchars($r['person']) ?></div>
+                <div class="rdv-quand"><?= htmlspecialchars($r['date']) ?> à <?= htmlspecialchars(substr($r['time'], 0, 5)) ?> — <?= htmlspecialchars($r['person']) ?></div>
                 <div class="champ-avant">Médecin / consultation : <?= $surligne ?></div>
                 <div class="champ-apres">Deviendra : "<?= htmlspecialchars(str_ireplace($r['detect']['motif'], $r['detect']['remplacement'], $r['doctor'])) ?>"</div>
               </div>
@@ -596,6 +602,10 @@ try {
   </div>
 
   <div class="outil panneau-outil<?= $ongletActif === 'texte' ? ' active' : '' ?>" id="panneau-texte">
+    <h2 class="panneau-titre">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+      Texte libre
+    </h2>
     <p class="sous-titre">Pour un texte exact qui revient tel quel (une adresse, une phrase inutile comme "Le lieu du rendez-vous"...).</p>
 
     <?php if ($erreur): ?>
@@ -647,18 +657,25 @@ try {
       </form>
 
       <?php if (!empty($resultats)): ?>
-        <form method="post" style="margin-top:24px;">
+        <form method="post" style="margin-top:24px;" data-confirm="Appliquer cette correction aux rendez-vous cochés ? Les événements Google Calendar liés seront aussi mis à jour.">
           <input type="hidden" name="action" value="appliquer">
           <input type="hidden" name="motifs" value="<?= htmlspecialchars($motifsTexte) ?>">
           <input type="hidden" name="destination" value="<?= htmlspecialchars($destination) ?>">
 
-          <p><?= count($resultats) ?> rendez-vous trouvé(s). Décochez ceux à ne pas corriger.</p>
+          <div class="barre-selection">
+            <span class="compte-resultats"><?= count($resultats) ?> rendez-vous trouvé(s)</span>
+            <span class="actions-selection">
+              <button type="button" class="lien-select" data-select="all">Tout cocher</button>
+              <span class="sep">·</span>
+              <button type="button" class="lien-select" data-select="none">Tout décocher</button>
+            </span>
+          </div>
 
           <?php foreach ($resultats as $r): ?>
             <div class="rangee-nett">
               <input type="checkbox" checked name="selection[]" value="<?= (int) $r['id'] ?>">
               <div class="details">
-                <div style="font-weight:600;"><?= htmlspecialchars($r['date']) ?> à <?= htmlspecialchars(substr($r['time'], 0, 5)) ?> — <?= htmlspecialchars($r['person']) ?></div>
+                <div class="rdv-quand"><?= htmlspecialchars($r['date']) ?> à <?= htmlspecialchars(substr($r['time'], 0, 5)) ?> — <?= htmlspecialchars($r['person']) ?></div>
                 <?php foreach ($r['matches'] as $m):
                   $label = $m['champ'] === 'doctor' ? 'Médecin / consultation' : 'Notes';
                   $valeurBrute = $m['champ'] === 'doctor' ? $r['doctor'] : $r['notes'];
@@ -667,11 +684,11 @@ try {
                   <div class="champ-avant"><?= htmlspecialchars($label) ?> : <?= $surligne ?></div>
                 <?php endforeach; ?>
                 <?php if ($destination === 'location' && $r['location'] !== ''): ?>
-                  <div class="champ-avant" style="color:#c60;">Champ Adresse déjà rempli ("<?= htmlspecialchars($r['location']) ?>") : cette ligne sera ignorée.</div>
+                  <div class="alerte-champ">Champ Adresse déjà rempli ("<?= htmlspecialchars($r['location']) ?>") : cette ligne sera ignorée.</div>
                 <?php elseif ($destination === 'phone' && $r['phone'] !== ''): ?>
-                  <div class="champ-avant" style="color:#c60;">Champ Téléphone déjà rempli ("<?= htmlspecialchars($r['phone']) ?>") : cette ligne sera ignorée.</div>
+                  <div class="alerte-champ">Champ Téléphone déjà rempli ("<?= htmlspecialchars($r['phone']) ?>") : cette ligne sera ignorée.</div>
                 <?php elseif ($destination === 'route' && $r['route'] !== ''): ?>
-                  <div class="champ-avant" style="color:#c60;">Champ Route déjà rempli ("<?= htmlspecialchars($r['route']) ?>") : cette ligne sera ignorée.</div>
+                  <div class="alerte-champ">Champ Route déjà rempli ("<?= htmlspecialchars($r['route']) ?>") : cette ligne sera ignorée.</div>
                 <?php endif; ?>
               </div>
             </div>
@@ -691,12 +708,22 @@ try {
   <script>
     document.querySelectorAll('.tab-outil').forEach(function (btn) {
       btn.addEventListener('click', function () {
-        document.querySelectorAll('.tab-outil').forEach(function (b) { b.classList.remove('active'); });
+        document.querySelectorAll('.tab-outil').forEach(function (b) { b.classList.remove('active'); b.setAttribute('aria-selected', 'false'); });
         document.querySelectorAll('.panneau-outil').forEach(function (p) { p.classList.remove('active'); });
         btn.classList.add('active');
+        btn.setAttribute('aria-selected', 'true');
         document.getElementById(btn.dataset.cible).classList.add('active');
       });
     });
+
+    document.querySelectorAll('.lien-select').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var form = btn.closest('form');
+        var coche = btn.dataset.select === 'all';
+        form.querySelectorAll('input[type=checkbox][name="selection[]"]').forEach(function (cb) { cb.checked = coche; });
+      });
+    });
   </script>
+  <script src="/assets/admin-ui.js?v=<?= filemtime(__DIR__ . '/../assets/admin-ui.js') ?>"></script>
 </body>
 </html>

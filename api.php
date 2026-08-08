@@ -7,6 +7,7 @@
 require_once __DIR__ . '/lib/auth.php';
 require_once __DIR__ . '/lib/db.php';
 require_once __DIR__ . '/lib/calendar_sync.php';
+require_once __DIR__ . '/lib/address_aliases.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -73,10 +74,20 @@ function validateAppt($appt) {
 function listAppointments($db) {
     $stmt = $db->query('SELECT id, appt_date AS date, appt_time AS time, duration_minutes AS duration, person, doctor, department, location, phone, route, notes FROM appointments ORDER BY appt_date, appt_time');
     $rows = $stmt->fetchAll();
+
+    // "location_affichage" : version simplifiee de l'adresse pour
+    // l'affichage/l'impression uniquement (ex: "Avenue Hippocrate, 10,
+    // 1200 Bruxelles" -> "Hopital St Luc"), voir lib/address_aliases.php.
+    // "location" reste toujours l'adresse reelle : c'est elle qui est
+    // enregistree et envoyee a Google Calendar (edition du rendez-vous,
+    // navigation Waze/Maps depuis le calendrier partage).
+    $aliases = listerAliasAdresses($db);
+
     foreach ($rows as &$r) {
         $r['id'] = (string) $r['id'];
         $r['time'] = substr($r['time'], 0, 5);
         $r['duration'] = (int) $r['duration'];
+        $r['location_affichage'] = empty($aliases) ? $r['location'] : appliquerAliasAdresse($r['location'], $aliases);
     }
     return $rows;
 }

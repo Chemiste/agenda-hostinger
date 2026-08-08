@@ -22,6 +22,7 @@ $p1 = isset($config['personne_1']) ? $config['personne_1'] : 'Papa';
 $p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
 
 $db = getDb();
+$reminderEnabled = getSetting($db, 'reminder_enabled', '0') === '1';
 
 // Avant la v1.16.0, une seule adresse email etait partagee pour "les
 // parents" (reglee dans l'administration). Si les nouveaux champs
@@ -93,16 +94,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Rappels par email</title>
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
-<link rel="stylesheet" href="/assets/style.css">
+<link rel="stylesheet" href="/assets/style.css?v=<?= filemtime(__DIR__ . '/assets/style.css') ?>">
+<link rel="stylesheet" href="/assets/admin.css?v=<?= filemtime(__DIR__ . '/assets/admin.css') ?>">
 <style>
-  .outil { background:#fff; border-radius:12px; padding:18px; margin-bottom:24px; box-shadow: var(--shadow-sm); }
+  .barre-admin { margin-bottom:18px; }
+  .outil { margin-bottom:24px; }
   .outil h2 { margin-top:0; }
-  .barre-admin { display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; flex-wrap:wrap; gap:8px; }
-  .barre-admin a { font-size:13px; color:var(--text-muted, #888); }
-  .champ-case { display:flex; align-items:center; gap:10px; margin: 14px 0; }
-  .champ-case input[type=checkbox] { width:22px; height:22px; flex-shrink:0; }
-  .champ-case label { font-weight:400; font-size:15px; }
-  .aide { font-size:13px; color:#777; margin-top:4px; }
+  .champ-case { margin:14px 0; }
+  .champ-case label { font-weight:400; }
 </style>
 </head>
 <body>
@@ -113,6 +112,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
   </div>
   <p class="sous-titre">Chacun renseigne ici son adresse email, active ou désactive les rappels pour lui-même (sans avoir à effacer son adresse), et peut aussi choisir d'être prévenu des rendez-vous de l'autre.</p>
+
+  <?php if (!$reminderEnabled): ?>
+    <p class="aide avertissement" style="margin:8px 0 16px;">Les rappels par email sont actuellement désactivés pour tout le monde (réglage géré dans l'administration). Les réglages ci-dessous seront pris en compte dès qu'ils seront réactivés.</p>
+  <?php endif; ?>
 
   <?php if ($messageEnregistre): ?>
     <p class="info">Réglages enregistrés.</p>
@@ -169,5 +172,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <button class="principal" type="submit" name="action" value="enregistrer">Enregistrer les réglages</button>
     </div>
   </form>
+
+  <script src="/assets/admin-ui.js?v=<?= filemtime(__DIR__ . '/assets/admin-ui.js') ?>"></script>
 </body>
 </html>
