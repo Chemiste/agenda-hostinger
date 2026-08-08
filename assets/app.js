@@ -47,7 +47,14 @@ var pileModals = [];
 
 function ouvrirModal(id) {
   pileModals.push(id);
-  document.getElementById(id).classList.add('ouvert');
+  var modal = document.getElementById(id);
+  modal.classList.add('ouvert');
+  // Remet le contenu en haut a chaque ouverture : sans ca, un modal deja
+  // scrolle (ex. formulaire d'edition qu'on avait fait defiler) rouvre a
+  // la meme position, meme pour un usage totalement different (ex.
+  // "Annuler" une edition puis "Ajouter" un nouveau rendez-vous).
+  var corps = modal.querySelector('.modal-corps');
+  if (corps) corps.scrollTop = 0;
   document.getElementById('overlay').classList.add('visible');
   document.body.style.overflow = 'hidden';
 }
@@ -123,16 +130,36 @@ function alerterPerso(message) {
 
 // Petit message discret en bas de l'ecran (ex: "Rendez-vous enregistré."),
 // pour confirmer qu'une action a bien fonctionné sans bloquer l'écran
-// comme le fait la modale de dialogue. Disparaît tout seul.
+// comme le fait la modale de dialogue. Disparaît tout seul. "action"
+// (optionnel) ajoute un bouton dans le toast (ex: "Annuler" apres une
+// suppression) - reste affiché plus longtemps le temps de cliquer dessus.
 var toastTimeoutId = null;
-function afficherToast(message) {
+function afficherToast(message, action) {
   var toast = document.getElementById('toast');
-  toast.textContent = message;
+  toast.innerHTML = '';
+
+  var texte = document.createElement('span');
+  texte.textContent = message;
+  toast.appendChild(texte);
+
+  if (action) {
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'toast-action';
+    btn.textContent = action.label;
+    btn.addEventListener('click', function () {
+      if (toastTimeoutId) clearTimeout(toastTimeoutId);
+      toast.classList.remove('visible');
+      action.onClick();
+    });
+    toast.appendChild(btn);
+  }
+
   toast.classList.add('visible');
   if (toastTimeoutId) clearTimeout(toastTimeoutId);
   toastTimeoutId = setTimeout(function () {
     toast.classList.remove('visible');
-  }, 2500);
+  }, action ? 6000 : 2500);
 }
 
 function appelApi(action, corps) {
@@ -168,6 +195,43 @@ function charger() {
       document.getElementById('liste').innerHTML =
         '<p class="erreur">Impossible de charger les rendez-vous : ' + err.message + '</p>';
     });
+}
+
+// Memorise, pour chaque medecin deja rencontre, le departement/adresse/
+// telephone/route les plus recents - pour preremplir automatiquement ces
+// champs quand on retape un medecin deja connu (surtout utile pour les
+// rendez-vous crees a la main de facon reguliere, ex. kine : les
+// rendez-vous importes depuis un .ics ont deja leurs infos completes des
+// l'import, ce mecanisme ne changera donc rien pour eux).
+var infosParMedecin = {};
+function construireInfosParMedecin(rdvs) {
+  infosParMedecin = {};
+  // Trie par date croissante : la derniere iteration (la plus recente)
+  // ecrase les precedentes, on garde donc les coordonnees les plus a jour.
+  var tries = rdvs.slice().sort(function (a, b) {
+    var ca = a.date + ' ' + a.time, cb = b.date + ' ' + b.time;
+    return ca < cb ? -1 : ca > cb ? 1 : 0;
+  });
+  tries.forEach(function (r) {
+    var nom = (r.doctor || '').trim();
+    if (!nom) return;
+    infosParMedecin[nom.toLowerCase()] = {
+      nomExact: nom,
+      department: r.department || '',
+      location: r.location || '',
+      phone: r.phone || '',
+      route: r.route || ''
+    };
+  });
+}
+
+function remplirListeMedecins() {
+  var noms = Object.keys(infosParMedecin)
+    .map(function (cle) { return infosParMedecin[cle].nomExact; })
+    .sort(function (a, b) { return a.localeCompare(b, 'fr'); });
+  document.getElementById('listeMedecins').innerHTML = noms.map(function (n) {
+    return '<option value="' + escapeHtml(n) + '"></option>';
+  }).join('');
 }
 
 // Regroupement par mois (ex. "Août 2026") au lieu d'un titre par jour :
@@ -475,6 +539,23 @@ function ouvrirFormulaireAjout() {
 document.getElementById('btnAjouter').addEventListener('click', ouvrirFormulaireAjout);
 document.getElementById('btnAjouterMobile').addEventListener('click', ouvrirFormulaireAjout);
 
+// Prerempli departement/adresse/telephone/route quand le medecin tape (ou
+// choisi dans la liste suggeree) correspond exactement a un medecin deja
+// vu - seulement les champs encore vides, pour ne jamais ecraser une
+// valeur deja saisie ou importee.
+document.getElementById('fMedecin').addEventListener('input', function () {
+  var infos = infosParMedecin[this.value.trim().toLowerCase()];
+  if (!infos) return;
+  var fDepartement = document.getElementById('fDepartement');
+  var fAdresse = document.getElementById('fAdresse');
+  var fTelephone = document.getElementById('fTelephone');
+  var fRoute = document.getElementById('fRoute');
+  if (fDepartement.value === '') fDepartement.value = infos.department;
+  if (fAdresse.value === '') fAdresse.value = infos.location;
+  if (fTelephone.value === '') fTelephone.value = infos.phone;
+  if (fRoute.value === '') fRoute.value = infos.route;
+});
+
 document.getElementById('btnAnnuler').addEventListener('click', function () {
   fermerModal('formCard');
   viderFormulaire();
@@ -485,18 +566,48 @@ document.getElementById('btnSupprimer').addEventListener('click', function () {
   confirmerPerso('Supprimer ce rendez-vous ?').then(function (confirme) {
     if (!confirme) return;
     var id = idEnEdition;
+    // Capture des infos avant suppression, pour pouvoir les proposer au
+    // "Annuler" du toast juste apres (recree un rendez-vous identique -
+    // nouvel id et nouvel evenement Calendar, comme une restauration
+    // depuis une sauvegarde : l'ancien evenement est deja supprime).
+    var rdvSupprime = tousLesRdv.find(function (r) { return String(r.id) === String(id); });
     appelApi('delete', { id: id })
       .then(function () {
         fermerModal('formCard');
         viderFormulaire();
         charger();
-        afficherToast('Rendez-vous supprimé.');
+        afficherToast('Rendez-vous supprimé.', rdvSupprime ? {
+          label: 'Annuler',
+          onClick: function () { restaurerRdv(rdvSupprime); }
+        } : null);
       })
       .catch(function (err) {
         alerterPerso(err.message);
       });
   });
 });
+
+function restaurerRdv(r) {
+  appelApi('add', {
+    date: r.date,
+    time: r.time,
+    duration: r.duration,
+    person: r.person,
+    doctor: r.doctor,
+    department: r.department,
+    location: r.location,
+    phone: r.phone,
+    route: r.route,
+    notes: r.notes
+  })
+    .then(function () {
+      charger();
+      afficherToast('Rendez-vous restauré.');
+    })
+    .catch(function (err) {
+      alerterPerso(err.message);
+    });
+}
 
 // Menu deroulant "Imprimer" (un seul bouton, choix Normal/Compact dans un
 // petit menu plutot que deux boutons cote a cote).

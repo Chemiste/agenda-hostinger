@@ -2,6 +2,22 @@
 
 ## Non publié
 
+- **Annuler une suppression.** Le toast affiché après la suppression d'un
+  rendez-vous propose maintenant un bouton "Annuler" (visible 6 secondes) :
+  cliquer dessus recrée le rendez-vous avec les mêmes informations (nouvel
+  identifiant et nouvel événement Google Calendar, l'ancien étant déjà
+  supprimé — même principe qu'une restauration depuis une sauvegarde).
+
+- **Mémoriser un médecin déjà utilisé.** Le champ "Médecin / consultation"
+  propose désormais les médecins déjà rencontrés (liste déroulante native),
+  et retaper exactement un nom déjà connu préremplit automatiquement
+  département/adresse/téléphone/route avec les dernières valeurs utilisées
+  pour ce médecin — uniquement les champs encore vides, jamais une valeur
+  déjà saisie. Surtout utile pour les rendez-vous créés à la main de façon
+  régulière (ex. kiné) : les rendez-vous importés depuis un .ics ont déjà
+  leurs informations complètes dès l'import, ce mécanisme ne change rien
+  pour eux.
+
 - **Petites finitions d'ergonomie.**
   - Confirmation discrète ("toast") en bas de l'écran après un ajout, une
     modification ou une suppression de rendez-vous — jusqu'ici la liste se

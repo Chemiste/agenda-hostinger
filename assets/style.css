@@ -297,9 +297,23 @@ button.danger:active { transform: scale(0.97); }
   transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease);
   z-index: 60;
   max-width: calc(100vw - 40px);
-  text-align: center;
+  display: flex;
+  align-items: center;
+  gap: 14px;
 }
-.toast.visible { opacity: 1; transform: translate(-50%, 0); }
+.toast.visible { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+.toast-action {
+  flex: none;
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  padding: 2px;
+  cursor: pointer;
+}
 @media print { .toast { display: none !important; } }
 
 .modal .form-boutons {
