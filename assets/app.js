@@ -309,9 +309,9 @@ function afficherListe() {
     return ca < cb ? -1 : ca > cb ? 1 : 0;
   });
 
-  // Compteur sur l'onglet "À venir" : toujours le nombre de rendez-vous a
-  // venir pour le filtre de personne actuel (Tous/Papa/Maman), quel que
-  // soit l'onglet temps actuellement selectionne.
+  // Compteurs sur les onglets "À venir" et "Passés" : toujours le nombre
+  // de rendez-vous correspondant pour le filtre de personne actuel
+  // (Tous/Papa/Maman), quel que soit l'onglet temps actuellement selectionne.
   var compteurAvenirEl = document.getElementById('compteurAvenir');
   if (compteurAvenirEl) {
     var nbAvenir = tousLesRdv.filter(function (r) {
@@ -319,6 +319,14 @@ function afficherListe() {
       return okPersonne && r.date >= aujourdhui;
     }).length;
     compteurAvenirEl.textContent = nbAvenir > 0 ? '(' + nbAvenir + ')' : '';
+  }
+  var compteurPassesEl = document.getElementById('compteurPasses');
+  if (compteurPassesEl) {
+    var nbPasses = tousLesRdv.filter(function (r) {
+      var okPersonne = filtreActuel === 'Tous' || r.person === filtreActuel;
+      return okPersonne && r.date < aujourdhui;
+    }).length;
+    compteurPassesEl.textContent = nbPasses > 0 ? '(' + nbPasses + ')' : '';
   }
 
   var labelTemps = filtreTemps === 'avenir' ? 'À venir' : (filtreTemps === 'passes' ? 'Passés' : 'Tout l\'historique');
