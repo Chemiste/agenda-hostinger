@@ -134,3 +134,23 @@ textarea.motifs { width:100%; min-height:100px; font-family:inherit; font-size:1
 .badge-modification { background:#e6f3fb; color:#0369a1; }
 .badge-suppression { background:#fdeceb; color:#b42318; }
 .badge-connexion { background:var(--tous-bg); color:var(--text-secondary); }
+
+/* --- Liste de tâches (taches.php) --- */
+.rangee-tache { display:flex; align-items:center; gap:10px; padding:10px 12px; border:1px solid var(--border); border-radius:var(--radius-sm); margin:8px 0; }
+.rangee-tache.rangee-tache-faite { opacity:0.6; }
+.form-case-tache { margin:0; flex:none; }
+.case-tache { display:flex; align-items:center; justify-content:center; width:34px; height:34px; padding:0; border:none; background:none; color:var(--text-muted); cursor:pointer; flex:none; }
+.case-tache svg { width:24px; height:24px; }
+.case-tache:hover { color:var(--accent); }
+.case-tache.case-tache-cochee { color:var(--accent); }
+.detail-tache { flex:1; min-width:0; }
+.detail-tache .texte-tache { font-size:14px; color:var(--text); font-weight:600; }
+.rangee-tache-faite .texte-tache { text-decoration:line-through; }
+.meta-tache { display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:4px; }
+.badge-personne { font-size:11px; font-weight:700; padding:3px 9px; border-radius:999px; flex:none; }
+.badge-personne.badge-papa { background:var(--papa-bg); color:var(--papa); }
+.badge-personne.badge-maman { background:var(--maman-bg); color:var(--maman); }
+.badge-date-tache { font-size:12px; color:var(--text-muted); background:var(--page-bg); border-radius:999px; padding:3px 9px; }
+.badge-date-tache.en-retard { color:#b42318; background:#fdeceb; font-weight:600; }
+.rangee-tache form.lien-danger-forme { margin-left:auto; }
+.rangee-tache > form[data-confirm] { margin-left:auto; flex:none; }

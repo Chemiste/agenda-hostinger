@@ -49,6 +49,7 @@ $p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
             <a href="/admin/index.php"><svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20a8 8 0 1 0 0-16 8 8 0 0 0 0 16z"/><path d="M12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>Administration</a>
             <?php endif; ?>
             <a href="/historique.php"><svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 7v5l3 3"/></svg>Historique</a>
+            <a href="/taches.php"><svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="6" height="6" rx="1"/><path d="M3 15h6v6H3z"/><path d="M13 5h8M13 9h8M13 15h8M13 19h8"/></svg>Tâches</a>
             <a href="/mes_rappels.php"><svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>Rappels par email</a>
             <a href="/logout.php"><svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>Déconnexion</a>
           </div>
@@ -89,7 +90,7 @@ $p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
       <h2>Rendez-vous</h2>
 
       <p class="section-titre">Quand</p>
-      <div class="champ-ligne">
+      <div class="champ-ligne champ-ligne-3">
         <div class="champ">
           <label>Date</label>
           <input type="date" id="fDate">
@@ -98,17 +99,17 @@ $p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
           <label>Heure</label>
           <input type="time" id="fHeure">
         </div>
-      </div>
-      <div class="champ">
-        <label>Durée</label>
-        <select id="fDuree">
-          <option value="15">15 min</option>
-          <option value="30" selected>30 min</option>
-          <option value="45">45 min</option>
-          <option value="60">1 h</option>
-          <option value="90">1 h 30</option>
-          <option value="120">2 h</option>
-        </select>
+        <div class="champ">
+          <label>Durée</label>
+          <select id="fDuree">
+            <option value="15">15 min</option>
+            <option value="30" selected>30 min</option>
+            <option value="45">45 min</option>
+            <option value="60">1 h</option>
+            <option value="90">1 h 30</option>
+            <option value="120">2 h</option>
+          </select>
+        </div>
       </div>
 
       <p class="section-titre">Qui</p>
@@ -154,7 +155,7 @@ $p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
 
       <p class="section-titre">Notes (facultatif)</p>
       <div class="champ">
-        <textarea id="fNotes" rows="4"></textarea>
+        <textarea id="fNotes" rows="3"></textarea>
       </div>
 
       <p class="erreur" id="erreurForm"></p>

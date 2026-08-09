@@ -385,6 +385,17 @@ function afficherListe() {
       }
     });
   });
+
+  // Note tronquee sur une ligne : la souris peut la deplier au survol
+  // (CSS pur, voir .notes:hover), mais il n'y a pas de survol sur mobile
+  // - on deplie donc aussi au tap. stopPropagation() empeche ce tap
+  // d'ouvrir en plus le formulaire d'edition (clic sur la carte parente).
+  document.querySelectorAll('.notes').forEach(function (el) {
+    el.addEventListener('click', function (e) {
+      e.stopPropagation();
+      el.classList.toggle('etendu');
+    });
+  });
 }
 
 function choisirTab(tab) {

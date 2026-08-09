@@ -2,6 +2,36 @@
 
 ## Non publié
 
+- **Liste de tâches.** Nouvelle page dédiée `taches.php` (lien "Tâches"
+  dans le menu du compte, entre Historique et Rappels par email) pour
+  noter des choses à faire qui ne sont pas encore un rendez-vous (ex.
+  "prendre rdv chez le dentiste pour Michel", "annuler le rendez-vous de
+  mardi"). Chaque tâche a un texte libre, et facultativement une personne
+  (Michel/Christiane) et une date cible ; les tâches en retard (date
+  cible dépassée, non faite) sont mises en évidence. Une tâche se coche
+  d'un tap et les tâches terminées se retrouvent repliées en bas de page.
+  `migrations/0013_add_taches.sql` crée la table, `lib/taches.php`
+  regroupe les fonctions (lister, ajouter, cocher/décocher, supprimer).
+
+- **Date, heure et durée sur une seule ligne.** Dans le formulaire
+  d'ajout/modification d'un rendez-vous, les trois champs "Quand"
+  tenaient auparavant sur deux lignes ; ils sont maintenant sur une
+  seule ligne (largeurs ajustées : la date a plus de place que l'heure),
+  ce qui gagne un peu de hauteur.
+
+- **Formulaire d'édition plus compact en hauteur.** Le formulaire
+  d'ajout/modification d'un rendez-vous demandait beaucoup de défilement
+  sur mobile pour atteindre les notes en bas. Marges et paddings resserrés
+  autour des champs, des titres de section et des boutons, et polices
+  réduites d'1px (champs 16→15px, labels 13→12px, titres de section
+  12→11px, titre de la fenêtre 17→16px).
+
+- **Note tronquée dépliable.** Une note trop longue pour tenir sur une
+  ligne (affichée avec "...") se déplie maintenant en entier au survol
+  du texte de la note. Sur mobile (pas de survol), un tap sur la note
+  fait pareil (un second tap la replie), sans ouvrir le formulaire
+  d'édition de la carte.
+
 - **Téléphone non cliquable dans la liste.** Le numéro affiché sur la
   carte d'un rendez-vous n'est plus un lien `tel:` (ni sur PC ni sur
   mobile), pour éviter un appel déclenché par une fausse manipulation en
