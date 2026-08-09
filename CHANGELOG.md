@@ -2,6 +2,20 @@
 
 ## Non publié
 
+- **Scripts Cron plus fiables sur Hostinger.** `cron/backup.sh` et
+  `cron/rappels.sh` (nouveaux) enveloppent respectivement `wget` vers
+  `cron/backup.php` et `cron/rappels.php` : certaines tâches Cron
+  "Personnalisé" de Hostinger n'aiment pas les guillemets/options tapés
+  directement dans le champ commande et échouent silencieusement (la
+  tâche s'exécute mais wget ne part jamais), alors qu'une visite manuelle
+  de l'URL fonctionne très bien. Ces scripts déplacent toute la commande
+  dans un fichier normal, lisent le jeton secret directement dans
+  `config.php` (jamais dupliqué en clair) et ajoutent un `--user-agent`
+  (certains pare-feux bloquent les requêtes sans User-Agent). Voir
+  `Guide_installation_hostinger.md`, sections "Sauvegardes automatiques"
+  et "Rappels par email", pour la configuration de la tâche Cron avec ces
+  scripts et la marche à suivre en cas de souci persistant.
+
 - **Script de déploiement FTP manuel.** `deploiement/deployer.php`,
   lancé à la main depuis la machine de dev (`php deploiement/deployer.php`) :
   se connecte au FTP/FTPS de Hostinger, compare le contenu de chaque fichier

@@ -108,8 +108,12 @@ En cas de suppression accidentelle d'un rendez-vous, une sauvegarde automatique 
 2. Dans hPanel, allez dans **Avancé > Cron Jobs** (ou **Tâches Cron**).
 3. Créez une nouvelle tâche :
    - Fréquence : une fois par jour (par exemple à 3h du matin).
-   - Type de commande / URL : `https://agenda.hellau.be/cron/backup.php?token=VOTRE_JETON` (remplacez `VOTRE_JETON` par la valeur mise dans `config.php`). Si hPanel demande une commande shell plutôt qu'une URL, utilisez `wget -q -O /dev/null "https://agenda.hellau.be/cron/backup.php?token=VOTRE_JETON"` (ou `curl` si disponible).
+   - Type de commande / URL : type **"Personnalisé"**, commande `bash /chemin/complet/vers/le/site/cron/backup.sh` (remplacez le chemin par celui réel sur votre hébergement — voir l'encadré ci-dessous). C'est la méthode recommandée : `cron/backup.sh` va lui-même chercher le jeton dans `config.php` et lancer `wget` proprement, sans risque que hPanel dénature les guillemets d'une commande tapée directement. Alternative plus simple mais plus fragile : coller directement `wget -q -O /dev/null "https://agenda.hellau.be/cron/backup.php?token=VOTRE_JETON"` dans le champ commande (remplacez `VOTRE_JETON` par la valeur mise dans `config.php`) — certains hébergeurs (dont Hostinger, par moments) n'aiment pas les guillemets tapés en direct dans ce champ et la commande échoue silencieusement.
 4. Enregistrez. Le lendemain, vérifiez dans `admin/sauvegardes.php` qu'une sauvegarde datée est bien apparue dans le menu déroulant.
+
+> **Chemin complet du site sur le serveur.** Pour le trouver : dans hPanel, commencez à créer une tâche Cron de type **"PHP"** (sans l'enregistrer) — le champ affiche un chemin pré-rempli du style `/home/uXXXXXXXX/...`, qui donne votre dossier personnel. Combinez-le avec l'arborescence visible dans un client FTP (ou le Gestionnaire de fichiers de hPanel) pour reconstituer le chemin complet jusqu'au dossier `cron/` du site — par exemple, si le site est installé dans un sous-dossier `agenda/` de votre domaine principal (`domains/hellau.be/public_html/agenda/`, plutôt que dans un domaine additionnel séparé), le chemin complet est `/home/uXXXXXXXX/domains/hellau.be/public_html/agenda/cron/backup.sh`.
+>
+> **Si ça ne se déclenche toujours pas automatiquement** (mais que visiter l'URL à la main fonctionne) : dans la liste des tâches Cron, cliquez sur **"Afficher le résultat"** pour voir la sortie de la dernière exécution — une sortie vide ne veut pas forcément dire un échec, `wget -q` ne log rien par défaut en cas de succès. Vérifiez aussi qu'aucun espace ou caractère invisible ne s'est glissé dans le chemin lors du copier-coller.
 
 Chaque sauvegarde est un export complet des rendez-vous à cet instant, conservé 60 jours puis supprimé automatiquement. Le dossier `backups/` est bloqué à l'accès direct par son propre `.htaccess` : seule la page d'administration (avec son mot de passe) peut les consulter.
 
@@ -151,7 +155,7 @@ Si vous laissez `smtp_host` vide, le site continue de fonctionner en se rabattan
 4. Cliquez sur **Enregistrer les réglages**.
 5. Dans hPanel, allez dans **Avancé > Cron Jobs** (ou **Tâches Cron**) et créez une nouvelle tâche :
    - Fréquence : toutes les 15 à 30 minutes (plus fréquent que les sauvegardes, pour que les rappels partent à l'heure).
-   - Type de commande / URL : `https://agenda.hellau.be/cron/rappels.php?token=VOTRE_JETON` (remplacez `VOTRE_JETON` par la valeur mise dans `config.php`). Si hPanel demande une commande shell plutôt qu'une URL, utilisez `wget -q -O /dev/null "https://agenda.hellau.be/cron/rappels.php?token=VOTRE_JETON"` (ou `curl` si disponible).
+   - Type de commande / URL : type **"Personnalisé"**, commande `bash /chemin/complet/vers/le/site/cron/rappels.sh` (même principe que pour la sauvegarde ci-dessus — voir l'encadré sur le chemin complet dans la section précédente). Alternative plus fragile : coller directement `wget -q -O /dev/null "https://agenda.hellau.be/cron/rappels.php?token=VOTRE_JETON"` dans le champ commande.
 6. Enregistrez. Chaque rendez-vous ne reçoit qu'un seul rappel, quelle que soit la fréquence du Cron Job — pas de risque de doublon même en appelant `cron/rappels.php` très souvent.
 
 **Important : mettez à jour l'URL du Cron Job existant.** Si vous aviez déjà configuré ce Cron Job avant cette mise à jour (structure de fichiers réorganisée), modifiez son URL dans hPanel pour utiliser le nouveau chemin `cron/rappels.php` (au lieu de `rappels.php`), sinon les rappels cesseront de partir.
