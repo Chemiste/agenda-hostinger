@@ -2,6 +2,10 @@
 
 ## Non publié
 
+- **Compteur sur l'onglet "À venir".** Affiche entre parenthèses le
+  nombre de rendez-vous à venir pour la personne actuellement filtrée
+  (Tous/Papa/Maman), mis à jour en direct à chaque changement de filtre.
+
 - **Liste de tâches.** Nouvelle page dédiée `taches.php` (lien "Tâches"
   dans le menu du compte, entre Historique et Rappels par email) pour
   noter des choses à faire qui ne sont pas encore un rendez-vous (ex.

@@ -168,6 +168,8 @@ h1 { font-size: 24px; margin: 0 0 2px; letter-spacing: -0.01em; }
   transition: color var(--dur) var(--ease), border-color var(--dur) var(--ease);
 }
 .tab-temps.active { color: var(--accent); border-bottom-color: var(--accent); }
+.compteur-tab { font-size: 12px; font-weight: 700; color: var(--text-muted); }
+.tab-temps.active .compteur-tab { color: var(--accent); }
 
 /* Sur mobile, le filtre personne s'etire sur toute la largeur pour de
    grandes cibles faciles a toucher. Sur un ecran large (la page fait

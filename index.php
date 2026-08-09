@@ -64,7 +64,7 @@ $p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
     </div>
 
     <div class="tabs tabs-temps" id="tabsTemps" role="tablist">
-      <div class="tab-temps active" data-temps="avenir" tabindex="0" role="tab" aria-selected="true">À venir</div>
+      <div class="tab-temps active" data-temps="avenir" tabindex="0" role="tab" aria-selected="true">À venir <span class="compteur-tab" id="compteurAvenir"></span></div>
       <div class="tab-temps" data-temps="passes" tabindex="0" role="tab" aria-selected="false">Passés</div>
       <div class="tab-temps" data-temps="tous" tabindex="0" role="tab" aria-selected="false">Tout l'historique</div>
     </div>
