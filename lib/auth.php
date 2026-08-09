@@ -15,10 +15,15 @@
 if (session_status() === PHP_SESSION_NONE) {
     $dureeSession = 60 * 60 * 24 * 90; // 90 jours
     ini_set('session.gc_maxlifetime', (string) $dureeSession);
+    // "secure" force le HTTPS pour ce cookie - indispensable en production
+    // (agenda.hellau.be est en HTTPS), mais il faut le desactiver en local
+    // (php -S sert en HTTP simple), sinon le navigateur refuse silencieusement
+    // le cookie de session et on reste bloque sur la page de connexion apres
+    // avoir tape le bon mot de passe.
     session_set_cookie_params([
         'lifetime' => $dureeSession,
         'path' => '/',
-        'secure' => true,
+        'secure' => !empty($_SERVER['HTTPS']),
         'httponly' => true,
         'samesite' => 'Lax',
     ]);
