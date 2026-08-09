@@ -512,8 +512,6 @@ button.danger:active { transform: scale(0.97); }
    app.js) : taille fixe, alignees sur le texte, couleur heritee du
    parent pour ne pas avoir a gerer une couleur en plus. */
 .icone { width: 13px; height: 13px; vertical-align: -2px; margin-right: 5px; flex-shrink: 0; }
-.lien-tel { color: inherit; text-decoration: none; }
-.lien-tel:hover { text-decoration: underline; }
 
 .rdv-corps { padding: 12px 14px 14px; }
 .badge-jour {

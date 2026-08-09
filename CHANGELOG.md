@@ -2,6 +2,11 @@
 
 ## Non publié
 
+- **Téléphone non cliquable dans la liste.** Le numéro affiché sur la
+  carte d'un rendez-vous n'est plus un lien `tel:` (ni sur PC ni sur
+  mobile), pour éviter un appel déclenché par une fausse manipulation en
+  consultant simplement l'agenda.
+
 - **Champ "Accompagnant" (facultatif).** Nouveau champ texte libre sur
   chaque rendez-vous pour indiquer qui accompagne Michel ou Christiane
   (ex. "Chem", "Laurent", "Hélène") — jamais obligatoire.

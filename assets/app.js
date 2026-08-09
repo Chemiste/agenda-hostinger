@@ -356,7 +356,7 @@ function afficherListe() {
         (t.departement ? '<div class="departement">' + escapeHtml(t.departement) + '</div>' : '') +
         '<div class="medecin">' + ICONES.medecin + escapeHtml(t.medecin) + '</div>' +
         (r.location ? '<div class="contact">' + ICONES.lieu + escapeHtml(r.location_affichage || r.location) + '</div>' : '') +
-        (r.phone ? '<div class="contact"><a class="lien-tel" href="tel:' + escapeHtml(r.phone) + '">' + ICONES.telephone + escapeHtml(r.phone) + '</a></div>' : '') +
+        (r.phone ? '<div class="contact">' + ICONES.telephone + escapeHtml(r.phone) + '</div>' : '') +
         (r.route ? '<div class="route">' + ICONES.route + escapeHtml(r.route) + '</div>' : '') +
         (r.accompagnant ? '<div class="accompagnant">' + ICONES.accompagnant + escapeHtml(r.accompagnant) + '</div>' : '') +
         (r.notes ? '<div class="notes">' + ICONES.note + escapeHtml(r.notes) + '</div>' : '') +
