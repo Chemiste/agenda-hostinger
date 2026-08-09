@@ -2,6 +2,20 @@
 
 ## Non publié
 
+- **Champ "Accompagnant" (facultatif).** Nouveau champ texte libre sur
+  chaque rendez-vous pour indiquer qui accompagne Michel ou Christiane
+  (ex. "Chem", "Laurent", "Hélène") — jamais obligatoire.
+  `migrations/0012_add_accompagnant.sql` ajoute la colonne. Câblé partout
+  où les autres champs facultatifs (route, notes) le sont déjà : le
+  formulaire (section "Qui"), la carte de la liste et la grille
+  d'impression compacte (avec icône dédiée), la description de
+  l'événement synchronisé sur Google Calendar
+  (`lib/calendar_sync.php`), le corps de l'email de rappel
+  (`cron/rappels.php`), la restauration depuis une sauvegarde
+  (`admin/sauvegardes.php`), l'import de données de dev
+  (`outils/importer_donnees_dev.php`) et le rattrapage de synchro
+  (`outils/synchroniser_calendrier.php`).
+
 - **Scripts Cron plus fiables sur Hostinger.** `cron/backup.sh` et
   `cron/rappels.sh` (nouveaux) enveloppent respectivement `wget` vers
   `cron/backup.php` et `cron/rappels.php` : certaines tâches Cron

@@ -161,6 +161,7 @@ foreach ($rdvs as $rdv) {
     if (!empty($rdv['location'])) $lignes[] = 'Adresse : ' . $rdv['location'];
     if (!empty($rdv['route'])) $lignes[] = 'Route : ' . $rdv['route'];
     if (!empty($rdv['phone'])) $lignes[] = 'Téléphone : ' . $rdv['phone'];
+    if (!empty($rdv['accompagnant'])) $lignes[] = 'Accompagné(e) de : ' . $rdv['accompagnant'];
     if (!empty($rdv['notes'])) {
         $lignes[] = '';
         $lignes[] = 'Notes : ' . $rdv['notes'];

@@ -120,6 +120,10 @@ $p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
           <label class="sel-maman" for="pMaman"><?= htmlspecialchars($p2) ?></label>
         </div>
       </div>
+      <div class="champ">
+        <label>Accompagnant (facultatif)</label>
+        <input type="text" id="fAccompagnant" placeholder="Ex. Chem, Laurent, Hélène...">
+      </div>
 
       <p class="section-titre">Détails médicaux</p>
       <div class="champ">

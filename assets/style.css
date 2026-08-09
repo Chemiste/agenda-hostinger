@@ -530,6 +530,7 @@ button.danger:active { transform: scale(0.97); }
 .departement { font-size: 16px; font-weight: 700; color: var(--text-secondary); font-style: italic; }
 .contact { font-size: 13px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .route { font-size: 13px; font-weight: 700; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.accompagnant { font-size: 13px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .notes { font-size: 14px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .lien-danger {
@@ -699,11 +700,11 @@ button.danger:active { transform: scale(0.97); }
   .rdv-modifier { display: none !important; }
   .medecin { font-size: 10.5pt; }
   .departement { font-size: 10pt; font-weight: 700; }
-  .contact, .route, .notes { font-size: 9pt; }
+  .contact, .route, .accompagnant, .notes { font-size: 9pt; }
 
   /* Le texte complet doit rester lisible a l'impression : pas de
      troncature avec "..." comme dans la liste a l'ecran. */
-  .medecin, .departement, .contact, .route, .notes {
+  .medecin, .departement, .contact, .route, .accompagnant, .notes {
     white-space: normal !important;
     overflow: visible !important;
     text-overflow: clip !important;
@@ -769,6 +770,7 @@ button.danger:active { transform: scale(0.97); }
     max-height: 2.4em;
   }
   .cc-route { font-size: 7.5pt; font-weight: 700; margin-top: 1px; }
+  .cc-accompagnant { font-size: 7.5pt; color: #555; margin-top: 1px; }
 }
 #entete-impression { display: none; }
 @media print {

@@ -15,6 +15,7 @@ var ICONES = {
   route: '<svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4v6a4 4 0 0 0 4 4h10"/><path d="M15 10l4 4-4 4"/></svg>',
   note: '<svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h9l4 4v12H6z"/><path d="M14 4v5h5"/><path d="M9 13h6M9 17h4"/></svg>',
   medecin: '<svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>',
+  accompagnant: '<svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
   crayon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>'
 };
 
@@ -357,6 +358,7 @@ function afficherListe() {
         (r.location ? '<div class="contact">' + ICONES.lieu + escapeHtml(r.location_affichage || r.location) + '</div>' : '') +
         (r.phone ? '<div class="contact"><a class="lien-tel" href="tel:' + escapeHtml(r.phone) + '">' + ICONES.telephone + escapeHtml(r.phone) + '</a></div>' : '') +
         (r.route ? '<div class="route">' + ICONES.route + escapeHtml(r.route) + '</div>' : '') +
+        (r.accompagnant ? '<div class="accompagnant">' + ICONES.accompagnant + escapeHtml(r.accompagnant) + '</div>' : '') +
         (r.notes ? '<div class="notes">' + ICONES.note + escapeHtml(r.notes) + '</div>' : '') +
       '</div>' +
       '<span class="rdv-modifier">' + ICONES.crayon + '</span>' +
@@ -472,6 +474,7 @@ function genererGrilleCompacte(filtres) {
           '<div class="cc-titre">' + escapeHtml(t.medecin) + '</div>' +
           (r.location ? '<div class="cc-adresse">' + escapeHtml(r.location_affichage || r.location) + '</div>' : '') +
           (r.route ? '<div class="cc-route">' + escapeHtml(r.route) + '</div>' : '') +
+          (r.accompagnant ? '<div class="cc-accompagnant">Avec ' + escapeHtml(r.accompagnant) + '</div>' : '') +
         '</div>' +
       '</div>' +
     '</div>';
@@ -487,6 +490,7 @@ function viderFormulaire() {
   document.getElementById('fAdresse').value = '';
   document.getElementById('fTelephone').value = '';
   document.getElementById('fRoute').value = '';
+  document.getElementById('fAccompagnant').value = '';
   document.getElementById('fNotes').value = '';
   document.querySelectorAll('.personnes input').forEach(function (r) { r.checked = false; });
   document.querySelectorAll('.personnes label').forEach(function (l) { l.classList.remove('checked'); });
@@ -507,6 +511,7 @@ function ouvrirEnEdition(id) {
   document.getElementById('fAdresse').value = r.location || '';
   document.getElementById('fTelephone').value = r.phone || '';
   document.getElementById('fRoute').value = r.route || '';
+  document.getElementById('fAccompagnant').value = r.accompagnant || '';
   document.getElementById('fNotes').value = r.notes || '';
   selectionnerPersonne(r.person);
   document.getElementById('btnSupprimer').style.display = 'block';
@@ -598,6 +603,7 @@ function restaurerRdv(r) {
     location: r.location,
     phone: r.phone,
     route: r.route,
+    accompagnant: r.accompagnant,
     notes: r.notes
   })
     .then(function () {
@@ -679,6 +685,7 @@ document.getElementById('btnEnregistrer').addEventListener('click', function () 
   var adresse = document.getElementById('fAdresse').value;
   var telephone = document.getElementById('fTelephone').value;
   var route = document.getElementById('fRoute').value;
+  var accompagnant = document.getElementById('fAccompagnant').value;
   var notes = document.getElementById('fNotes').value;
 
   if (!date || !heure || !personneInput) {
@@ -698,6 +705,7 @@ document.getElementById('btnEnregistrer').addEventListener('click', function () 
     location: adresse,
     phone: telephone,
     route: route,
+    accompagnant: accompagnant,
     notes: notes
   };
 

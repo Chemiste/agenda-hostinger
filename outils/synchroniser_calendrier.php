@@ -31,7 +31,7 @@ if (!$sync->isEnabled()) {
     exit;
 }
 
-$stmt = $db->query("SELECT id, appt_date, appt_time, person, doctor, department, location, phone, route, notes FROM appointments WHERE calendar_event_id IS NULL OR calendar_event_id = '' ORDER BY appt_date, appt_time");
+$stmt = $db->query("SELECT id, appt_date, appt_time, person, doctor, department, location, phone, route, accompagnant, notes FROM appointments WHERE calendar_event_id IS NULL OR calendar_event_id = '' ORDER BY appt_date, appt_time");
 $aTraiter = $stmt->fetchAll();
 
 echo "Rendez-vous sans evenement Google Calendar trouves : " . count($aTraiter) . "\n\n";
@@ -49,6 +49,7 @@ foreach ($aTraiter as $r) {
         'location' => $r['location'],
         'phone' => $r['phone'],
         'route' => $r['route'],
+        'accompagnant' => $r['accompagnant'],
         'notes' => $r['notes'],
     ];
 
