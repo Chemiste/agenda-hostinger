@@ -68,6 +68,14 @@ $p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
       <div class="tab-temps" data-temps="passes" tabindex="0" role="tab" aria-selected="false">Passés <span class="compteur-tab" id="compteurPasses"></span></div>
       <div class="tab-temps" data-temps="tous" tabindex="0" role="tab" aria-selected="false">Tout l'historique <span class="compteur-tab" id="compteurTous"></span></div>
     </div>
+
+    <div class="recherche-barre">
+      <svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input type="search" id="champRecherche" placeholder="Rechercher (médecin, notes, adresse...)" autocomplete="off" aria-label="Rechercher un rendez-vous">
+      <button type="button" id="btnEffacerRecherche" class="btn-effacer-recherche" aria-label="Effacer la recherche" style="display:none;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
   </div>
 
   <div id="entete-impression">

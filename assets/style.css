@@ -171,6 +171,54 @@ h1 { font-size: 24px; margin: 0 0 2px; letter-spacing: -0.01em; }
 .compteur-tab { font-size: 12px; font-weight: 700; color: var(--text-muted); }
 .tab-temps.active .compteur-tab { color: var(--accent); }
 
+.recherche-barre { position: relative; margin: 2px 0 14px; }
+.recherche-barre .icone {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+.recherche-barre input[type=search] {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 9px 36px 9px 34px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 15px;
+  font-family: inherit;
+  background: var(--surface);
+  color: var(--text);
+  -webkit-appearance: none;
+  appearance: none;
+}
+.recherche-barre input[type=search]::-webkit-search-cancel-button,
+.recherche-barre input[type=search]::-webkit-search-decoration {
+  display: none;
+}
+.recherche-barre input[type=search]:focus { outline: none; border-color: var(--accent); }
+.btn-effacer-recherche {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.btn-effacer-recherche svg { width: 16px; height: 16px; }
+.btn-effacer-recherche:hover { color: var(--text); }
+
 /* Sur mobile, le filtre personne s'etire sur toute la largeur pour de
    grandes cibles faciles a toucher. Sur un ecran large (la page fait
    1100px maintenant), le meme etirement laissait chaque onglet avec

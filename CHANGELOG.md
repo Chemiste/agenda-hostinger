@@ -2,6 +2,13 @@
 
 ## Non publié
 
+- **Recherche.** Nouvelle barre de recherche sous les onglets, filtre en
+  direct sur le médecin, le département, l'adresse (ou son alias
+  affiché), les notes et l'accompagnant, insensible à la casse et aux
+  accents. Se combine avec les filtres Papa/Maman/Tous et À venir/
+  Passés/Tout l'historique déjà en place (les compteurs des onglets
+  temps en tiennent compte aussi).
+
 - **Compteurs sur les trois onglets temps** ("À venir", "Passés", "Tout
   l'historique"). Affiche entre parenthèses le nombre de rendez-vous
   correspondant pour la personne actuellement filtrée (Tous/Papa/Maman),

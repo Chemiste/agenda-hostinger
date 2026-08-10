@@ -1,6 +1,7 @@
 var tousLesRdv = [];
 var filtreActuel = 'Tous';
 var filtreTemps = 'avenir';
+var filtreRecherche = '';
 var idEnEdition = null;
 
 var MOIS_ABREGES = ['Jan', 'Fév', 'Mars', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
@@ -27,6 +28,26 @@ var ICONES = {
 function dateLocaleISO(d) {
   var pad = function (n) { return String(n).padStart(2, '0'); };
   return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+}
+
+// Minuscules + accents retires, pour que "medecin" retrouve "Médecin" et
+// que la recherche reste tolerante aux fautes d'accent sur mobile.
+function normaliserTexte(s) {
+  return (s || '').toString().toLowerCase().normalize('NFD').replace(new RegExp('[\\u0300-\\u036f]', 'g'), '');
+}
+
+// Vrai si le rendez-vous r correspond au texte recherche (deja normalise
+// dans filtreRecherche), ou si aucune recherche n'est active. Cherche
+// dans les champs les plus susceptibles de contenir ce qu'on tape :
+// medecin, departement, lieu (adresse ou alias affiche), notes,
+// accompagnant et personne.
+function correspondRecherche(r) {
+  if (filtreRecherche === '') return true;
+  var texte = normaliserTexte([
+    r.doctor, r.department, r.location, r.location_affichage,
+    r.notes, r.accompagnant, r.person
+  ].join(' '));
+  return texte.indexOf(filtreRecherche) !== -1;
 }
 function formatDateCompacte(dateStr) {
   var p = dateStr.split('-');
@@ -299,7 +320,7 @@ function afficherListe() {
     var okPersonne = filtreActuel === 'Tous' || r.person === filtreActuel;
     var okTemps = filtreTemps === 'tous' ||
       (filtreTemps === 'avenir' ? r.date >= aujourdhui : r.date < aujourdhui);
-    return okPersonne && okTemps;
+    return okPersonne && okTemps && correspondRecherche(r);
   }).sort(function (a, b) {
     var ca = a.date + ' ' + a.time, cb = b.date + ' ' + b.time;
     // "Passés" : le plus recent d'abord (plus utile pour retrouver un
@@ -316,7 +337,7 @@ function afficherListe() {
   if (compteurAvenirEl) {
     var nbAvenir = tousLesRdv.filter(function (r) {
       var okPersonne = filtreActuel === 'Tous' || r.person === filtreActuel;
-      return okPersonne && r.date >= aujourdhui;
+      return okPersonne && correspondRecherche(r) && r.date >= aujourdhui;
     }).length;
     compteurAvenirEl.textContent = nbAvenir > 0 ? '(' + nbAvenir + ')' : '';
   }
@@ -324,14 +345,14 @@ function afficherListe() {
   if (compteurPassesEl) {
     var nbPasses = tousLesRdv.filter(function (r) {
       var okPersonne = filtreActuel === 'Tous' || r.person === filtreActuel;
-      return okPersonne && r.date < aujourdhui;
+      return okPersonne && correspondRecherche(r) && r.date < aujourdhui;
     }).length;
     compteurPassesEl.textContent = nbPasses > 0 ? '(' + nbPasses + ')' : '';
   }
   var compteurTousEl = document.getElementById('compteurTous');
   if (compteurTousEl) {
     var nbTous = tousLesRdv.filter(function (r) {
-      return filtreActuel === 'Tous' || r.person === filtreActuel;
+      return (filtreActuel === 'Tous' || r.person === filtreActuel) && correspondRecherche(r);
     }).length;
     compteurTousEl.textContent = nbTous > 0 ? '(' + nbTous + ')' : '';
   }
@@ -342,6 +363,9 @@ function afficherListe() {
   if (filtres.length === 0) {
     var messageVide = filtreTemps === 'passes' ? 'Aucun rendez-vous passé.' :
       (filtreTemps === 'avenir' ? 'Aucun rendez-vous à venir.' : 'Aucun rendez-vous.');
+    if (filtreRecherche !== '') {
+      messageVide = 'Aucun rendez-vous ne correspond à la recherche.';
+    }
     var iconeVide = '<svg class="vide-icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>';
     document.getElementById('liste').innerHTML = '<div class="vide">' + iconeVide + '<p>' + messageVide + '</p></div>';
     document.getElementById('listeCompacte').innerHTML = '<p class="vide">' + messageVide + '</p>';
@@ -476,6 +500,26 @@ document.getElementById('tabsTemps').addEventListener('keydown', function (e) {
 MOBILE_MQ.addEventListener('change', function () {
   if (tousLesRdv.length > 0) afficherListe();
 });
+
+// Recherche texte libre (medecin, departement, adresse, notes,
+// accompagnant) : filtre en direct, combinee avec les onglets personne
+// et temps deja actifs (voir correspondRecherche() dans afficherListe()).
+var champRecherche = document.getElementById('champRecherche');
+var btnEffacerRecherche = document.getElementById('btnEffacerRecherche');
+if (champRecherche && btnEffacerRecherche) {
+  champRecherche.addEventListener('input', function () {
+    filtreRecherche = normaliserTexte(champRecherche.value.trim());
+    btnEffacerRecherche.style.display = champRecherche.value ? '' : 'none';
+    afficherListe();
+  });
+  btnEffacerRecherche.addEventListener('click', function () {
+    champRecherche.value = '';
+    filtreRecherche = '';
+    btnEffacerRecherche.style.display = 'none';
+    champRecherche.focus();
+    afficherListe();
+  });
+}
 
 // ---------------------------------------------------------------
 // Grille compacte (mode d'impression "compact") : mêmes données que la
