@@ -78,19 +78,33 @@ $p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
     </div>
   </div>
 
-  <div id="entete-impression">
-    <h1>Rendez-vous médicaux — <span id="filtreImpression">Tous</span></h1>
-  </div>
+  <!-- Bandeau taches (telephone uniquement, voir CSS) : toujours visible
+       sans avoir a scroller, juste sous les onglets. Sur desktop, les
+       taches sont dans la colonne de droite (#barreTaches) a la place. -->
+  <div class="bandeau-taches" id="bandeauTaches"></div>
 
-  <div id="liste">
-    <div class="squelette">
-      <div class="squelette-carte"><div class="squelette-bandeau"></div><div class="squelette-corps"></div></div>
-      <div class="squelette-carte"><div class="squelette-bandeau"></div><div class="squelette-corps"></div></div>
-      <div class="squelette-carte"><div class="squelette-bandeau"></div><div class="squelette-corps"></div></div>
+  <div class="page-layout">
+    <div class="colonne-principale">
+      <div id="entete-impression">
+        <h1>Rendez-vous médicaux — <span id="filtreImpression">Tous</span></h1>
+      </div>
+
+      <div id="liste">
+        <div class="squelette">
+          <div class="squelette-carte"><div class="squelette-bandeau"></div><div class="squelette-corps"></div></div>
+          <div class="squelette-carte"><div class="squelette-bandeau"></div><div class="squelette-corps"></div></div>
+          <div class="squelette-carte"><div class="squelette-bandeau"></div><div class="squelette-corps"></div></div>
+        </div>
+      </div>
+      <div id="listeCompacte"></div>
+      <div id="tachesCompacte"></div>
     </div>
+
+    <!-- Colonne taches (desktop uniquement, voir CSS) : toujours visible
+         sur le cote, pas besoin d'ouvrir une autre page pour y jeter un
+         oeil ou cocher une tache faite. -->
+    <aside class="barre-taches" id="barreTaches"></aside>
   </div>
-  <div id="listeCompacte"></div>
-  <div id="tachesCompacte"></div>
 
   <div class="overlay" id="overlay"></div>
 

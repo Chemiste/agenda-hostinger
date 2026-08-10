@@ -2,6 +2,29 @@
 
 ## Non publié
 
+- **Le widget "Tâches" suit le filtre Papa/Maman/Tous.** Les tâches
+  affichées dans la colonne de droite / le bandeau se limitent maintenant
+  à la personne sélectionnée au-dessus des rendez-vous (les tâches sans
+  personne assignée restent visibles quel que soit l'onglet, puisqu'elles
+  ne concernent personne en particulier). Suit aussi la section
+  "Tâches" imprimée.
+
+- **Correction : le titre "Tâches" disparaissait au scroll sur
+  ordinateur.** La colonne de droite restait collée sous un décalage fixe
+  qui ne correspondait pas toujours à la vraie hauteur du bandeau du haut
+  (variable selon les onglets/la recherche) : le titre se retrouvait
+  caché derrière. La hauteur est maintenant mesurée en JS
+  (`ajusterHauteurTopbar()`) plutôt que devinée.
+
+- **Widget "Tâches" sur l'accueil.** Les tâches ouvertes sont maintenant
+  visibles directement sur la page principale : sur ordinateur, une
+  colonne à droite toujours affichée (à partir de 900px de large) ; sur
+  téléphone, un bandeau compact juste sous les onglets avec la tâche la
+  plus urgente et un lien "Voir tout" vers `taches.php`. Une tâche peut
+  être cochée comme faite directement depuis ces deux widgets (nouvelle
+  action `tache_toggle` sur `api.php`), sans quitter la page ni la page
+  se recharger.
+
 - **Tâches à l'impression.** L'impression (normale et compacte) ajoute
   maintenant une section "Tâches" sous la liste des rendez-vous, avec
   les tâches encore ouvertes (texte, personne et date cible si

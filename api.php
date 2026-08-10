@@ -1,7 +1,8 @@
 <?php
 /**
  * API JSON utilisée par index.php (fetch côté navigateur).
- * Actions : list, add, update, delete, bulk_add, taches (lecture seule).
+ * Actions : list, add, update, delete, bulk_add, taches (lecture seule),
+ * tache_toggle.
  */
 
 require_once __DIR__ . '/lib/auth.php';
@@ -42,10 +43,18 @@ try {
             echo json_encode(listAppointments($db));
             break;
         case 'taches':
-            // Utilise pour l'impression compacte (voir assets/app.js) : la
-            // gestion complete des taches (ajout/coche/suppression) reste
-            // sur la page dediee taches.php, ceci ne sert qu'a la lecture.
+            // Utilise pour l'impression et le widget "Taches" de l'accueil
+            // (voir assets/app.js) : la gestion complete (ajout,
+            // suppression, date cible...) reste sur la page dediee
+            // taches.php, ceci ne sert qu'a la lecture.
             echo json_encode(listerTachesOuvertes($db));
+            break;
+        case 'tache_toggle':
+            // Cocher/decocher une tache directement depuis le widget de
+            // l'accueil, sans quitter la page (contrairement a taches.php
+            // qui reste en soumission de formulaire classique).
+            definirTacheFaite($db, isset($input['id']) ? $input['id'] : 0, !empty($input['fait']));
+            echo json_encode(['ok' => true]);
             break;
         case 'add':
             echo json_encode(addAppointment($db, $sync, $input));

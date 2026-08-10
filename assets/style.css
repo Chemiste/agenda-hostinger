@@ -229,6 +229,88 @@ h1 { font-size: 24px; margin: 0 0 2px; letter-spacing: -0.01em; }
   .tab { flex: 0 0 auto; padding-left: 22px; padding-right: 22px; }
 }
 
+/* --- Widget "Taches" : colonne de droite sur desktop, bandeau compact
+   sur telephone (voir afficherBarreTaches()/afficherBandeauTaches() dans
+   app.js). --- */
+
+/* Telephone : bandeau juste sous les onglets, la tache la plus urgente +
+   un lien vers la liste complete. Masque des qu'il n'y a aucune tache
+   ouverte (voir :empty) ou sur desktop (la colonne prend le relais). */
+.bandeau-taches {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-sm);
+  padding: 10px 12px;
+  margin: 0 0 14px;
+}
+.bandeau-taches:empty { display: none; margin: 0; }
+.lien-voir-tout-taches {
+  flex: none;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.page-layout { display: block; }
+.colonne-principale { min-width: 0; }
+.barre-taches { display: none; }
+
+@media (min-width: 900px) {
+  .bandeau-taches { display: none; }
+  .page-layout {
+    display: grid;
+    grid-template-columns: 1fr 280px;
+    align-items: start;
+    gap: 20px;
+  }
+  .barre-taches {
+    display: block;
+    position: sticky;
+    /* --hauteur-topbar est mesuree en JS (voir ajusterHauteurTopbar() dans
+       app.js) car la hauteur du bandeau du haut varie (recherche, onglets)
+       - un chiffre fixe se desynchronisait et le titre "Taches" se
+       retrouvait cache sous le bandeau du haut au scroll. 220px : repli
+       raisonnable si le JS n'a pas encore tourne. */
+    top: calc(var(--hauteur-topbar, 220px) + 14px);
+    max-height: calc(100vh - var(--hauteur-topbar, 220px) - 34px);
+    overflow-y: auto;
+    background: var(--surface);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    padding: 14px 16px;
+  }
+  .barre-taches-entete { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+  .barre-taches-entete h2 { font-size: 15px; margin: 0; }
+  .barre-taches-entete a { font-size: 12px; font-weight: 600; color: var(--accent); flex: none; }
+  .vide-taches { font-size: 13px; color: var(--text-muted); margin: 0; }
+}
+
+.liste-taches-widget { display: flex; flex-direction: column; gap: 2px; }
+.item-tache-widget {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 7px 4px;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: background var(--dur) var(--ease);
+}
+.item-tache-widget:hover { background: var(--page-bg); }
+.item-tache-widget input[type=checkbox] {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+  accent-color: var(--accent);
+}
+.item-tache-contenu { min-width: 0; }
+.item-tache-texte { display: block; font-size: 14px; font-weight: 600; color: var(--text); line-height: 1.3; }
+.item-tache-meta { display: block; font-size: 12px; color: var(--text-muted); margin-top: 1px; }
+
 button {
   font-family: inherit;
   -webkit-tap-highlight-color: transparent;
@@ -733,7 +815,8 @@ button.danger:active { transform: scale(0.97); }
 @media print {
   @page { margin: 1.2cm; }
 
-  .topbar, .modal, .overlay, .fab, .outils-footer { display: none !important; }
+  .topbar, .modal, .overlay, .fab, .outils-footer, .bandeau-taches, .barre-taches { display: none !important; }
+  .page-layout { display: block !important; }
   body { padding: 0; font-size: 10.5pt; line-height: 1.3; max-width: 100%; background: #fff; }
 
   /* A l'impression normale, on revient a une liste simple sur une seule

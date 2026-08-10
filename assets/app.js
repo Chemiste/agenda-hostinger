@@ -218,16 +218,125 @@ function charger() {
         '<p class="erreur">Impossible de charger les rendez-vous : ' + err.message + '</p>';
     });
 
-  // Taches ouvertes (pour l'impression compacte uniquement, voir
-  // genererTachesCompactes()) : chargees a part, sans bloquer l'affichage
-  // de l'agenda si ca echoue.
-  fetch('/api.php?action=taches')
+  chargerTaches();
+}
+
+// Taches ouvertes : utilisees a la fois par l'impression
+// (genererTachesCompactes), le widget de la colonne de droite sur desktop
+// (afficherBarreTaches) et le bandeau compact sur telephone
+// (afficherBandeauTaches). Chargees a part de la liste des rendez-vous,
+// sans bloquer l'affichage de l'agenda si ca echoue.
+var tachesOuvertesActuelles = [];
+function chargerTaches() {
+  return fetch('/api.php?action=taches')
     .then(function (r) { return r.json(); })
     .then(function (taches) {
-      if (Array.isArray(taches)) genererTachesCompactes(taches);
+      tachesOuvertesActuelles = Array.isArray(taches) ? taches : [];
+      rafraichirTachesAffichees();
     })
-    .catch(function () { /* section tachee simplement absente a l'impression */ });
+    .catch(function () { /* widgets/section taches simplement absents */ });
 }
+
+// Les taches sans personne (facultative) restent visibles quel que soit
+// l'onglet Papa/Maman/Tous choisi au-dessus des rendez-vous (elles ne
+// concernent personne en particulier) ; les autres suivent le filtre,
+// comme la liste des rendez-vous.
+function tachesPourFiltreActuel() {
+  return tachesOuvertesActuelles.filter(function (t) {
+    return filtreActuel === 'Tous' || t.personne === '' || t.personne === filtreActuel;
+  });
+}
+
+function rafraichirTachesAffichees() {
+  var filtrees = tachesPourFiltreActuel();
+  genererTachesCompactes(filtrees);
+  afficherBarreTaches(filtrees);
+  afficherBandeauTaches(filtrees);
+}
+
+// Coche une tache comme faite depuis le widget de l'accueil (barre ou
+// bandeau), sans quitter la page - la gestion complete (ajout, date
+// cible, suppression) reste sur taches.php.
+function cocherTacheDepuisAccueil(id) {
+  fetch('/api.php?action=tache_toggle', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id: id, fait: true })
+  })
+    .then(function (r) {
+      if (!r.ok) throw new Error('Erreur serveur.');
+      return chargerTaches();
+    })
+    .then(function () {
+      afficherToast('Tâche terminée.');
+    })
+    .catch(function () {
+      alerterPerso('Impossible de mettre à jour la tâche.');
+    });
+}
+
+function texteMetaTache(t) {
+  var meta = [];
+  if (t.personne) meta.push(t.personne);
+  if (t.date_cible) {
+    var d = formatDateCompacte(t.date_cible);
+    meta.push('Pour le ' + d.jour + ' ' + d.mois);
+  }
+  return meta.join(' · ');
+}
+
+function afficherBarreTaches(taches) {
+  var conteneur = document.getElementById('barreTaches');
+  if (!conteneur) return;
+  var entete = '<div class="barre-taches-entete">' +
+    '<h2>Tâches' + (taches.length > 0 ? ' <span class="compteur-tab">(' + taches.length + ')</span>' : '') + '</h2>' +
+    '<a href="/taches.php">Gérer</a>' +
+  '</div>';
+  if (taches.length === 0) {
+    conteneur.innerHTML = entete + '<p class="vide-taches">Aucune tâche en cours.</p>';
+    return;
+  }
+  conteneur.innerHTML = entete + '<div class="liste-taches-widget">' +
+    taches.map(function (t) {
+      var meta = texteMetaTache(t);
+      return '<label class="item-tache-widget">' +
+        '<input type="checkbox" data-id="' + t.id + '">' +
+        '<span class="item-tache-contenu">' +
+          '<span class="item-tache-texte">' + escapeHtml(t.texte) + '</span>' +
+          (meta ? '<span class="item-tache-meta">' + escapeHtml(meta) + '</span>' : '') +
+        '</span>' +
+      '</label>';
+    }).join('') +
+  '</div>';
+}
+
+function afficherBandeauTaches(taches) {
+  var conteneur = document.getElementById('bandeauTaches');
+  if (!conteneur) return;
+  if (taches.length === 0) {
+    conteneur.innerHTML = '';
+    return;
+  }
+  var premiere = taches[0];
+  var meta = texteMetaTache(premiere);
+  conteneur.innerHTML = '<label class="item-tache-widget">' +
+    '<input type="checkbox" data-id="' + premiere.id + '">' +
+    '<span class="item-tache-contenu">' +
+      '<span class="item-tache-texte">' + escapeHtml(premiere.texte) + '</span>' +
+      (meta ? '<span class="item-tache-meta">' + escapeHtml(meta) + '</span>' : '') +
+    '</span>' +
+  '</label>' +
+  '<a href="/taches.php" class="lien-voir-tout-taches">' +
+    (taches.length > 1 ? 'Voir tout (' + taches.length + ')' : 'Tâches') +
+  '</a>';
+}
+
+document.addEventListener('change', function (e) {
+  if (!e.target.matches('#barreTaches input[type=checkbox], #bandeauTaches input[type=checkbox]')) return;
+  var id = e.target.dataset.id;
+  e.target.disabled = true;
+  cocherTacheDepuisAccueil(id);
+});
 
 // Memorise, pour chaque medecin deja rencontre, le departement/adresse/
 // telephone/route les plus recents - pour preremplir automatiquement ces
@@ -468,6 +577,7 @@ function choisirTab(tab) {
   tab.setAttribute('aria-selected', 'true');
   filtreActuel = tab.dataset.filtre;
   afficherListe();
+  rafraichirTachesAffichees();
 }
 
 function choisirTabTemps(tab) {
@@ -530,6 +640,23 @@ if (champRecherche && btnEffacerRecherche) {
     afficherListe();
   });
 }
+
+// La colonne "Taches" (desktop) doit rester collee juste sous le bandeau
+// du haut au scroll (voir --hauteur-topbar dans style.css). Ce bandeau
+// est sticky et sa hauteur varie (recherche, onglets...) : on la mesure
+// en JS plutot que de deviner un chiffre fixe, sinon le titre "Taches"
+// finit cache derriere le bandeau du haut.
+function ajusterHauteurTopbar() {
+  var topbar = document.querySelector('.topbar');
+  if (!topbar) return;
+  document.documentElement.style.setProperty('--hauteur-topbar', topbar.offsetHeight + 'px');
+}
+ajusterHauteurTopbar();
+window.addEventListener('resize', ajusterHauteurTopbar);
+// La recherche/les onglets ne changent pas la hauteur du bandeau, mais un
+// evenement de chargement de police ou une rotation d'ecran peut la
+// changer legerement - un reajustement une fois tout charge suffit.
+window.addEventListener('load', ajusterHauteurTopbar);
 
 // ---------------------------------------------------------------
 // Grille compacte (mode d'impression "compact") : mêmes données que la
