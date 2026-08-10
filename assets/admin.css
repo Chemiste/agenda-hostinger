@@ -163,3 +163,20 @@ textarea.motifs { width:100%; min-height:100px; font-family:inherit; font-size:1
    meme gabarit. */
 .rangee-tache .lien-danger { font-size:13px; font-weight:600; padding:0; margin:0; text-decoration:none; }
 .rangee-tache .lien-danger:hover { text-decoration:underline; opacity:1; }
+/* --- Carnet de medecins (medecins.php) --- */
+/* Grille de cartes plutot qu'une rangee pleine largeur : une fiche avec
+   peu d'infos (juste un nom, ex. "Kine") avait sinon un grand vide entre
+   le nom et "Modifier/Supprimer" sur un ecran large. */
+.grille-medecins { display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:10px; margin-top:8px; }
+.rangee-medecin { display:flex; flex-direction:column; gap:8px; padding:12px 14px; border:1px solid var(--border); border-radius:var(--radius-sm); }
+.detail-medecin { min-width:0; }
+.nom-medecin { font-size:14px; color:var(--text); font-weight:600; }
+.specialite-medecin { font-size:12px; color:var(--text-secondary); font-weight:600; margin-top:1px; }
+.coord-medecin { font-size:13px; color:var(--text-secondary); margin-top:2px; }
+.notes-medecin { font-size:12px; color:var(--text-muted); margin-top:4px; font-style:italic; }
+.actions-medecin { display:flex; align-items:center; gap:16px; margin-top:2px; }
+.actions-medecin a.lien-modifier-tache,
+.actions-medecin .lien-danger { font-size:13px; font-weight:600; padding:0; margin:0; text-decoration:none; }
+.actions-medecin a.lien-modifier-tache { color:var(--accent); }
+.actions-medecin a.lien-modifier-tache:hover,
+.actions-medecin .lien-danger:hover { text-decoration:underline; }

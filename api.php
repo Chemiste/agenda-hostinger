@@ -2,7 +2,7 @@
 /**
  * API JSON utilisée par index.php (fetch côté navigateur).
  * Actions : list, add, update, delete, bulk_add, taches (lecture seule),
- * tache_toggle.
+ * tache_toggle, medecins (lecture seule).
  */
 
 require_once __DIR__ . '/lib/auth.php';
@@ -11,6 +11,7 @@ require_once __DIR__ . '/lib/calendar_sync.php';
 require_once __DIR__ . '/lib/address_aliases.php';
 require_once __DIR__ . '/lib/activity_log.php';
 require_once __DIR__ . '/lib/taches.php';
+require_once __DIR__ . '/lib/medecins.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -55,6 +56,14 @@ try {
             // qui reste en soumission de formulaire classique).
             definirTacheFaite($db, isset($input['id']) ? $input['id'] : 0, !empty($input['fait']));
             echo json_encode(['ok' => true]);
+            break;
+        case 'medecins':
+            // Carnet de medecins de reference (voir medecins.php pour la
+            // gestion complete) : lecture seule, fusionne cote JS avec
+            // l'auto-remplissage base sur l'historique des rendez-vous
+            // (voir construireInfosParMedecin()/chargerCarnetMedecins()
+            // dans assets/app.js).
+            echo json_encode(listerMedecins($db));
             break;
         case 'add':
             echo json_encode(addAppointment($db, $sync, $input));

@@ -210,8 +210,15 @@ function charger() {
     .then(function (rdvs) {
       tousLesRdv = rdvs;
       afficherListe();
+      // Reconstruit la carte medecin->coordonnees a partir de
+      // l'historique des rendez-vous, PUIS seulement fusionne le carnet
+      // manuel par-dessus (chargerCarnetMedecins()) : dans cet ordre, un
+      // medecin du carnet gagne toujours sur une donnee plus ancienne
+      // venue d'un rendez-vous passe, et rien n'est perdu si les deux
+      // requetes reseau ne reviennent pas dans le meme ordre.
       construireInfosParMedecin(rdvs);
       remplirListeMedecins();
+      chargerCarnetMedecins();
     })
     .catch(function (err) {
       document.getElementById('liste').innerHTML =
@@ -373,6 +380,33 @@ function remplirListeMedecins() {
   document.getElementById('listeMedecins').innerHTML = noms.map(function (n) {
     return '<option value="' + escapeHtml(n) + '"></option>';
   }).join('');
+}
+
+// Carnet de medecins de reference (voir medecins.php), fusionne dans la
+// meme carte infosParMedecin que l'historique des rendez-vous : un
+// medecin du carnet apparait donc dans les suggestions et pre-remplit le
+// formulaire meme s'il n'a jamais encore eu de rendez-vous. En cas de
+// doublon (meme nom), le carnet gagne (voir l'appel apres
+// construireInfosParMedecin() dans charger()).
+function chargerCarnetMedecins() {
+  fetch('/api.php?action=medecins')
+    .then(function (r) { return r.json(); })
+    .then(function (medecins) {
+      if (!Array.isArray(medecins)) return;
+      medecins.forEach(function (m) {
+        var nom = (m.doctor || '').trim();
+        if (!nom) return;
+        infosParMedecin[nom.toLowerCase()] = {
+          nomExact: nom,
+          department: m.department || '',
+          location: m.location || '',
+          phone: m.phone || '',
+          route: m.route || ''
+        };
+      });
+      remplirListeMedecins();
+    })
+    .catch(function () { /* le carnet manque simplement a l'auto-remplissage */ });
 }
 
 // Regroupement par mois (ex. "Août 2026") au lieu d'un titre par jour :

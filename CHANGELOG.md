@@ -2,6 +2,35 @@
 
 ## Non publié
 
+- **Carnet de médecins en grille de cartes.** Les fiches médecin
+  s'affichent maintenant en grille (plusieurs colonnes sur un écran
+  large) plutôt qu'en rangées pleine largeur : une fiche avec peu
+  d'infos (ex. juste "Kiné") laissait un grand vide entre le nom et
+  "Modifier/Supprimer".
+
+- **Outil ponctuel : pré-remplissage du carnet de médecins.**
+  `outils/importer_medecins_existants.php` (protégé par le mot de passe
+  admin) parcourt les rendez-vous déjà enregistrés, regroupe par
+  personne + médecin, garde les coordonnées les plus récentes, et crée
+  une entrée dans le carnet pour chaque médecin qui n'y figure pas
+  encore. Sans danger à relancer (les médecins déjà présents sont
+  ignorés). À supprimer une fois utilisé.
+
+- **Carnet de médecins.** Nouvelle page dédiée `medecins.php` (lien
+  "Médecins" dans le menu du compte) pour garder en référence le nom, la
+  spécialité, l'adresse, le téléphone, l'itinéraire et des notes libres
+  pour chaque médecin — même sans rendez-vous prévu, contrairement à la
+  mémorisation automatique existante qui ne connaît un médecin qu'après
+  un premier rendez-vous. Chaque médecin est obligatoirement rattaché à
+  Michel ou à Christiane. Ajout/modification/suppression comme pour les
+  tâches. Le carnet est aussi fusionné dans l'auto-remplissage du
+  formulaire de rendez-vous (`assets/app.js`, `chargerCarnetMedecins()`)
+  : un médecin du carnet apparaît dans les suggestions et pré-remplit
+  département/adresse/téléphone/route dès la saisie de son nom, même
+  s'il n'a jamais encore eu de rendez-vous. `migrations/0014_add_medecins.sql`
+  crée la table, `lib/medecins.php` regroupe les fonctions, nouvelle
+  action `medecins` (lecture seule) sur `api.php`.
+
 - **Modifier une tâche existante.** Un lien "Modifier" sur chaque tâche
   (ouverte ou terminée) dans `taches.php` réutilise le formulaire du haut
   pour changer le texte, la personne ou la date cible (nouvelle fonction
