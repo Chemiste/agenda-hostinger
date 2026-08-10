@@ -217,6 +217,16 @@ function charger() {
       document.getElementById('liste').innerHTML =
         '<p class="erreur">Impossible de charger les rendez-vous : ' + err.message + '</p>';
     });
+
+  // Taches ouvertes (pour l'impression compacte uniquement, voir
+  // genererTachesCompactes()) : chargees a part, sans bloquer l'affichage
+  // de l'agenda si ca echoue.
+  fetch('/api.php?action=taches')
+    .then(function (r) { return r.json(); })
+    .then(function (taches) {
+      if (Array.isArray(taches)) genererTachesCompactes(taches);
+    })
+    .catch(function () { /* section tachee simplement absente a l'impression */ });
 }
 
 // Memorise, pour chaque medecin deja rencontre, le departement/adresse/
@@ -561,6 +571,38 @@ function genererGrilleCompacte(filtres) {
       '</div>' +
     '</div>';
   }).join('');
+}
+
+// Section "Tâches" ajoutee sous la grille a l'impression compacte (voir
+// taches.php pour la gestion complete - ceci n'affiche que les taches
+// encore ouvertes, en lecture seule, pour avoir la liste sur papier avec
+// le reste de l'agenda).
+function genererTachesCompactes(taches) {
+  var conteneur = document.getElementById('tachesCompacte');
+  if (!conteneur) return;
+  if (!taches || taches.length === 0) {
+    conteneur.innerHTML = '';
+    return;
+  }
+  conteneur.innerHTML = '<h2 class="cc-taches-titre">Tâches</h2>' +
+    '<div class="cc-taches-grille">' +
+    taches.map(function (t) {
+      var cls = t.personne ? classeBadge(t.personne) : 'deux';
+      var meta = [];
+      if (t.personne) meta.push(escapeHtml(t.personne));
+      if (t.date_cible) {
+        var d = formatDateCompacte(t.date_cible);
+        meta.push('Pour le ' + d.jour + ' ' + d.mois);
+      }
+      return '<div class="cc-tache cc-tache-' + cls + '">' +
+        '<span class="cc-tache-case"></span>' +
+        '<div class="cc-tache-contenu">' +
+          '<div class="cc-tache-texte">' + escapeHtml(t.texte) + '</div>' +
+          (meta.length ? '<div class="cc-tache-meta">' + meta.join(' · ') + '</div>' : '') +
+        '</div>' +
+      '</div>';
+    }).join('') +
+    '</div>';
 }
 
 function viderFormulaire() {

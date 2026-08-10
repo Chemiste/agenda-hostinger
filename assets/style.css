@@ -728,6 +728,7 @@ button.danger:active { transform: scale(0.97); }
    pour l'impression), mais jamais visible a l'ecran ni a l'impression
    normale — seulement en mode "Imprimer (compact)", voir plus bas. */
 #listeCompacte { display: none; }
+#tachesCompacte { display: none; }
 
 @media print {
   @page { margin: 1.2cm; }
@@ -855,6 +856,51 @@ button.danger:active { transform: scale(0.97); }
   }
   .cc-route { font-size: 7.5pt; font-weight: 700; margin-top: 1px; }
   .cc-accompagnant { font-size: 7.5pt; color: #555; margin-top: 1px; }
+
+  /* Section "Taches" ajoutee sous la liste des rendez-vous, a
+     l'impression normale comme au mode compact (voir
+     genererTachesCompactes() dans app.js). */
+  #tachesCompacte {
+    display: block !important;
+    margin-top: 14px;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  #tachesCompacte:empty { display: none !important; margin: 0; }
+  .cc-taches-titre {
+    font-size: 11pt;
+    margin: 0 0 6px;
+    padding-top: 8px;
+    border-top: 1px solid #ddd;
+  }
+  .cc-taches-grille {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+  }
+  .cc-tache {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 5px 7px;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .cc-tache-case {
+    flex: none;
+    width: 9px;
+    height: 9px;
+    margin-top: 2px;
+    border: 1.3px solid #999;
+    border-radius: 2px;
+  }
+  .cc-tache-contenu { min-width: 0; }
+  .cc-tache-texte { font-size: 8.5pt; font-weight: 600; line-height: 1.25; }
+  .cc-tache-meta { font-size: 7.5pt; color: #666; margin-top: 1px; }
+  .cc-tache-papa .cc-tache-meta { color: var(--papa); }
+  .cc-tache-maman .cc-tache-meta { color: var(--maman); }
 }
 #entete-impression { display: none; }
 @media print {

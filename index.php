@@ -90,6 +90,7 @@ $p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
     </div>
   </div>
   <div id="listeCompacte"></div>
+  <div id="tachesCompacte"></div>
 
   <div class="overlay" id="overlay"></div>
 

@@ -1,7 +1,7 @@
 <?php
 /**
  * API JSON utilisée par index.php (fetch côté navigateur).
- * Actions : list, add, update, delete, bulk_add.
+ * Actions : list, add, update, delete, bulk_add, taches (lecture seule).
  */
 
 require_once __DIR__ . '/lib/auth.php';
@@ -9,6 +9,7 @@ require_once __DIR__ . '/lib/db.php';
 require_once __DIR__ . '/lib/calendar_sync.php';
 require_once __DIR__ . '/lib/address_aliases.php';
 require_once __DIR__ . '/lib/activity_log.php';
+require_once __DIR__ . '/lib/taches.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -39,6 +40,12 @@ try {
     switch ($action) {
         case 'list':
             echo json_encode(listAppointments($db));
+            break;
+        case 'taches':
+            // Utilise pour l'impression compacte (voir assets/app.js) : la
+            // gestion complete des taches (ajout/coche/suppression) reste
+            // sur la page dediee taches.php, ceci ne sert qu'a la lecture.
+            echo json_encode(listerTachesOuvertes($db));
             break;
         case 'add':
             echo json_encode(addAppointment($db, $sync, $input));

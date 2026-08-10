@@ -2,6 +2,13 @@
 
 ## Non publié
 
+- **Tâches à l'impression.** L'impression (normale et compacte) ajoute
+  maintenant une section "Tâches" sous la liste des rendez-vous, avec
+  les tâches encore ouvertes (texte, personne et date cible si
+  renseignées) ; absente si aucune tâche n'est ouverte. Nouvelle action
+  `taches` en lecture seule sur `api.php` utilisée uniquement pour ça
+  (la gestion complète reste sur `taches.php`).
+
 - **Recherche.** Nouvelle barre de recherche sous les onglets, filtre en
   direct sur le médecin, le département, l'adresse (ou son alias
   affiché), les notes et l'accompagnant, insensible à la casse et aux
