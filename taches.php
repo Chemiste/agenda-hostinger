@@ -17,6 +17,7 @@ $p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
 
 $db = getDb();
 $erreur = '';
+$idEnEdition = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     if ($_POST['action'] === 'ajouter') {
@@ -30,10 +31,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         } catch (Exception $e) {
             $erreur = $e->getMessage();
         }
+    } elseif ($_POST['action'] === 'modifier' && isset($_POST['id'])) {
+        try {
+            modifierTache(
+                $db,
+                $_POST['id'],
+                isset($_POST['texte']) ? $_POST['texte'] : '',
+                isset($_POST['personne']) ? $_POST['personne'] : '',
+                isset($_POST['date_cible']) ? $_POST['date_cible'] : ''
+            );
+        } catch (Exception $e) {
+            $erreur = $e->getMessage();
+            $idEnEdition = (int) $_POST['id'];
+        }
     } elseif ($_POST['action'] === 'toggle' && isset($_POST['id'])) {
         definirTacheFaite($db, $_POST['id'], !empty($_POST['fait']));
     } elseif ($_POST['action'] === 'supprimer' && isset($_POST['id'])) {
         supprimerTache($db, $_POST['id']);
+    }
+}
+
+// Mode edition : declenche par le lien "Modifier" d'une rangee
+// (?modifier=ID), ou reaffiche automatiquement si l'enregistrement d'une
+// modification a echoue (voir plus haut) pour ne pas perdre le contexte.
+$tacheEnEdition = null;
+if ($idEnEdition === null && isset($_GET['modifier'])) {
+    $idEnEdition = (int) $_GET['modifier'];
+}
+if ($idEnEdition !== null) {
+    $tacheEnEdition = obtenirTache($db, $idEnEdition);
+    if ($tacheEnEdition === null) {
+        $idEnEdition = null;
+    } elseif ($erreur === '') {
+        // Reaffiche ce qui vient d'etre tape en cas d'erreur de validation,
+        // sinon les valeurs actuellement enregistrees pour cette tache.
+        $_POST['texte'] = $tacheEnEdition['texte'];
+        $_POST['personne'] = $tacheEnEdition['personne'];
+        $_POST['date_cible'] = $tacheEnEdition['date_cible'];
     }
 }
 
@@ -70,35 +104,41 @@ function classePersonneTache($personne, $p1, $p2) {
   </div>
   <p class="sous-titre" style="margin-bottom:18px;">Des choses à faire qui ne sont pas (encore) un rendez-vous : "prendre rdv chez...", "annuler le rendez-vous de...".</p>
 
-  <div class="outil">
-    <h2 class="panneau-titre" style="font-size:15px;">Ajouter une tâche</h2>
+  <div class="outil" id="formulaireTache">
+    <h2 class="panneau-titre" style="font-size:15px;"><?= $tacheEnEdition !== null ? 'Modifier la tâche' : 'Ajouter une tâche' ?></h2>
 
     <?php if ($erreur): ?>
       <p class="erreur"><?= htmlspecialchars($erreur) ?></p>
     <?php endif; ?>
 
     <form method="post">
-      <input type="hidden" name="action" value="ajouter">
+      <input type="hidden" name="action" value="<?= $tacheEnEdition !== null ? 'modifier' : 'ajouter' ?>">
+      <?php if ($tacheEnEdition !== null): ?>
+        <input type="hidden" name="id" value="<?= (int) $idEnEdition ?>">
+      <?php endif; ?>
       <div class="champ">
         <label>Quoi</label>
-        <input type="text" name="texte" placeholder="Ex. Prendre rdv chez le dentiste" required>
+        <input type="text" name="texte" placeholder="Ex. Prendre rdv chez le dentiste" required value="<?= isset($_POST['texte']) ? htmlspecialchars($_POST['texte']) : '' ?>">
       </div>
       <div class="champ-ligne">
         <div class="champ">
           <label>Concerne (facultatif)</label>
           <select name="personne">
             <option value="">— Personne —</option>
-            <option value="<?= htmlspecialchars($p1) ?>"><?= htmlspecialchars($p1) ?></option>
-            <option value="<?= htmlspecialchars($p2) ?>"><?= htmlspecialchars($p2) ?></option>
+            <option value="<?= htmlspecialchars($p1) ?>"<?= (isset($_POST['personne']) && $_POST['personne'] === $p1) ? ' selected' : '' ?>><?= htmlspecialchars($p1) ?></option>
+            <option value="<?= htmlspecialchars($p2) ?>"<?= (isset($_POST['personne']) && $_POST['personne'] === $p2) ? ' selected' : '' ?>><?= htmlspecialchars($p2) ?></option>
           </select>
         </div>
         <div class="champ">
           <label>Pour quand (facultatif)</label>
-          <input type="date" name="date_cible">
+          <input type="date" name="date_cible" value="<?= isset($_POST['date_cible']) ? htmlspecialchars($_POST['date_cible']) : '' ?>">
         </div>
       </div>
       <div class="form-boutons">
-        <button class="principal" type="submit">Ajouter</button>
+        <button class="principal" type="submit"><?= $tacheEnEdition !== null ? 'Enregistrer les modifications' : 'Ajouter' ?></button>
+        <?php if ($tacheEnEdition !== null): ?>
+          <a class="secondaire" href="/taches.php">Annuler</a>
+        <?php endif; ?>
       </div>
     </form>
   </div>
@@ -133,6 +173,7 @@ function classePersonneTache($personne, $p1, $p2) {
               </div>
             <?php endif; ?>
           </div>
+          <a href="?modifier=<?= (int) $t['id'] ?>#formulaireTache" class="lien-modifier-tache">Modifier</a>
           <form method="post" data-confirm="Supprimer cette tâche ?">
             <input type="hidden" name="action" value="supprimer">
             <input type="hidden" name="id" value="<?= (int) $t['id'] ?>">
@@ -164,6 +205,7 @@ function classePersonneTache($personne, $p1, $p2) {
               </div>
             <?php endif; ?>
           </div>
+          <a href="?modifier=<?= (int) $t['id'] ?>#formulaireTache" class="lien-modifier-tache">Modifier</a>
           <form method="post" data-confirm="Supprimer cette tâche ?">
             <input type="hidden" name="action" value="supprimer">
             <input type="hidden" name="id" value="<?= (int) $t['id'] ?>">

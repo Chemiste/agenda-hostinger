@@ -2,6 +2,12 @@
 
 ## Non publié
 
+- **Modifier une tâche existante.** Un lien "Modifier" sur chaque tâche
+  (ouverte ou terminée) dans `taches.php` réutilise le formulaire du haut
+  pour changer le texte, la personne ou la date cible (nouvelle fonction
+  `modifierTache()` dans `lib/taches.php`). Auparavant seuls l'ajout, le
+  fait de cocher et la suppression étaient possibles.
+
 - **Le widget "Tâches" suit le filtre Papa/Maman/Tous.** Les tâches
   affichées dans la colonne de droite / le bandeau se limitent maintenant
   à la personne sélectionnée au-dessus des rendez-vous (les tâches sans

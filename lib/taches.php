@@ -36,6 +36,28 @@ function ajouterTache($db, $texte, $personne, $dateCible) {
     ]);
 }
 
+function obtenirTache($db, $id) {
+    $stmt = $db->prepare('SELECT * FROM taches WHERE id = ?');
+    $stmt->execute([(int) $id]);
+    $tache = $stmt->fetch();
+    return $tache !== false ? $tache : null;
+}
+
+function modifierTache($db, $id, $texte, $personne, $dateCible) {
+    $texte = trim((string) $texte);
+    if ($texte === '') {
+        throw new Exception('Le texte de la tâche ne peut pas être vide.');
+    }
+    $dateCible = trim((string) $dateCible);
+    $stmt = $db->prepare('UPDATE taches SET texte = ?, personne = ?, date_cible = ? WHERE id = ?');
+    $stmt->execute([
+        $texte,
+        $personne !== null ? $personne : '',
+        $dateCible !== '' ? $dateCible : null,
+        (int) $id,
+    ]);
+}
+
 function definirTacheFaite($db, $id, $fait) {
     $stmt = $db->prepare('UPDATE taches SET fait = ?, fait_at = ? WHERE id = ?');
     $stmt->execute([$fait ? 1 : 0, $fait ? date('Y-m-d H:i:s') : null, (int) $id]);

@@ -154,3 +154,12 @@ textarea.motifs { width:100%; min-height:100px; font-family:inherit; font-size:1
 .badge-date-tache.en-retard { color:#b42318; background:#fdeceb; font-weight:600; }
 .rangee-tache form.lien-danger-forme { margin-left:auto; }
 .rangee-tache > form[data-confirm] { margin-left:auto; flex:none; }
+.rangee-tache a.lien-modifier-tache { flex:none; font-size:13px; font-weight:600; color:var(--accent); white-space:nowrap; text-decoration:none; }
+.rangee-tache a.lien-modifier-tache:hover { text-decoration:underline; }
+/* .lien-danger a par defaut un soulignement + un padding pense pour un
+   bouton pleine largeur isole (ex. "Supprimer ce rendez-vous" sous un
+   formulaire) - a cote de "Modifier" dans une rangee compacte, ce style
+   jurait (tailles/soulignement differents). On aligne les deux sur le
+   meme gabarit. */
+.rangee-tache .lien-danger { font-size:13px; font-weight:600; padding:0; margin:0; text-decoration:none; }
+.rangee-tache .lien-danger:hover { text-decoration:underline; opacity:1; }

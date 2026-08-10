@@ -315,7 +315,7 @@ button {
   font-family: inherit;
   -webkit-tap-highlight-color: transparent;
 }
-button.principal, button.secondaire, button.danger {
+button.principal, button.secondaire, button.danger, a.secondaire {
   flex: 1;
   padding: 14px;
   font-size: 16px;
@@ -333,13 +333,19 @@ button.principal {
 button.principal:hover { background: var(--accent-hover); }
 button.principal:active { transform: scale(0.97); }
 button.principal:disabled { opacity: 0.6; cursor: default; transform: none; }
-button.secondaire {
+button.secondaire, a.secondaire {
   background: var(--surface);
   color: var(--text);
   box-shadow: var(--shadow-sm);
+  /* a.secondaire : un lien stylise en bouton (ex. "Annuler" l'edition
+     d'une tache) doit rester centre comme un vrai bouton. */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
 }
-button.secondaire:hover { background: #fbfbfc; }
-button.secondaire:active { transform: scale(0.97); }
+button.secondaire:hover, a.secondaire:hover { background: #fbfbfc; }
+button.secondaire:active, a.secondaire:active { transform: scale(0.97); }
 button.danger {
   background: var(--danger);
   color: #fff;
