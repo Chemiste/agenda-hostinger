@@ -59,13 +59,10 @@ $reminderDelai = getSetting($db, 'reminder_hours_before', '24');
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
 <link rel="stylesheet" href="/assets/style.css?v=<?= filemtime(__DIR__ . '/../assets/style.css') ?>">
 <link rel="stylesheet" href="/assets/admin.css?v=<?= filemtime(__DIR__ . '/../assets/admin.css') ?>">
-<style>
-  .barre-admin { margin-bottom:20px; }
-</style>
 </head>
 <body>
   <div class="barre-admin">
-    <h1 style="margin:0;">Administration</h1>
+    <h1>Administration</h1>
     <div>
       <a href="/index.php">Retour à l'agenda</a>
       &nbsp;·&nbsp;

@@ -130,13 +130,10 @@ function afficherRangeeMedecin($m) {
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
 <link rel="stylesheet" href="/assets/style.css?v=<?= filemtime(__DIR__ . '/assets/style.css') ?>">
 <link rel="stylesheet" href="/assets/admin.css?v=<?= filemtime(__DIR__ . '/assets/admin.css') ?>">
-<style>
-  .barre-admin { margin-bottom: 8px; }
-</style>
 </head>
 <body>
   <div class="barre-admin">
-    <h1 style="margin:0; font-size:20px;">Médecins</h1>
+    <h1>Médecins</h1>
     <div>
       <span class="qui-connecte"><?= htmlspecialchars(personneSessionActuelle()) ?></span>
       <a href="/index.php">Retour à l'agenda</a>

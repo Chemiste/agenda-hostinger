@@ -10,9 +10,15 @@
  * rayons, ombres, etc. viennent des variables définies là-bas.
  */
 
-/* --- En-tête / fil d'Ariane, communs à toutes les pages admin --- */
-.barre-admin { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; flex-wrap:wrap; gap:8px; }
+/* --- En-tête / fil d'Ariane, communs à toutes les pages admin ---
+   Repris des memes valeurs que .topbar/.entete sur l'accueil (18px
+   au-dessus, 14px en-dessous, titre en 24px via la regle h1 partagee de
+   style.css) : avant, chaque page ecrasait le titre a 20px en style
+   inline et ne laissait que 8px en dessous, ce qui rendait ces pages
+   plus "tassees" que l'accueil. */
+.barre-admin { display:flex; align-items:flex-start; justify-content:space-between; margin:18px 0 14px; flex-wrap:wrap; gap:10px; }
 .barre-admin a { font-size:13px; color:var(--text-muted); }
+.barre-admin h1 { margin:0 0 2px; }
 .fil-admin { font-size:13px; color:var(--text-muted); margin-bottom:18px; }
 .fil-admin a { color:var(--text-muted); text-decoration:none; }
 .fil-admin a:hover { text-decoration:underline; }

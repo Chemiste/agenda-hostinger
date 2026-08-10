@@ -97,7 +97,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <link rel="stylesheet" href="/assets/style.css?v=<?= filemtime(__DIR__ . '/assets/style.css') ?>">
 <link rel="stylesheet" href="/assets/admin.css?v=<?= filemtime(__DIR__ . '/assets/admin.css') ?>">
 <style>
-  .barre-admin { margin-bottom:18px; }
   .outil { margin-bottom:24px; }
   .outil h2 { margin-top:0; }
   .champ-case { margin:14px 0; }
@@ -106,7 +105,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 <body>
   <div class="barre-admin">
-    <h1 style="margin:0;">Rappels par email</h1>
+    <h1>Rappels par email</h1>
     <div>
       <span class="qui-connecte"><?= htmlspecialchars(personneSessionActuelle()) ?></span>
       <a href="/index.php">Retour à l'agenda</a>

@@ -2,6 +2,14 @@
 
 ## Non publié
 
+- **En-tête plus aéré et cohérent sur les pages secondaires.** Le titre
+  (h1) de `taches.php`, `historique.php`, `medecins.php`,
+  `mes_rappels.php` et `admin/index.php` était réduit à 20px avec 8px
+  d'espace en dessous par un style local à chaque page, ce qui les
+  rendait plus "tassées" que l'accueil. Retrait de ces styles locaux :
+  ces pages utilisent maintenant le même titre en 24px et le même
+  espacement (`admin.css`, `.barre-admin`) que l'accueil.
+
 - **Importer un médecin dans le carnet depuis un rendez-vous.** Un lien
   "Importer ce médecin dans le carnet" apparaît sous le champ Médecin du
   formulaire de rendez-vous, visible uniquement pour Laurent (vérifié
