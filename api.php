@@ -2,7 +2,8 @@
 /**
  * API JSON utilisée par index.php (fetch côté navigateur).
  * Actions : list, add, update, delete, bulk_add, taches (lecture seule),
- * tache_toggle, medecins (lecture seule).
+ * tache_toggle, medecins (lecture seule), importer_medecin (Laurent
+ * uniquement).
  */
 
 require_once __DIR__ . '/lib/auth.php';
@@ -64,6 +65,27 @@ try {
             // (voir construireInfosParMedecin()/chargerCarnetMedecins()
             // dans assets/app.js).
             echo json_encode(listerMedecins($db));
+            break;
+        case 'importer_medecin':
+            // Bouton "Importer dans le carnet" sur le formulaire de
+            // rendez-vous (voir assets/app.js) : reserve a Laurent, comme
+            // le lien "Administration" - meme protection cote serveur
+            // (masquer le bouton cote JS ne suffit pas).
+            if (personneSessionActuelle() !== 'Laurent') {
+                http_response_code(403);
+                echo json_encode(['error' => 'Action réservée à Laurent.']);
+                break;
+            }
+            $statut = fusionnerMedecinDepuisRdv(
+                $db,
+                isset($input['person']) ? $input['person'] : '',
+                isset($input['doctor']) ? $input['doctor'] : '',
+                isset($input['department']) ? $input['department'] : '',
+                isset($input['location']) ? $input['location'] : '',
+                isset($input['phone']) ? $input['phone'] : '',
+                isset($input['route']) ? $input['route'] : ''
+            );
+            echo json_encode(['ok' => true, 'statut' => $statut]);
             break;
         case 'add':
             echo json_encode(addAppointment($db, $sync, $input));

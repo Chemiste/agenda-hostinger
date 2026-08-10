@@ -782,6 +782,7 @@ function viderFormulaire() {
   document.getElementById('erreurForm').textContent = '';
   document.getElementById('btnSupprimer').style.display = 'none';
   idEnEdition = null;
+  actualiserBoutonImporterMedecin();
 }
 
 function ouvrirEnEdition(id) {
@@ -800,6 +801,7 @@ function ouvrirEnEdition(id) {
   document.getElementById('fNotes').value = r.notes || '';
   selectionnerPersonne(r.person);
   document.getElementById('btnSupprimer').style.display = 'block';
+  actualiserBoutonImporterMedecin();
   ouvrirModal('formCard');
 }
 
@@ -835,15 +837,69 @@ document.getElementById('btnAjouterMobile').addEventListener('click', ouvrirForm
 // valeur deja saisie ou importee.
 document.getElementById('fMedecin').addEventListener('input', function () {
   var infos = infosParMedecin[this.value.trim().toLowerCase()];
-  if (!infos) return;
-  var fDepartement = document.getElementById('fDepartement');
-  var fAdresse = document.getElementById('fAdresse');
-  var fTelephone = document.getElementById('fTelephone');
-  var fRoute = document.getElementById('fRoute');
-  if (fDepartement.value === '') fDepartement.value = infos.department;
-  if (fAdresse.value === '') fAdresse.value = infos.location;
-  if (fTelephone.value === '') fTelephone.value = infos.phone;
-  if (fRoute.value === '') fRoute.value = infos.route;
+  if (infos) {
+    var fDepartement = document.getElementById('fDepartement');
+    var fAdresse = document.getElementById('fAdresse');
+    var fTelephone = document.getElementById('fTelephone');
+    var fRoute = document.getElementById('fRoute');
+    if (fDepartement.value === '') fDepartement.value = infos.department;
+    if (fAdresse.value === '') fAdresse.value = infos.location;
+    if (fTelephone.value === '') fTelephone.value = infos.phone;
+    if (fRoute.value === '') fRoute.value = infos.route;
+  }
+  actualiserBoutonImporterMedecin();
+});
+
+// Bouton "Importer ce médecin dans le carnet" (voir medecins.php) :
+// reserve a Laurent (verifie aussi cote serveur, voir api.php action
+// "importer_medecin"), visible seulement si un nom de medecin est
+// renseigne dans le formulaire.
+function actualiserBoutonImporterMedecin() {
+  var btn = document.getElementById('btnImporterMedecin');
+  if (!btn) return;
+  var medecinRempli = document.getElementById('fMedecin').value.trim() !== '';
+  btn.style.display = (window.PERSONNE_CONNECTEE === 'Laurent' && medecinRempli) ? 'block' : 'none';
+}
+
+document.getElementById('btnImporterMedecin').addEventListener('click', function () {
+  var personneInput = document.querySelector('.personnes input:checked');
+  var doctor = document.getElementById('fMedecin').value.trim();
+  if (!personneInput) {
+    alerterPerso('Choisissez d\'abord Papa ou Maman.');
+    return;
+  }
+  if (!doctor) return;
+  var btn = this;
+  btn.disabled = true;
+  fetch('/api.php?action=importer_medecin', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      person: personneInput.value,
+      doctor: doctor,
+      department: document.getElementById('fDepartement').value,
+      location: document.getElementById('fAdresse').value,
+      phone: document.getElementById('fTelephone').value,
+      route: document.getElementById('fRoute').value
+    })
+  })
+    .then(function (r) { return r.json().then(function (data) { return { ok: r.ok, data: data }; }); })
+    .then(function (res) {
+      if (!res.ok) throw new Error(res.data && res.data.error ? res.data.error : 'Erreur serveur.');
+      var messages = {
+        cree: 'Médecin ajouté au carnet.',
+        mis_a_jour: 'Fiche médecin mise à jour dans le carnet.',
+        inchange: 'Déjà à jour dans le carnet.'
+      };
+      afficherToast(messages[res.data.statut] || 'Carnet mis à jour.');
+      chargerCarnetMedecins();
+    })
+    .catch(function (err) {
+      alerterPerso(err.message);
+    })
+    .finally(function () {
+      btn.disabled = false;
+    });
 });
 
 document.getElementById('btnAnnuler').addEventListener('click', function () {

@@ -2,6 +2,19 @@
 
 ## Non publié
 
+- **Importer un médecin dans le carnet depuis un rendez-vous.** Un lien
+  "Importer ce médecin dans le carnet" apparaît sous le champ Médecin du
+  formulaire de rendez-vous, visible uniquement pour Laurent (vérifié
+  aussi côté serveur, pas seulement caché en JS). S'il n'existe pas
+  encore dans le carnet, il est créé ; s'il existe déjà, seuls les champs
+  à la fois renseignés sur ce rendez-vous et différents de ce qui est
+  enregistré sont mis à jour — jamais un champ déjà rempli n'est effacé
+  par une valeur vide. Nouvelle fonction `fusionnerMedecinDepuisRdv()`
+  dans `lib/medecins.php`, action `importer_medecin` sur `api.php`. Ce
+  mécanisme rend `outils/importer_medecins_existants.php` moins
+  nécessaire au quotidien (il reste disponible pour un premier passage en
+  masse si besoin).
+
 - **Carnet de médecins en grille de cartes.** Les fiches médecin
   s'affichent maintenant en grille (plusieurs colonnes sur un écran
   large) plutôt qu'en rangées pleine largeur : une fiche avec peu

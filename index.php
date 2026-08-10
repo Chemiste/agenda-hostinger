@@ -155,6 +155,7 @@ $p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
         <label>Médecin / consultation</label>
         <input type="text" id="fMedecin" list="listeMedecins" autocomplete="off">
         <datalist id="listeMedecins"></datalist>
+        <button type="button" id="btnImporterMedecin" class="lien-importer-medecin" style="display:none;">Importer ce médecin dans le carnet</button>
       </div>
       <div class="champ">
         <label>Département (facultatif)</label>
@@ -209,6 +210,7 @@ $p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
   <script>
     window.PERSONNE_1 = <?= json_encode($p1) ?>;
     window.PERSONNE_2 = <?= json_encode($p2) ?>;
+    window.PERSONNE_CONNECTEE = <?= json_encode(personneSessionActuelle()) ?>;
   </script>
   <script src="/assets/app.js?v=<?= filemtime(__DIR__ . '/assets/app.js') ?>"></script>
 </body>
