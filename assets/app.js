@@ -328,6 +328,13 @@ function afficherListe() {
     }).length;
     compteurPassesEl.textContent = nbPasses > 0 ? '(' + nbPasses + ')' : '';
   }
+  var compteurTousEl = document.getElementById('compteurTous');
+  if (compteurTousEl) {
+    var nbTous = tousLesRdv.filter(function (r) {
+      return filtreActuel === 'Tous' || r.person === filtreActuel;
+    }).length;
+    compteurTousEl.textContent = nbTous > 0 ? '(' + nbTous + ')' : '';
+  }
 
   var labelTemps = filtreTemps === 'avenir' ? 'À venir' : (filtreTemps === 'passes' ? 'Passés' : 'Tout l\'historique');
   document.getElementById('filtreImpression').textContent = filtreActuel + ' — ' + labelTemps;
