@@ -17,3 +17,9 @@ backups/*.json
 # Script de deploiement FTP (deploiement/deployer.php) : contient un mot
 # de passe, propre a chaque environnement.
 deploiement/deploy.config.php
+
+# Photos de medicaments uploadees (donnees personnelles, jamais
+# committees) - le dossier lui-meme (.htaccess/.gitkeep) reste versionne.
+medicaments_photos/*
+!medicaments_photos/.htaccess
+!medicaments_photos/.gitkeep

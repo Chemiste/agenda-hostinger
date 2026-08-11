@@ -160,14 +160,16 @@ textarea.motifs { width:100%; min-height:100px; font-family:inherit; font-size:1
 .badge-date-tache.en-retard { color:#b42318; background:#fdeceb; font-weight:600; }
 .rangee-tache form.lien-danger-forme { margin-left:auto; }
 .rangee-tache > form[data-confirm] { margin-left:auto; flex:none; }
-.rangee-tache a.lien-modifier-tache { flex:none; font-size:13px; font-weight:600; color:var(--accent); white-space:nowrap; text-decoration:none; }
+.rangee-tache a.lien-modifier-tache { flex:none; font:inherit; font-size:13px; line-height:1; font-weight:600; color:var(--accent); white-space:nowrap; text-decoration:none; }
 .rangee-tache a.lien-modifier-tache:hover { text-decoration:underline; }
 /* .lien-danger a par defaut un soulignement + un padding pense pour un
    bouton pleine largeur isole (ex. "Supprimer ce rendez-vous" sous un
    formulaire) - a cote de "Modifier" dans une rangee compacte, ce style
-   jurait (tailles/soulignement differents). On aligne les deux sur le
-   meme gabarit. */
-.rangee-tache .lien-danger { font-size:13px; font-weight:600; padding:0; margin:0; text-decoration:none; }
+   jurait (tailles/soulignement differents). "font:inherit" remet a zero
+   TOUTES les proprietes de police du <button> (graisse/hauteur de ligne
+   incluses) avant de re-appliquer la taille/graisse voulues, plus fiable
+   qu'un simple font-family/line-height sur certains navigateurs. */
+.rangee-tache .lien-danger { font:inherit; font-size:13px; line-height:1; font-weight:600; padding:0; margin:0; border:none; background:none; -webkit-appearance:none; appearance:none; text-decoration:none; }
 .rangee-tache .lien-danger:hover { text-decoration:underline; opacity:1; }
 /* --- Carnet de medecins (medecins.php) --- */
 /* Grille de cartes plutot qu'une rangee pleine largeur : une fiche avec
@@ -181,8 +183,45 @@ textarea.motifs { width:100%; min-height:100px; font-family:inherit; font-size:1
 .coord-medecin { font-size:13px; color:var(--text-secondary); margin-top:2px; }
 .notes-medecin { font-size:12px; color:var(--text-muted); margin-top:4px; font-style:italic; }
 .actions-medecin { display:flex; align-items:center; gap:16px; margin-top:2px; }
+.actions-medecin form { margin:0; display:flex; }
+/* Un <button> ne reprend pas la police/graisse/hauteur de ligne par
+   defaut comme un <a> (chaque navigateur lui applique son propre style
+   de formulaire) : "font:inherit" remet a zero TOUTES ces proprietes
+   d'un coup (contrairement a ne fixer que font-size/line-height, qui
+   peut laisser passer une graisse ou un espacement different selon le
+   navigateur) avant de ré-appliquer la taille/graisse voulues. */
 .actions-medecin a.lien-modifier-tache,
-.actions-medecin .lien-danger { font-size:13px; font-weight:600; padding:0; margin:0; text-decoration:none; }
+.actions-medecin .lien-danger { font:inherit; font-size:13px; font-weight:600; line-height:1; padding:0; margin:0; border:none; background:none; -webkit-appearance:none; appearance:none; text-decoration:none; }
 .actions-medecin a.lien-modifier-tache { color:var(--accent); }
 .actions-medecin a.lien-modifier-tache:hover,
 .actions-medecin .lien-danger:hover { text-decoration:underline; }
+
+/* --- Plan de medicaments (medicaments.php) --- */
+/* En-tete de chaque section (moment) avec les fleches pour la reordonner
+   manuellement - utile par ex. quand une section "15h00" est ajoutee
+   apres coup et se retrouve tout en bas au lieu d'etre entre "Matin" et
+   "Soir". */
+.entete-section-medicaments { display:flex; align-items:center; justify-content:space-between; gap:8px; margin:0 0 8px; }
+.boutons-deplacer-section { display:flex; gap:4px; flex:none; }
+.boutons-deplacer-section form { margin:0; }
+.bouton-deplacer { display:flex; align-items:center; justify-content:center; width:30px; height:30px; padding:0; border:1px solid var(--border); background:var(--surface); border-radius:8px; font-size:14px; line-height:1; color:var(--text-secondary); cursor:pointer; }
+.bouton-deplacer:hover:not(:disabled) { border-color:var(--accent); color:var(--accent); }
+.bouton-deplacer:disabled { opacity:0.3; cursor:default; }
+
+/* Choix de plusieurs moments a l'ajout (medicament pris matin + 15h00 +
+   au coucher, par ex.) - cases a cocher plutot qu'un champ texte unique,
+   pour ne pas avoir a ressaisir le meme medicament plusieurs fois. */
+.choix-moments { display:flex; flex-wrap:wrap; gap:8px; }
+.case-moment { display:flex; align-items:center; gap:6px; font-size:13px; font-weight:600; color:var(--text-secondary); border:1.5px solid var(--border); border-radius:999px; padding:6px 12px; cursor:pointer; transition:border-color var(--dur) var(--ease), background var(--dur) var(--ease), color var(--dur) var(--ease); }
+.case-moment:has(input:checked) { border-color:var(--accent); background:#eaf6ef; color:var(--text); }
+.case-moment input[type=checkbox] { accent-color:var(--accent); }
+
+/* Selecteur de photo deja presente sur le site (evite de re-uploader la
+   meme photo de boite pour un medicament pris a plusieurs moments). */
+.selecteur-photos-existantes { margin-top:10px; }
+.aide-selecteur-photos { font-size:12.5px; color:var(--text-secondary); margin:0 0 6px; }
+.grille-photos-existantes { display:flex; flex-wrap:wrap; gap:8px; }
+.vignette-photo-existante { display:flex; align-items:center; justify-content:center; width:56px; height:56px; padding:3px; border:2px solid var(--border); border-radius:8px; background:var(--surface); cursor:pointer; }
+.vignette-photo-existante img { width:100%; height:100%; object-fit:contain; }
+.vignette-photo-existante:hover { border-color:var(--accent); }
+.vignette-photo-existante.selectionnee { border-color:var(--accent); border-width:3px; }

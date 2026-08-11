@@ -1,0 +1,8 @@
+# Photos de medicaments envoyees depuis medicaments.php (voir
+# lib/medicaments.php). Ce dossier ne doit jamais executer de PHP, meme
+# si un fichier malveillant passait malgre la validation d'image faite
+# a l'upload - defense en profondeur.
+<FilesMatch "\.(php|phtml|php\d|phar)$">
+  Require all denied
+</FilesMatch>
+Options -Indexes -ExecCGI

@@ -32,6 +32,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 isset($_POST['route']) ? $_POST['route'] : '',
                 isset($_POST['notes']) ? $_POST['notes'] : ''
             );
+            // Post/Redirect/Get : repart sur un formulaire vide au lieu de
+            // rester rempli avec le medecin qu'on vient d'ajouter.
+            header('Location: /medecins.php#formulaireMedecin');
+            exit;
         } catch (Exception $e) {
             $erreur = $e->getMessage();
         }
@@ -48,6 +52,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 isset($_POST['route']) ? $_POST['route'] : '',
                 isset($_POST['notes']) ? $_POST['notes'] : ''
             );
+            header('Location: /medecins.php#formulaireMedecin');
+            exit;
         } catch (Exception $e) {
             $erreur = $e->getMessage();
             $idEnEdition = (int) $_POST['id'];

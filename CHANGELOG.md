@@ -2,6 +2,70 @@
 
 ## Non publié
 
+- **Médicaments : suppression du médecin prescripteur / date de
+  prescription.** Retiré de `medicaments.php` (n'a plus de sens, ce
+  n'est plus un seul médecin qui prescrit) et de la fiche imprimable
+  `medicaments_plan.php` (plus de ligne "Prescription du Dr..." ni "À
+  afficher près des médicaments"), ce qui libère aussi un peu de place
+  à l'impression.
+
+- **Médicaments : ajouter à plusieurs moments d'un coup.** Sur le
+  formulaire d'ajout, des cases à cocher (Matin, Soir, 15h00...) plus un
+  champ "nouveau moment" remplacent le simple champ texte : coche
+  plusieurs moments pour un médicament pris plusieurs fois par jour (ex.
+  matin + 15h00 + au coucher), une ligne est créée pour chacun avec le
+  même nom/quantité/détail, à ajuster ensuite au cas par cas si l'un
+  d'eux diffère. Le formulaire de modification (une seule ligne à la
+  fois) garde le simple champ texte.
+
+- **Tâches et médecins : le formulaire se vide aussi après ajout/modification**
+  (même correction que pour les médicaments ci-dessous, appliquée à
+  `taches.php` et `medecins.php`).
+
+- **Médicaments : le formulaire se vide après ajout/modification.** Sur
+  `medicaments.php`, après un ajout ou une modification réussie, la page
+  redirige maintenant vers elle-même au lieu de se recharger avec les
+  mêmes données envoyées : le formulaire repart vide, prêt pour le
+  médicament suivant, au lieu de rester rempli avec celui qu'on venait
+  de traiter.
+
+- **Médicaments : réorganiser les sections + réutiliser une photo.** Sur
+  `medicaments.php`, chaque section (moment) a maintenant des flèches
+  ↑/↓ pour la remonter/descendre manuellement sur la fiche (utile quand
+  une nouvelle section comme "15h00" est ajoutée après coup et se
+  retrouvait tout en bas). Le formulaire d'ajout/modification propose
+  aussi de réutiliser une photo de boîte déjà présente sur le site
+  (vignettes cliquables) plutôt que de la ré-uploader ; une photo
+  partagée entre plusieurs médicaments n'est jamais supprimée du disque
+  tant qu'au moins une ligne y fait encore référence.
+
+- **Outil ponctuel : import du plan de médicaments actuel de Christiane.**
+  `outils/importer_plan_medicaments_christiane.php` (protégé par le mot
+  de passe admin) insère les médicaments du PDF existant (prescription
+  du Dr Aurore Diricq, 8/7/2026) dans la nouvelle table, pour ne pas
+  avoir à tout ressaisir à la main. Les photos des boîtes (extraites du
+  PDF d'origine) sont incluses dans `medicaments_photos/` et associées
+  automatiquement à chaque médicament. Sans danger à relancer (les
+  médicaments déjà présents sont ignorés). À supprimer une fois utilisé.
+
+- **Plan de prise des médicaments, généré soi-même.** Nouvelles pages
+  `medicaments.php` (gestion : ajouter/modifier/supprimer un médicament,
+  avec moment libre — "Matin", "15h00", "Au coucher", "Si besoin"... —
+  quantité, détail et une photo facultative de la boîte, plus le médecin
+  prescripteur et la date de la prescription) et `medicaments_plan.php`
+  (fiche imprimable "Traitement de ... — Plan de prise quotidien" qui
+  reprend la mise en page du PDF fait à la main : sections colorées par
+  moment, cartes en grille), avec un bouton "Imprimer / Enregistrer en
+  PDF" (impression navigateur, comme le reste du site — pas de
+  génération PDF côté serveur). Limité à Christiane pour l'instant
+  (`personne_2`), mais la table sert déjà n'importe quelle personne.
+  `migrations/0015_add_medicaments.sql` crée la table, `lib/medicaments.php`
+  regroupe les fonctions (dont le regroupement/ordre automatique par
+  moment). Les photos envoyées sont stockées dans `medicaments_photos/`
+  (nouveau dossier, protégé par un `.htaccess` qui empêche toute
+  exécution PHP, à créer/rendre inscriptible sur le serveur — voir
+  guide). Lien "Médicaments" dans le menu du compte.
+
 - **En-tête plus aéré et cohérent sur les pages secondaires.** Le titre
   (h1) de `taches.php`, `historique.php`, `medecins.php`,
   `mes_rappels.php` et `admin/index.php` était réduit à 20px avec 8px

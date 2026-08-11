@@ -28,6 +28,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 isset($_POST['personne']) ? $_POST['personne'] : '',
                 isset($_POST['date_cible']) ? $_POST['date_cible'] : ''
             );
+            // Post/Redirect/Get : repart sur un formulaire vide au lieu de
+            // rester rempli avec la tache qu'on vient d'ajouter.
+            header('Location: /taches.php#formulaireTache');
+            exit;
         } catch (Exception $e) {
             $erreur = $e->getMessage();
         }
@@ -40,6 +44,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 isset($_POST['personne']) ? $_POST['personne'] : '',
                 isset($_POST['date_cible']) ? $_POST['date_cible'] : ''
             );
+            header('Location: /taches.php#formulaireTache');
+            exit;
         } catch (Exception $e) {
             $erreur = $e->getMessage();
             $idEnEdition = (int) $_POST['id'];

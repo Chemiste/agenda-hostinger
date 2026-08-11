@@ -315,7 +315,7 @@ button {
   font-family: inherit;
   -webkit-tap-highlight-color: transparent;
 }
-button.principal, button.secondaire, button.danger, a.secondaire {
+button.principal, button.secondaire, button.danger, a.secondaire, a.principal {
   flex: 1;
   padding: 14px;
   font-size: 16px;
@@ -325,13 +325,17 @@ button.principal, button.secondaire, button.danger, a.secondaire {
   cursor: pointer;
   transition: transform var(--dur) var(--ease), background var(--dur) var(--ease), box-shadow var(--dur) var(--ease), opacity var(--dur) var(--ease);
 }
-button.principal {
+button.principal, a.principal {
   background: var(--accent);
   color: #fff;
   box-shadow: var(--shadow-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
 }
-button.principal:hover { background: var(--accent-hover); }
-button.principal:active { transform: scale(0.97); }
+button.principal:hover, a.principal:hover { background: var(--accent-hover); }
+button.principal:active, a.principal:active { transform: scale(0.97); }
 button.principal:disabled { opacity: 0.6; cursor: default; transform: none; }
 button.secondaire, a.secondaire {
   background: var(--surface);
