@@ -20,14 +20,14 @@ $labelsAction = ['ajout' => 'Ajout', 'modification' => 'Modification', 'suppress
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Historique — Agenda médical</title>
+<title>Journal d'activité — Agenda médical</title>
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
 <link rel="stylesheet" href="/assets/style.css?v=<?= filemtime(__DIR__ . '/assets/style.css') ?>">
 <link rel="stylesheet" href="/assets/admin.css?v=<?= filemtime(__DIR__ . '/assets/admin.css') ?>">
 </head>
 <body>
   <div class="barre-admin">
-    <h1>Historique</h1>
+    <h1>Journal d'activité</h1>
     <div>
       <span class="qui-connecte"><?= htmlspecialchars(personneSessionActuelle()) ?></span>
       <a href="/index.php">Retour à l'agenda</a>

@@ -35,7 +35,7 @@ $p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
           </button>
           <div class="menu-deroulant" id="menuImpressionListe">
             <button type="button" id="btnImprimer">Normal</button>
-            <button type="button" id="btnImprimerCompact">Compact (grille)</button>
+            <button type="button" id="btnImprimerCompact">Compact</button>
           </div>
         </div>
         <div class="menu-suspendu" id="menuCompte">
@@ -48,7 +48,7 @@ $p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
             <?php if (personneSessionActuelle() === 'Laurent'): ?>
             <a href="/admin/index.php"><svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20a8 8 0 1 0 0-16 8 8 0 0 0 0 16z"/><path d="M12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>Administration</a>
             <?php endif; ?>
-            <a href="/historique.php"><svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 7v5l3 3"/></svg>Historique</a>
+            <a href="/historique.php"><svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 7v5l3 3"/></svg>Journal d'activité</a>
             <a href="/taches.php"><svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="6" height="6" rx="1"/><path d="M3 15h6v6H3z"/><path d="M13 5h8M13 9h8M13 15h8M13 19h8"/></svg>Tâches</a>
             <a href="/medecins.php"><svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>Médecins</a>
             <a href="/medicaments.php"><svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="7" rx="3.5"/><path d="M8 11v7"/><circle cx="17" cy="6" r="3"/></svg>Médicaments</a>
@@ -154,24 +154,24 @@ $p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
       <p class="section-titre">Détails médicaux</p>
       <div class="champ">
         <label>Médecin / consultation</label>
-        <input type="text" id="fMedecin" list="listeMedecins" autocomplete="off">
+        <input type="text" id="fMedecin" list="listeMedecins" autocomplete="off" placeholder="Ex. Dr Dupont">
         <datalist id="listeMedecins"></datalist>
         <button type="button" id="btnImporterMedecin" class="lien-importer-medecin" style="display:none;">Importer ce médecin dans le carnet</button>
       </div>
       <div class="champ">
         <label>Département (facultatif)</label>
-        <input type="text" id="fDepartement">
+        <input type="text" id="fDepartement" placeholder="Ex. Cardiologie">
       </div>
 
       <p class="section-titre">Coordonnées (facultatif)</p>
       <div class="champ">
         <label>Adresse</label>
-        <input type="text" id="fAdresse">
+        <input type="text" id="fAdresse" placeholder="Ex. Rue de la Clinique 12, 1000 Bruxelles">
       </div>
       <div class="champ-ligne">
         <div class="champ">
           <label>Téléphone</label>
-          <input type="tel" id="fTelephone">
+          <input type="tel" id="fTelephone" placeholder="Ex. 02 123 45 67">
         </div>
         <div class="champ">
           <label>Route</label>
@@ -181,7 +181,7 @@ $p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
 
       <p class="section-titre">Notes (facultatif)</p>
       <div class="champ">
-        <textarea id="fNotes" rows="3"></textarea>
+        <textarea id="fNotes" rows="3" placeholder="Ex. Apporter la carte SIS et les derniers résultats"></textarea>
       </div>
 
       <p class="erreur" id="erreurForm"></p>

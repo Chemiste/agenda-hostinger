@@ -174,16 +174,16 @@ function afficherRangeeMedecin($m) {
       </div>
       <div class="champ">
         <label>Département / spécialité (facultatif)</label>
-        <input type="text" name="department" value="<?= isset($_POST['department']) ? htmlspecialchars($_POST['department']) : '' ?>">
+        <input type="text" name="department" placeholder="Ex. Cardiologie" value="<?= isset($_POST['department']) ? htmlspecialchars($_POST['department']) : '' ?>">
       </div>
       <div class="champ">
         <label>Adresse (facultatif)</label>
-        <input type="text" name="location" value="<?= isset($_POST['location']) ? htmlspecialchars($_POST['location']) : '' ?>">
+        <input type="text" name="location" placeholder="Ex. Rue de la Clinique 12, 1000 Bruxelles" value="<?= isset($_POST['location']) ? htmlspecialchars($_POST['location']) : '' ?>">
       </div>
       <div class="champ-ligne">
         <div class="champ">
           <label>Téléphone (facultatif)</label>
-          <input type="text" name="phone" value="<?= isset($_POST['phone']) ? htmlspecialchars($_POST['phone']) : '' ?>">
+          <input type="text" name="phone" placeholder="Ex. 02 123 45 67" value="<?= isset($_POST['phone']) ? htmlspecialchars($_POST['phone']) : '' ?>">
         </div>
         <div class="champ">
           <label>Route (facultatif)</label>
@@ -192,7 +192,7 @@ function afficherRangeeMedecin($m) {
       </div>
       <div class="champ">
         <label>Notes (facultatif)</label>
-        <textarea name="notes" rows="2"><?= isset($_POST['notes']) ? htmlspecialchars($_POST['notes']) : '' ?></textarea>
+        <textarea name="notes" rows="2" placeholder="Ex. Consultation uniquement sur rendez-vous"><?= isset($_POST['notes']) ? htmlspecialchars($_POST['notes']) : '' ?></textarea>
       </div>
       <div class="form-boutons">
         <button class="principal" type="submit"><?= $medecinEnEdition !== null ? 'Enregistrer les modifications' : 'Ajouter' ?></button>

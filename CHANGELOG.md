@@ -2,6 +2,25 @@
 
 ## Non publié
 
+- **Audit de clarté : page "Historique" renommée "Journal d'activité".**
+  Évite la confusion avec l'onglet "Tout l'historique" de l'accueil (qui
+  montre tous les rendez-vous, pas qui a fait quoi) — reprend le nom déjà
+  utilisé côté administration. Le bouton d'impression compacte est aussi
+  reformulé ("tient sur moins de pages" plutôt que "grille").
+
+- **Audit de cohérence : `mes_rappels.php` alignée sur le design system.**
+  Titres de section, espacement et cases à cocher utilisaient encore un
+  style local différent du reste du site ; alignés sur le même motif que
+  `taches.php`/`medecins.php`/`medicaments.php`. La page utilise
+  maintenant aussi le principe "recharge après enregistrement" : plus de
+  message "voulez-vous renvoyer le formulaire ?" en rafraîchissant après
+  avoir sauvé.
+
+- **Exemples ajoutés sur les champs qui n'en avaient pas** (Département,
+  Adresse, Téléphone, Notes sur le formulaire de rendez-vous ; Département,
+  Adresse, Téléphone, Notes sur le carnet de médecins), pour être cohérent
+  avec le reste du site où presque tous les champs ont un "Ex. ...".
+
 - **Médicaments : suppression du médecin prescripteur / date de
   prescription.** Retiré de `medicaments.php` (n'a plus de sens, ce
   n'est plus un seul médecin qui prescrit) et de la fiche imprimable

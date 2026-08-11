@@ -43,7 +43,11 @@ foreach ($defauts as $cle => $defaut) {
     $valeurs[$cle] = getSetting($db, $cle, $defaut);
 }
 
-$messageEnregistre = false;
+// "?enregistre=1" plutot qu'un simple booleen mis a jour dans la meme
+// requete : permet de rediriger apres l'enregistrement (Post/Redirect/Get,
+// comme tâches/médecins/médicaments) pour qu'un rafraichissement de page
+// ne redemande pas "voulez-vous renvoyer le formulaire ?".
+$messageEnregistre = isset($_GET['enregistre']);
 $resultatTest = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -58,7 +62,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         foreach ($valeurs as $cle => $val) {
             setSetting($db, $cle, $val);
         }
-        $messageEnregistre = true;
+        header('Location: /mes_rappels.php?enregistre=1');
+        exit;
     } elseif (isset($_POST['action']) && in_array($_POST['action'], ['tester_person1', 'tester_person2'], true)) {
         $estPerson1 = $_POST['action'] === 'tester_person1';
         $email = $estPerson1 ? $valeurs['reminder_email_person1'] : $valeurs['reminder_email_person2'];
@@ -96,12 +101,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
 <link rel="stylesheet" href="/assets/style.css?v=<?= filemtime(__DIR__ . '/assets/style.css') ?>">
 <link rel="stylesheet" href="/assets/admin.css?v=<?= filemtime(__DIR__ . '/assets/admin.css') ?>">
-<style>
-  .outil { margin-bottom:24px; }
-  .outil h2 { margin-top:0; }
-  .champ-case { margin:14px 0; }
-  .champ-case label { font-weight:400; }
-</style>
 </head>
 <body>
   <div class="barre-admin">
@@ -111,7 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <a href="/index.php">Retour à l'agenda</a>
     </div>
   </div>
-  <p class="sous-titre">Chacun renseigne ici son adresse email, active ou désactive les rappels pour lui-même (sans avoir à effacer son adresse), et peut aussi choisir d'être prévenu des rendez-vous de l'autre.</p>
+  <p class="sous-titre" style="margin-bottom:18px;">Chacun renseigne ici son adresse email, active ou désactive les rappels pour lui-même (sans avoir à effacer son adresse), et peut aussi choisir d'être prévenu des rendez-vous de l'autre.</p>
 
   <?php if (!$reminderEnabled): ?>
     <p class="aide avertissement" style="margin:8px 0 16px;">Les rappels par email sont actuellement désactivés pour tout le monde (réglage géré dans l'administration). Les réglages ci-dessous seront pris en compte dès qu'ils seront réactivés.</p>
@@ -123,7 +122,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   <form method="post">
     <div class="outil">
-      <h2><?= htmlspecialchars($p1) ?></h2>
+      <h2 class="panneau-titre" style="font-size:15px;"><?= htmlspecialchars($p1) ?></h2>
       <div class="champ">
         <label>Adresse email de <?= htmlspecialchars($p1) ?></label>
         <input type="email" name="reminder_email_person1" value="<?= htmlspecialchars($valeurs['reminder_email_person1']) ?>" placeholder="<?= htmlspecialchars($p1) ?>@example.com">
@@ -145,8 +144,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <button class="secondaire" type="submit" name="action" value="tester_person1">Envoyer un email de test à <?= htmlspecialchars($p1) ?></button>
     </div>
 
-    <div class="outil">
-      <h2><?= htmlspecialchars($p2) ?></h2>
+    <div class="outil" style="margin-top:16px;">
+      <h2 class="panneau-titre" style="font-size:15px;"><?= htmlspecialchars($p2) ?></h2>
       <div class="champ">
         <label>Adresse email de <?= htmlspecialchars($p2) ?></label>
         <input type="email" name="reminder_email_person2" value="<?= htmlspecialchars($valeurs['reminder_email_person2']) ?>" placeholder="<?= htmlspecialchars($p2) ?>@example.com">
