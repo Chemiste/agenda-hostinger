@@ -159,7 +159,10 @@ textarea.motifs { width:100%; min-height:100px; font-family:inherit; font-size:1
 .badge-date-tache { font-size:12px; color:var(--text-muted); background:var(--page-bg); border-radius:999px; padding:3px 9px; }
 .badge-date-tache.en-retard { color:#b42318; background:#fdeceb; font-weight:600; }
 .rangee-tache form.lien-danger-forme { margin-left:auto; }
-.rangee-tache > form[data-confirm] { margin-left:auto; flex:none; }
+/* display:flex sur le formulaire lui-meme (comme .actions-medecin form) :
+   sans ca, le <button> a l'interieur reste dans une boite bloc classique
+   qui ne se centre pas exactement comme le <a> "Modifier" a cote. */
+.rangee-tache > form[data-confirm] { margin-left:auto; flex:none; display:flex; align-items:center; margin-top:0; margin-bottom:0; }
 .rangee-tache a.lien-modifier-tache { flex:none; font:inherit; font-size:13px; line-height:1; font-weight:600; color:var(--accent); white-space:nowrap; text-decoration:none; }
 .rangee-tache a.lien-modifier-tache:hover { text-decoration:underline; }
 /* .lien-danger a par defaut un soulignement + un padding pense pour un
