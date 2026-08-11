@@ -2,6 +2,10 @@
 
 ## Non publié
 
+- **Médicaments triés par ordre alphabétique dans chaque section**, sur la
+  fiche imprimable comme sur la page de gestion (au lieu de l'ordre
+  d'ajout).
+
 - **Audit de clarté : page "Historique" renommée "Journal d'activité".**
   Évite la confusion avec l'onglet "Tout l'historique" de l'accueil (qui
   montre tous les rendez-vous, pas qui a fait quoi) — reprend le nom déjà

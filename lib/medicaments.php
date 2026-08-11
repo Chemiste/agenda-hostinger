@@ -28,9 +28,14 @@ function paletteMoment($index) {
     return $palette[$index % count($palette)];
 }
 
+// Trie par ordre alphabetique a l'interieur de chaque section (moment) -
+// plus facile a retrouver qu'un ordre d'ajout, aussi bien sur la fiche
+// imprimable que sur la page de gestion (les deux utilisent cette
+// fonction). Les sections elles-memes gardent leur ordre_moment habituel
+// (voir deplacerMoment ci-dessous).
 function listerMedicaments($db, $person) {
     $stmt = $db->prepare(
-        'SELECT * FROM medicaments WHERE person = ? ORDER BY ordre_moment ASC, ordre ASC, id ASC'
+        'SELECT * FROM medicaments WHERE person = ? ORDER BY ordre_moment ASC, nom ASC, id ASC'
     );
     $stmt->execute([$person]);
     return $stmt->fetchAll();
