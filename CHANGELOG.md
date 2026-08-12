@@ -2,6 +2,13 @@
 
 ## Non publié
 
+- **Journal d'activité (côté famille) : affiche aussi les connexions**,
+  comme la version administration — auparavant limité aux ajouts/
+  modifications/suppressions de rendez-vous. Comme la session reste active
+  90 jours, une nouvelle ligne "Connexion" est maintenant créée à chaque
+  retour sur le site après 2h d'inactivité (pas seulement au premier choix
+  "Qui êtes-vous ?"), sans pour autant en créer une par page consultée.
+
 - **Médicaments triés par ordre alphabétique dans chaque section**, sur la
   fiche imprimable comme sur la page de gestion (au lieu de l'ordre
   d'ajout).

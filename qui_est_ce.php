@@ -36,6 +36,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         definirPersonneSession($nom);
         $db = getDb();
         enregistrerActivite($db, 'connexion', $nom);
+        // Evite qu'index.php (via requireIdentite -> enregistrerVisiteSiNecessaire)
+        // n'enregistre une deuxieme ligne "Connexion" dans la foulee.
+        $_SESSION['derniere_visite_loggee'] = time();
         header('Location: /index.php');
         exit;
     }

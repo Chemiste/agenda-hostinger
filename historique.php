@@ -1,8 +1,9 @@
 <?php
 /**
- * Historique des rendez-vous, cote famille : qui a ajoute, modifie ou
- * supprime un rendez-vous, et quand. Ne montre PAS les connexions (voir
- * admin/historique.php pour la vue complete, reservee a l'administration).
+ * Historique des rendez-vous, cote famille : qui s'est connecte et qui a
+ * ajoute, modifie ou supprime un rendez-vous, et quand. Version complete
+ * identique a admin/historique.php, sauf qu'ici la connexion admin n'est
+ * pas requise (accessible a toute la famille).
  */
 
 require_once __DIR__ . '/lib/auth.php';
@@ -11,9 +12,14 @@ require_once __DIR__ . '/lib/db.php';
 require_once __DIR__ . '/lib/activity_log.php';
 
 $db = getDb();
-$entrees = listerActivite($db, 150, ['ajout', 'modification', 'suppression']);
+$entrees = listerActivite($db, 150, ['connexion', 'ajout', 'modification', 'suppression']);
 
-$labelsAction = ['ajout' => 'Ajout', 'modification' => 'Modification', 'suppression' => 'Suppression'];
+$labelsAction = [
+    'connexion' => 'Connexion',
+    'ajout' => 'Ajout',
+    'modification' => 'Modification',
+    'suppression' => 'Suppression',
+];
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -33,7 +39,7 @@ $labelsAction = ['ajout' => 'Ajout', 'modification' => 'Modification', 'suppress
       <a href="/index.php">Retour à l'agenda</a>
     </div>
   </div>
-  <p class="sous-titre" style="margin-bottom:18px;">Qui a ajouté, modifié ou supprimé un rendez-vous, et quand — les <?= count($entrees) ?> dernières actions.</p>
+  <p class="sous-titre" style="margin-bottom:18px;">Qui s'est connecté, et qui a ajouté, modifié ou supprimé un rendez-vous, et quand — les <?= count($entrees) ?> dernières actions.</p>
 
   <?php if (empty($entrees)): ?>
     <p class="vide">Aucune activité enregistrée pour l'instant.</p>

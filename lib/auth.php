@@ -90,6 +90,30 @@ function requireIdentite() {
         header('Location: /qui_est_ce.php');
         exit;
     }
+    enregistrerVisiteSiNecessaire();
+}
+
+/**
+ * Ajoute une ligne "Connexion" au journal d'activite si la derniere visite
+ * enregistree pour cette session remonte a plus de 2h - sans ce garde-fou,
+ * chaque page vue (index -> taches -> medecins...) creerait sa propre
+ * ligne, ce qui rendrait le journal illisible. Appelee automatiquement par
+ * requireIdentite() sur chaque page familiale ; qui_est_ce.php met deja a
+ * jour $_SESSION['derniere_visite_loggee'] lui-meme pour eviter une ligne
+ * en double juste apres avoir choisi son nom.
+ */
+function enregistrerVisiteSiNecessaire() {
+    $seuilInactivite = 60 * 60 * 2; // 2 heures
+    $maintenant = time();
+    $derniere = isset($_SESSION['derniere_visite_loggee']) ? (int) $_SESSION['derniere_visite_loggee'] : null;
+
+    if ($derniere === null || ($maintenant - $derniere) > $seuilInactivite) {
+        require_once __DIR__ . '/db.php';
+        require_once __DIR__ . '/activity_log.php';
+        enregistrerActivite(getDb(), 'connexion', personneSessionActuelle());
+    }
+
+    $_SESSION['derniere_visite_loggee'] = $maintenant;
 }
 
 /**
