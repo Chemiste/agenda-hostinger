@@ -2,6 +2,12 @@
 
 ## Non publié
 
+- **Questions à poser au rendez-vous.** Nouveau champ "Questions à poser
+  (facultatif)" dans le formulaire de rendez-vous (une question par ligne) :
+  affiché sur la carte, imprimé avec le rendez-vous (impression détaillée
+  et mode "compact"), inclus dans la description de l'événement Google
+  Calendar et dans l'email de rappel.
+
 - **Médicaments : modification réservée à Laurent.** Les autres membres de
   la famille consultent et impriment la fiche (`medicaments.php` +
   `medicaments_plan.php`) mais ne voient plus le formulaire d'ajout/édition

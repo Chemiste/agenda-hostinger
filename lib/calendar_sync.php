@@ -128,8 +128,10 @@ class CalendarSync {
 
     // Assemble la description a partir du departement, de la route (circuit
     // interne de l'hopital), du telephone (pas de champs natifs pour ca dans
-    // Google Calendar, contrairement au lieu), de l'accompagnant et des
-    // notes, chacun sur sa propre ligne, en ignorant les champs vides.
+    // Google Calendar, contrairement au lieu), de l'accompagnant, des
+    // notes et des questions a poser, chacun sur sa propre ligne (les
+    // questions sur plusieurs lignes, une par question), en ignorant les
+    // champs vides.
     private function buildDescription($appt) {
         $lignes = [];
         if (!empty($appt['department'])) $lignes[] = $appt['department'];
@@ -137,6 +139,13 @@ class CalendarSync {
         if (!empty($appt['phone'])) $lignes[] = 'Tel : ' . $appt['phone'];
         if (!empty($appt['accompagnant'])) $lignes[] = 'Accompagné(e) de : ' . $appt['accompagnant'];
         if (!empty($appt['notes'])) $lignes[] = $appt['notes'];
+        if (!empty($appt['questions'])) {
+            $lignes[] = 'Questions à poser :';
+            foreach (preg_split('/\r\n|\r|\n/', trim($appt['questions'])) as $q) {
+                $q = trim($q);
+                if ($q !== '') $lignes[] = '- ' . $q;
+            }
+        }
         return implode("\n", $lignes);
     }
 

@@ -723,6 +723,31 @@ button.danger:active { transform: scale(0.97); }
   text-overflow: clip;
 }
 
+/* Liste de questions a poser au professionnel (voir listeQuestionsHtml()
+   dans app.js) : contrairement a .notes, toujours affichee en entier (pas
+   de troncature/survol) - c'est une liste qu'on doit pouvoir lire d'un
+   coup d'oeil et emporter au rendez-vous. */
+.questions {
+  margin-top: 8px;
+  padding: 8px 10px;
+  background: var(--page-bg);
+  border-radius: var(--radius-sm, 8px);
+  border: 1px dashed var(--border-strong);
+}
+.questions-titre {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--text-secondary);
+}
+.questions-titre .icone { width: 14px; height: 14px; flex: none; }
+.questions-liste { margin: 6px 0 0; padding-left: 18px; font-size: 13px; color: var(--text); }
+.questions-liste li { margin: 2px 0; }
+
 .lien-danger {
   background: none;
   border: none;
@@ -902,6 +927,19 @@ button.danger:active { transform: scale(0.97); }
     text-overflow: clip !important;
   }
 
+  /* Questions a poser (impression detaillee, #liste) - voir plus bas
+     .cc-questions pour l'equivalent en mode compact (#listeCompacte). */
+  .questions {
+    border-color: #ccc;
+    background: #f6f6f8;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .questions-titre { font-size: 8pt; }
+  .questions-liste { font-size: 9pt; }
+
   /* Mode d'impression compact (bouton "Imprimer (compact)") : grille de
      cartes courtes plutot que la liste detaillee. */
   body.impression-compacte #liste { display: none !important; }
@@ -963,6 +1001,10 @@ button.danger:active { transform: scale(0.97); }
   }
   .cc-route { font-size: 7.5pt; font-weight: 700; margin-top: 1px; }
   .cc-accompagnant { font-size: 7.5pt; color: #555; margin-top: 1px; }
+  .cc-questions { margin-top: 2px; }
+  .cc-questions-titre { font-size: 7pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: #666; }
+  .cc-questions-liste { margin: 1px 0 0; padding-left: 12px; font-size: 7.5pt; line-height: 1.25; }
+  .cc-questions-liste li { margin: 0; }
 
   /* Section "Taches" ajoutee sous la liste des rendez-vous, a
      l'impression normale comme au mode compact (voir

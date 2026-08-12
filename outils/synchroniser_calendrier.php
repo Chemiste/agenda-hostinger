@@ -31,7 +31,7 @@ if (!$sync->isEnabled()) {
     exit;
 }
 
-$stmt = $db->query("SELECT id, appt_date, appt_time, person, doctor, department, location, phone, route, accompagnant, notes FROM appointments WHERE calendar_event_id IS NULL OR calendar_event_id = '' ORDER BY appt_date, appt_time");
+$stmt = $db->query("SELECT id, appt_date, appt_time, person, doctor, department, location, phone, route, accompagnant, notes, questions FROM appointments WHERE calendar_event_id IS NULL OR calendar_event_id = '' ORDER BY appt_date, appt_time");
 $aTraiter = $stmt->fetchAll();
 
 echo "Rendez-vous sans evenement Google Calendar trouves : " . count($aTraiter) . "\n\n";
@@ -51,6 +51,7 @@ foreach ($aTraiter as $r) {
         'route' => $r['route'],
         'accompagnant' => $r['accompagnant'],
         'notes' => $r['notes'],
+        'questions' => $r['questions'],
     ];
 
     $eventId = $sync->createEvent($appt);

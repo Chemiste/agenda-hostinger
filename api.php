@@ -4,6 +4,11 @@
  * Actions : list, add, update, delete, bulk_add, taches (lecture seule),
  * tache_toggle, medecins (lecture seule), importer_medecin (Laurent
  * uniquement).
+ *
+ * "questions" : liste libre de questions a poser au professionnel lors du
+ * rendez-vous (une par ligne), affichee sur la carte et imprimee avec le
+ * reste (impression detaillee uniquement, comme "notes" - le mode
+ * "compact" reste volontairement minimal, voir assets/app.js).
  */
 
 require_once __DIR__ . '/lib/auth.php';
@@ -120,7 +125,7 @@ function validateAppt($appt) {
 }
 
 function listAppointments($db) {
-    $stmt = $db->query('SELECT id, appt_date AS date, appt_time AS time, duration_minutes AS duration, person, doctor, department, location, phone, route, accompagnant, notes FROM appointments ORDER BY appt_date, appt_time');
+    $stmt = $db->query('SELECT id, appt_date AS date, appt_time AS time, duration_minutes AS duration, person, doctor, department, location, phone, route, accompagnant, notes, questions FROM appointments ORDER BY appt_date, appt_time');
     $rows = $stmt->fetchAll();
 
     // "location_affichage" : version simplifiee de l'adresse pour
@@ -147,7 +152,7 @@ function dureeAppt($appt) {
 
 function addAppointment($db, $sync, $appt) {
     validateAppt($appt);
-    $stmt = $db->prepare('INSERT INTO appointments (appt_date, appt_time, duration_minutes, person, doctor, department, location, phone, route, accompagnant, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+    $stmt = $db->prepare('INSERT INTO appointments (appt_date, appt_time, duration_minutes, person, doctor, department, location, phone, route, accompagnant, notes, questions) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
     $stmt->execute([
         $appt['date'],
         $appt['time'],
@@ -160,6 +165,7 @@ function addAppointment($db, $sync, $appt) {
         isset($appt['route']) ? $appt['route'] : '',
         isset($appt['accompagnant']) ? $appt['accompagnant'] : '',
         isset($appt['notes']) ? $appt['notes'] : '',
+        isset($appt['questions']) ? $appt['questions'] : '',
     ]);
     $id = $db->lastInsertId();
 
@@ -205,7 +211,7 @@ function updateAppointmentAction($db, $sync, $appt) {
     $dateHeureChangee = ($row['appt_date'] !== $appt['date']) || (substr($row['appt_time'], 0, 5) !== $appt['time']);
 
     $upd = $db->prepare(
-        'UPDATE appointments SET appt_date = ?, appt_time = ?, duration_minutes = ?, person = ?, doctor = ?, department = ?, location = ?, phone = ?, route = ?, accompagnant = ?, notes = ?'
+        'UPDATE appointments SET appt_date = ?, appt_time = ?, duration_minutes = ?, person = ?, doctor = ?, department = ?, location = ?, phone = ?, route = ?, accompagnant = ?, notes = ?, questions = ?'
         . ($dateHeureChangee ? ', reminder_sent_at = NULL' : '')
         . ' WHERE id = ?'
     );
@@ -221,6 +227,7 @@ function updateAppointmentAction($db, $sync, $appt) {
         isset($appt['route']) ? $appt['route'] : '',
         isset($appt['accompagnant']) ? $appt['accompagnant'] : '',
         isset($appt['notes']) ? $appt['notes'] : '',
+        isset($appt['questions']) ? $appt['questions'] : '',
         $appt['id'],
     ]);
 

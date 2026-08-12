@@ -166,6 +166,14 @@ foreach ($rdvs as $rdv) {
         $lignes[] = '';
         $lignes[] = 'Notes : ' . $rdv['notes'];
     }
+    if (!empty($rdv['questions'])) {
+        $lignes[] = '';
+        $lignes[] = 'Questions à poser :';
+        foreach (preg_split('/\r\n|\r|\n/', trim($rdv['questions'])) as $q) {
+            $q = trim($q);
+            if ($q !== '') $lignes[] = '- ' . $q;
+        }
+    }
     $corps = implode("\n", $lignes);
 
     $sujet = 'Rappel : rendez-vous ' . $rdv['person'] . ' - ' . $quand;

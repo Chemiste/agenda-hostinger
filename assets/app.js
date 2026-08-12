@@ -17,6 +17,7 @@ var ICONES = {
   note: '<svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h9l4 4v12H6z"/><path d="M14 4v5h5"/><path d="M9 13h6M9 17h4"/></svg>',
   medecin: '<svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>',
   accompagnant: '<svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+  question: '<svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.1 9a2.9 2.9 0 1 1 3.8 2.76c-.77.26-1.4.99-1.4 1.81v.43"/><path d="M12 17h.01"/></svg>',
   crayon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>'
 };
 
@@ -45,9 +46,20 @@ function correspondRecherche(r) {
   if (filtreRecherche === '') return true;
   var texte = normaliserTexte([
     r.doctor, r.department, r.location, r.location_affichage,
-    r.notes, r.accompagnant, r.person
+    r.notes, r.accompagnant, r.person, r.questions
   ].join(' '));
   return texte.indexOf(filtreRecherche) !== -1;
+}
+
+// Decoupe le texte libre "questions" (une par ligne) en <li> individuels,
+// en ignorant les lignes vides - utilise sur la carte (impression detaillee
+// et grille compacte, voir genererGrilleCompacte()).
+function listeQuestionsHtml(texte) {
+  return (texte || '').split(/\r\n|\r|\n/)
+    .map(function (l) { return l.trim(); })
+    .filter(function (l) { return l !== ''; })
+    .map(function (l) { return '<li>' + escapeHtml(l) + '</li>'; })
+    .join('');
 }
 function formatDateCompacte(dateStr) {
   var p = dateStr.split('-');
@@ -564,6 +576,10 @@ function afficherListe() {
         (r.route ? '<div class="route">' + ICONES.route + escapeHtml(r.route) + '</div>' : '') +
         (r.accompagnant ? '<div class="accompagnant">' + ICONES.accompagnant + escapeHtml(r.accompagnant) + '</div>' : '') +
         (r.notes ? '<div class="notes">' + ICONES.note + escapeHtml(r.notes) + '</div>' : '') +
+        (r.questions ? '<div class="questions">' +
+          '<div class="questions-titre">' + ICONES.question + 'Questions à poser</div>' +
+          '<ul class="questions-liste">' + listeQuestionsHtml(r.questions) + '</ul>' +
+        '</div>' : '') +
       '</div>' +
       '<span class="rdv-modifier">' + ICONES.crayon + '</span>' +
     '</div>';
@@ -728,6 +744,7 @@ function genererGrilleCompacte(filtres) {
           (r.location ? '<div class="cc-adresse">' + escapeHtml(r.location_affichage || r.location) + '</div>' : '') +
           (r.route ? '<div class="cc-route">' + escapeHtml(r.route) + '</div>' : '') +
           (r.accompagnant ? '<div class="cc-accompagnant">Avec ' + escapeHtml(r.accompagnant) + '</div>' : '') +
+          (r.questions ? '<div class="cc-questions"><div class="cc-questions-titre">Questions à poser</div><ul class="cc-questions-liste">' + listeQuestionsHtml(r.questions) + '</ul></div>' : '') +
         '</div>' +
       '</div>' +
     '</div>';
@@ -777,6 +794,7 @@ function viderFormulaire() {
   document.getElementById('fRoute').value = '';
   document.getElementById('fAccompagnant').value = '';
   document.getElementById('fNotes').value = '';
+  document.getElementById('fQuestions').value = '';
   document.querySelectorAll('.personnes input').forEach(function (r) { r.checked = false; });
   document.querySelectorAll('.personnes label').forEach(function (l) { l.classList.remove('checked'); });
   document.getElementById('erreurForm').textContent = '';
@@ -799,6 +817,7 @@ function ouvrirEnEdition(id) {
   document.getElementById('fRoute').value = r.route || '';
   document.getElementById('fAccompagnant').value = r.accompagnant || '';
   document.getElementById('fNotes').value = r.notes || '';
+  document.getElementById('fQuestions').value = r.questions || '';
   selectionnerPersonne(r.person);
   document.getElementById('btnSupprimer').style.display = 'block';
   actualiserBoutonImporterMedecin();
@@ -945,7 +964,8 @@ function restaurerRdv(r) {
     phone: r.phone,
     route: r.route,
     accompagnant: r.accompagnant,
-    notes: r.notes
+    notes: r.notes,
+    questions: r.questions
   })
     .then(function () {
       charger();
@@ -1028,6 +1048,7 @@ document.getElementById('btnEnregistrer').addEventListener('click', function () 
   var route = document.getElementById('fRoute').value;
   var accompagnant = document.getElementById('fAccompagnant').value;
   var notes = document.getElementById('fNotes').value;
+  var questions = document.getElementById('fQuestions').value;
 
   if (!date || !heure || !personneInput) {
     document.getElementById('erreurForm').textContent =
@@ -1047,7 +1068,8 @@ document.getElementById('btnEnregistrer').addEventListener('click', function () 
     phone: telephone,
     route: route,
     accompagnant: accompagnant,
-    notes: notes
+    notes: notes,
+    questions: questions
   };
 
   var btn = document.getElementById('btnEnregistrer');

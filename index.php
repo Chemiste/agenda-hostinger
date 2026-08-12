@@ -184,6 +184,11 @@ $p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
         <textarea id="fNotes" rows="3" placeholder="Ex. Apporter la carte SIS et les derniers résultats"></textarea>
       </div>
 
+      <p class="section-titre">Questions à poser (facultatif)</p>
+      <div class="champ">
+        <textarea id="fQuestions" rows="3" placeholder="Une question par ligne, ex. Peut-on arrêter ce traitement ?"></textarea>
+      </div>
+
       <p class="erreur" id="erreurForm"></p>
       <button type="button" class="lien-danger" id="btnSupprimer" style="display:none;">Supprimer ce rendez-vous</button>
     </div>
