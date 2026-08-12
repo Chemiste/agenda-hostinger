@@ -496,6 +496,38 @@ button.danger:active { transform: scale(0.97); }
   .modal.ouvert { opacity: 1; transform: translate(-50%, -50%) scale(1); }
 }
 
+/* Formulaire de rendez-vous (#formCard uniquement - pas la modale de
+   confirmation/erreur #dialogueModal, qui doit rester petite) : sur
+   desktop assez large, passe en 2 colonnes pour reduire le scroll vertical
+   d'un formulaire devenu long (12 champs). Les blocs .section-groupe (voir
+   index.php) se repartissent naturellement Quand|Qui, Details
+   medicaux|Coordonnees, Notes|Questions, dans l'ordre du HTML. */
+@media (min-width: 860px) {
+  #formCard.modal {
+    max-width: 680px;
+  }
+  #formCard .modal-corps {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 28px;
+    align-content: start;
+  }
+  #formCard .modal-corps > h2,
+  #formCard #erreurForm,
+  #formCard #btnSupprimer {
+    grid-column: 1 / -1;
+  }
+  /* Les deux premiers groupes (Quand, Qui) se retrouvent cote a cote sur
+     la meme rangee : aucun des deux n'a besoin du filet separateur du
+     haut (deja gere pour le tout premier par la regle "h2 + .section-groupe"
+     ci-dessus, ceci couvre le second). */
+  #formCard .section-groupe:nth-of-type(2) > .section-titre {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: none;
+  }
+}
+
 @media (max-width: 640px) {
   .modal {
     left: 0;
@@ -524,7 +556,7 @@ button.danger:active { transform: scale(0.97); }
   padding-top: 10px;
   border-top: 1px solid var(--border);
 }
-.modal h2 + .section-titre { margin-top: 0; padding-top: 0; border-top: none; }
+.modal h2 + .section-groupe > .section-titre { margin-top: 0; padding-top: 0; border-top: none; }
 
 /* Marges/paddings resserres par rapport a l'origine (14px/6px/12px) pour
    qu'un formulaire avec beaucoup de champs (Accompagnant, etc.) tienne

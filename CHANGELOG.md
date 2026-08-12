@@ -2,6 +2,13 @@
 
 ## Non publié
 
+- **Formulaire de rendez-vous en 2 colonnes sur desktop large (≥ 860px).**
+  Le formulaire a grossi (12 champs) et devenait long à faire défiler dans
+  la modale ; sur desktop, les sections s'organisent maintenant côte à côte
+  (Quand | Qui, Détails médicaux | Coordonnées, Notes | Questions) au lieu
+  de s'empiler verticalement. Inchangé sur mobile (toujours en une colonne,
+  plein écran).
+
 - **Questions à poser au rendez-vous.** Nouveau champ "Questions à poser
   (facultatif)" dans le formulaire de rendez-vous (une question par ligne) :
   affiché sur la carte, imprimé avec le rendez-vous (impression détaillée

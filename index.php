@@ -114,79 +114,97 @@ $p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
     <div class="modal-corps">
       <h2>Rendez-vous</h2>
 
-      <p class="section-titre">Quand</p>
-      <div class="champ-ligne champ-ligne-3">
-        <div class="champ">
-          <label>Date</label>
-          <input type="date" id="fDate">
-        </div>
-        <div class="champ">
-          <label>Heure</label>
-          <input type="time" id="fHeure">
-        </div>
-        <div class="champ">
-          <label>Durée</label>
-          <select id="fDuree">
-            <option value="15">15 min</option>
-            <option value="30" selected>30 min</option>
-            <option value="45">45 min</option>
-            <option value="60">1 h</option>
-            <option value="90">1 h 30</option>
-            <option value="120">2 h</option>
-          </select>
-        </div>
-      </div>
-
-      <p class="section-titre">Qui</p>
-      <div class="champ">
-        <div class="personnes" id="personnes">
-          <input type="radio" name="personne" value="<?= htmlspecialchars($p1) ?>" id="pPapa">
-          <label class="sel-papa" for="pPapa"><?= htmlspecialchars($p1) ?></label>
-          <input type="radio" name="personne" value="<?= htmlspecialchars($p2) ?>" id="pMaman">
-          <label class="sel-maman" for="pMaman"><?= htmlspecialchars($p2) ?></label>
-        </div>
-      </div>
-      <div class="champ">
-        <label>Accompagnant (facultatif)</label>
-        <input type="text" id="fAccompagnant" placeholder="Ex. Chem, Laurent, Hélène...">
-      </div>
-
-      <p class="section-titre">Détails médicaux</p>
-      <div class="champ">
-        <label>Médecin / consultation</label>
-        <input type="text" id="fMedecin" list="listeMedecins" autocomplete="off" placeholder="Ex. Dr Dupont">
-        <datalist id="listeMedecins"></datalist>
-        <button type="button" id="btnImporterMedecin" class="lien-importer-medecin" style="display:none;">Importer ce médecin dans le carnet</button>
-      </div>
-      <div class="champ">
-        <label>Département (facultatif)</label>
-        <input type="text" id="fDepartement" placeholder="Ex. Cardiologie">
-      </div>
-
-      <p class="section-titre">Coordonnées (facultatif)</p>
-      <div class="champ">
-        <label>Adresse</label>
-        <input type="text" id="fAdresse" placeholder="Ex. Rue de la Clinique 12, 1000 Bruxelles">
-      </div>
-      <div class="champ-ligne">
-        <div class="champ">
-          <label>Téléphone</label>
-          <input type="tel" id="fTelephone" placeholder="Ex. 02 123 45 67">
-        </div>
-        <div class="champ">
-          <label>Route</label>
-          <input type="text" id="fRoute">
+      <!-- Chaque section est enveloppee dans .section-groupe (titre + ses
+           champs, comme un seul bloc) : sur desktop large, .modal-corps
+           passe en grille 2 colonnes (voir style.css) et ces blocs se
+           repartissent Quand|Qui, Details medicaux|Coordonnees,
+           Notes|Questions - impossible de couper proprement un titre de
+           ses champs sans ce regroupement explicite. -->
+      <div class="section-groupe">
+        <p class="section-titre">Quand</p>
+        <div class="champ-ligne champ-ligne-3">
+          <div class="champ">
+            <label>Date</label>
+            <input type="date" id="fDate">
+          </div>
+          <div class="champ">
+            <label>Heure</label>
+            <input type="time" id="fHeure">
+          </div>
+          <div class="champ">
+            <label>Durée</label>
+            <select id="fDuree">
+              <option value="15">15 min</option>
+              <option value="30" selected>30 min</option>
+              <option value="45">45 min</option>
+              <option value="60">1 h</option>
+              <option value="90">1 h 30</option>
+              <option value="120">2 h</option>
+            </select>
+          </div>
         </div>
       </div>
 
-      <p class="section-titre">Notes (facultatif)</p>
-      <div class="champ">
-        <textarea id="fNotes" rows="3" placeholder="Ex. Apporter la carte SIS et les derniers résultats"></textarea>
+      <div class="section-groupe">
+        <p class="section-titre">Qui</p>
+        <div class="champ">
+          <div class="personnes" id="personnes">
+            <input type="radio" name="personne" value="<?= htmlspecialchars($p1) ?>" id="pPapa">
+            <label class="sel-papa" for="pPapa"><?= htmlspecialchars($p1) ?></label>
+            <input type="radio" name="personne" value="<?= htmlspecialchars($p2) ?>" id="pMaman">
+            <label class="sel-maman" for="pMaman"><?= htmlspecialchars($p2) ?></label>
+          </div>
+        </div>
+        <div class="champ">
+          <label>Accompagnant (facultatif)</label>
+          <input type="text" id="fAccompagnant" placeholder="Ex. Chem, Laurent, Hélène...">
+        </div>
       </div>
 
-      <p class="section-titre">Questions à poser (facultatif)</p>
-      <div class="champ">
-        <textarea id="fQuestions" rows="3" placeholder="Une question par ligne, ex. Peut-on arrêter ce traitement ?"></textarea>
+      <div class="section-groupe">
+        <p class="section-titre">Détails médicaux</p>
+        <div class="champ">
+          <label>Médecin / consultation</label>
+          <input type="text" id="fMedecin" list="listeMedecins" autocomplete="off" placeholder="Ex. Dr Dupont">
+          <datalist id="listeMedecins"></datalist>
+          <button type="button" id="btnImporterMedecin" class="lien-importer-medecin" style="display:none;">Importer ce médecin dans le carnet</button>
+        </div>
+        <div class="champ">
+          <label>Département (facultatif)</label>
+          <input type="text" id="fDepartement" placeholder="Ex. Cardiologie">
+        </div>
+      </div>
+
+      <div class="section-groupe">
+        <p class="section-titre">Coordonnées (facultatif)</p>
+        <div class="champ">
+          <label>Adresse</label>
+          <input type="text" id="fAdresse" placeholder="Ex. Rue de la Clinique 12, 1000 Bruxelles">
+        </div>
+        <div class="champ-ligne">
+          <div class="champ">
+            <label>Téléphone</label>
+            <input type="tel" id="fTelephone" placeholder="Ex. 02 123 45 67">
+          </div>
+          <div class="champ">
+            <label>Route</label>
+            <input type="text" id="fRoute">
+          </div>
+        </div>
+      </div>
+
+      <div class="section-groupe">
+        <p class="section-titre">Notes (facultatif)</p>
+        <div class="champ">
+          <textarea id="fNotes" rows="3" placeholder="Ex. Apporter la carte SIS et les derniers résultats"></textarea>
+        </div>
+      </div>
+
+      <div class="section-groupe">
+        <p class="section-titre">Questions à poser (facultatif)</p>
+        <div class="champ">
+          <textarea id="fQuestions" rows="3" placeholder="Une question par ligne, ex. Peut-on arrêter ce traitement ?"></textarea>
+        </div>
       </div>
 
       <p class="erreur" id="erreurForm"></p>
