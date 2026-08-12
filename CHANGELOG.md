@@ -2,6 +2,13 @@
 
 ## Non publié
 
+- **Médicaments : modification réservée à Laurent.** Les autres membres de
+  la famille consultent et impriment la fiche (`medicaments.php` +
+  `medicaments_plan.php`) mais ne voient plus le formulaire d'ajout/édition
+  ni les boutons Modifier/Supprimer/réorganiser — protection appliquée
+  aussi côté serveur (`$peutModifier`), pas seulement en masquant les
+  boutons.
+
 - **Journal d'activité (côté famille) : affiche aussi les connexions**,
   comme la version administration — auparavant limité aux ajouts/
   modifications/suppressions de rendez-vous. Comme la session reste active

@@ -7,6 +7,14 @@
  * Limité à Christiane pour l'instant (personne_2) - facile à étendre à
  * Michel plus tard (il suffirait d'ajouter un sélecteur de personne ici
  * et sur medicaments_plan.php, la table le supporte déjà).
+ *
+ * Modification (ajout/edition/suppression/réorganisation) réservée à
+ * Laurent - les autres membres de la famille consultent et impriment la
+ * fiche mais ne peuvent pas la changer, comme "Importer dans le carnet"
+ * sur les rendez-vous. $peutModifier protège aussi bien l'affichage des
+ * formulaires/boutons que le traitement des actions POST (une page
+ * masquée côté HTML ne suffit pas à empêcher une requête envoyée à la
+ * main).
  */
 
 require_once __DIR__ . '/lib/auth.php';
@@ -16,6 +24,7 @@ require_once __DIR__ . '/lib/medicaments.php';
 
 $config = require __DIR__ . '/config.php';
 $personneCible = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
+$peutModifier = personneSessionActuelle() === 'Laurent';
 
 $db = getDb();
 $erreur = '';
@@ -60,7 +69,7 @@ function imageExistanteChoisie($db, $personneCible) {
     return in_array($candidat, listerPhotosExistantes($db, $personneCible), true) ? $candidat : false;
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+if ($peutModifier && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     if ($_POST['action'] === 'ajouter') {
         try {
             $image = traiterUploadImageMedicament();
@@ -164,7 +173,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 }
 
 $medicamentEnEdition = null;
-if ($idEnEdition === null && isset($_GET['modifier'])) {
+if ($peutModifier && $idEnEdition === null && isset($_GET['modifier'])) {
     $idEnEdition = (int) $_GET['modifier'];
 }
 if ($idEnEdition !== null) {
@@ -207,7 +216,12 @@ foreach ($tousLesMedicaments as $m) {
       <a href="/index.php">Retour à l'agenda</a>
     </div>
   </div>
-  <p class="sous-titre" style="margin-bottom:18px;">Plan de prise de <?= htmlspecialchars($personneCible) ?>, à générer soi-même en fiche imprimable.</p>
+  <p class="sous-titre" style="margin-bottom:18px;">
+    Plan de prise de <?= htmlspecialchars($personneCible) ?>, à générer soi-même en fiche imprimable.
+    <?php if (!$peutModifier): ?>
+      Seul Laurent peut le modifier — tu peux le consulter et l'imprimer.
+    <?php endif; ?>
+  </p>
 
   <div class="outil">
     <a class="principal" href="/medicaments_plan.php" style="gap:8px;">
@@ -216,6 +230,7 @@ foreach ($tousLesMedicaments as $m) {
     </a>
   </div>
 
+  <?php if ($peutModifier): ?>
   <div class="outil" id="formulaireMedicament" style="margin-top:16px;">
     <h2 class="panneau-titre" style="font-size:15px;"><?= $medicamentEnEdition !== null ? 'Modifier le médicament' : 'Ajouter un médicament' ?></h2>
 
@@ -306,6 +321,7 @@ foreach ($tousLesMedicaments as $m) {
       </div>
     </form>
   </div>
+  <?php endif; ?>
 
   <?php if (empty($groupes)): ?>
     <div class="outil" style="margin-top:16px;">
@@ -318,7 +334,7 @@ foreach ($tousLesMedicaments as $m) {
       <div class="outil" style="margin-top:16px;">
         <div class="entete-section-medicaments">
           <h2 class="panneau-titre" style="font-size:15px; margin:0;"><?= htmlspecialchars($moment) ?> (<?= count($medicaments) ?>)</h2>
-          <?php if ($nombreSections > 1): ?>
+          <?php if ($peutModifier && $nombreSections > 1): ?>
             <div class="boutons-deplacer-section">
               <form method="post">
                 <input type="hidden" name="action" value="deplacer_moment">
@@ -350,6 +366,7 @@ foreach ($tousLesMedicaments as $m) {
                   <div class="coord-medecin"><?= htmlspecialchars($m['detail']) ?></div>
                 <?php endif; ?>
               </div>
+              <?php if ($peutModifier): ?>
               <div class="actions-medecin">
                 <a href="?modifier=<?= (int) $m['id'] ?>#formulaireMedicament" class="lien-modifier-tache">Modifier</a>
                 <form method="post" data-confirm="Supprimer ce médicament du plan ?">
@@ -358,6 +375,7 @@ foreach ($tousLesMedicaments as $m) {
                   <button type="submit" class="lien-danger">Supprimer</button>
                 </form>
               </div>
+              <?php endif; ?>
             </div>
           <?php endforeach; ?>
         </div>
