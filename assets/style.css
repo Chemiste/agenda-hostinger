@@ -710,6 +710,54 @@ button.danger:active { transform: scale(0.97); }
   transition: border-color var(--dur) var(--ease);
   font-family: inherit;
 }
+/* Champ obligatoire laisse vide (classe posee par marquerChampManquant()
+   dans app.js au clic sur Enregistrer) : signale sur place plutot que par
+   une phrase en bas du formulaire qu'il fallait lire puis traduire en
+   "quel champ, deja ?".
+   IMPORTANT - ne jamais s'appuyer sur la seule couleur : Chem est
+   daltonien et ne voyait pas le lisere rouge. Chaque marque est donc
+   doublee d'un indice non colore : la mention ecrite "A REMPLIR", un
+   triangle d'avertissement, un cadre nettement plus epais et une breve
+   secousse a l'apparition. */
+.champ.manquant::before {
+  content: "⚠ À REMPLIR";
+  display: block;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--danger);
+  margin-bottom: 3px;
+}
+.champ.manquant > label { color: var(--danger); font-weight: 700; }
+.champ.manquant input,
+.champ.manquant select {
+  border-width: 3px;
+  border-color: var(--danger);
+  background: #fff2f2;
+}
+.champ.manquant .personnes label {
+  border-width: 3px;
+  border-color: var(--danger);
+}
+/* Titre de la section concernee ("Quand", "Qui") : le triangle rend le
+   reperage possible sans distinguer la couleur. */
+.section-groupe.manquant > .section-titre { color: var(--danger); }
+.section-groupe.manquant > .section-titre::before { content: "⚠ "; }
+
+/* Secousse courte a l'apparition : un mouvement attire l'oeil quelle que
+   soit la perception des couleurs. Desactivee si la personne a demande de
+   limiter les animations dans son systeme. */
+.champ.manquant { animation: secousse-champ 320ms ease; }
+@keyframes secousse-champ {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-5px); }
+  45% { transform: translateX(4px); }
+  70% { transform: translateX(-2px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .champ.manquant { animation: none; }
+}
+
 .champ textarea {
   resize: vertical;
   min-height: 64px;
@@ -776,7 +824,18 @@ button.danger:active { transform: scale(0.97); }
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 12px;
+  /* Chaque carte prend sa hauteur naturelle au lieu d'etre etiree a la
+     hauteur de la plus haute de sa rangee : un rendez-vous sans notes ni
+     questions laissait sinon un grand rectangle vide a cote d'un voisin
+     charge. (Si le resultat parait trop irregulier a l'usage, retirer
+     cette ligne suffit a revenir a l'ancien comportement.) */
+  align-items: start;
 }
+/* Mois avec un seul rendez-vous : la carte occupe toute la largeur plutot
+   que de laisser une demi-ligne blanche a sa droite - meme principe qu'a
+   l'impression (voir .cc-mois-grille). Uniquement quand la grille a
+   plusieurs colonnes, sinon la regle ne change rien. */
+.jour-groupe > .rdv:only-of-type { grid-column: 1 / -1; }
 
 .rdv {
   position: relative;
@@ -843,8 +902,13 @@ button.danger:active { transform: scale(0.97); }
 .icone { width: 13px; height: 13px; vertical-align: -2px; margin-right: 5px; flex-shrink: 0; }
 
 .rdv-corps { padding: 12px 14px 14px; }
+/* align-self : la carte (.rdv) est un conteneur flex vertical, donc un
+   inline-block s'y etire sur toute la largeur - la pastille "Aujourd'hui"
+   devenait une grosse barre coloree qui pesait plus lourd que le nom du
+   medecin en dessous. On la ramene a sa largeur naturelle, a gauche. */
 .badge-jour {
   display: inline-block;
+  align-self: flex-start;
   font-size: 11px;
   font-weight: 700;
   padding: 2px 9px;
@@ -853,7 +917,19 @@ button.danger:active { transform: scale(0.97); }
 }
 .badge-aujourdhui { background: var(--accent); color: #fff; }
 .badge-demain { background: var(--tous-bg); color: var(--tous); }
-.medecin { font-size: 16px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Nom du medecin affiche en entier, sur deux lignes si necessaire : c'est
+   l'information principale de la carte, la couper avec "..." la rendait
+   inutilisable ("Consultation avec Anne-Catherine Poule..."). L'icone est
+   sortie du flux du texte pour que la 2e ligne s'aligne sous la 1re et
+   non sous l'icone. */
+.medecin {
+  font-size: 16px;
+  font-weight: 600;
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+}
+.medecin .icone { margin-top: 4px; }
 .departement { font-size: 16px; font-weight: 700; color: var(--text-secondary); font-style: italic; }
 /* La ligne "lieu · route" peut etre longue : elle se replie sur une
    deuxieme ligne plutot que d'etre coupee par "..." (l'adresse tronquee

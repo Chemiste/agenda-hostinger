@@ -949,6 +949,7 @@ function viderFormulaire() {
   document.querySelectorAll('.personnes input').forEach(function (r) { r.checked = false; });
   document.querySelectorAll('.personnes label').forEach(function (l) { l.classList.remove('checked'); });
   document.getElementById('erreurForm').textContent = '';
+  effacerChampsManquants();
   document.getElementById('btnSupprimer').style.display = 'none';
   idEnEdition = null;
   actualiserBoutonImporterMedecin();
@@ -1000,6 +1001,51 @@ document.querySelectorAll('.personnes input').forEach(function (input) {
     // Chacun a ses propres pathologies : le menu doit suivre le changement
     // de personne (et disparaitre si la nouvelle n'en a aucune).
     actualiserChoixPathologies();
+  });
+});
+
+// --- Signalement des champs obligatoires manquants -----------------
+// Marque le .champ qui contient $el, et met aussi son titre de section en
+// rouge : dans le formulaire en 2 colonnes, ca aide a reperer de loin
+// dans quelle partie ("Quand", "Qui") il manque quelque chose.
+function marquerChampManquant(el, manquant) {
+  var champ = el.closest ? el.closest('.champ') : null;
+  if (!champ) return;
+  champ.classList.toggle('manquant', manquant);
+  // Relire offsetWidth force le navigateur a recalculer la mise en page :
+  // sans ca, retirer puis remettre la classe dans le meme instant ne
+  // rejoue pas la secousse, et un second clic sur "Enregistrer" avec les
+  // memes champs vides ne produirait aucun signal visible.
+  if (manquant) void champ.offsetWidth;
+  var groupe = champ.closest('.section-groupe');
+  if (groupe) {
+    groupe.classList.toggle('manquant', groupe.querySelector('.champ.manquant') !== null);
+  }
+}
+
+function effacerChampsManquants() {
+  document.querySelectorAll('#formCard .champ.manquant').forEach(function (c) {
+    c.classList.remove('manquant');
+  });
+  document.querySelectorAll('#formCard .section-groupe.manquant').forEach(function (g) {
+    g.classList.remove('manquant');
+  });
+}
+
+// Le rouge disparait des que la personne remplit le champ concerne : le
+// laisser jusqu'au prochain "Enregistrer" donnerait l'impression que
+// quelque chose ne va toujours pas.
+['fDate', 'fHeure'].forEach(function (id) {
+  var champ = document.getElementById(id);
+  if (champ) {
+    champ.addEventListener('input', function () {
+      if (champ.value) marquerChampManquant(champ, false);
+    });
+  }
+});
+document.querySelectorAll('.personnes input').forEach(function (input) {
+  input.addEventListener('change', function () {
+    marquerChampManquant(input, false);
   });
 });
 
@@ -1234,9 +1280,22 @@ document.getElementById('btnEnregistrer').addEventListener('click', function () 
   var questions = document.getElementById('fQuestions').value;
   var pathologieId = document.getElementById('fPathologie').value || '0';
 
-  if (!date || !heure || !personneInput) {
-    document.getElementById('erreurForm').textContent =
-      "Merci de remplir la date, l'heure et de choisir pour qui.";
+  // Champs obligatoires manquants : on les entoure de rouge sur place
+  // plutot que d'ecrire une phrase en bas du formulaire - il fallait
+  // sinon la lire, comprendre de quel champ elle parlait, puis le
+  // retrouver. Le premier champ manquant recoit le focus.
+  var manquants = [];
+  if (!date) manquants.push(document.getElementById('fDate'));
+  if (!heure) manquants.push(document.getElementById('fHeure'));
+  // Le premier bouton radio plutot que le conteneur : un <div> ne prend
+  // pas le focus, un <input> oui.
+  if (!personneInput) manquants.push(document.querySelector('.personnes input'));
+
+  effacerChampsManquants();
+  if (manquants.length > 0) {
+    manquants.forEach(function (el) { marquerChampManquant(el, true); });
+    manquants[0].scrollIntoView({ block: 'center', behavior: 'smooth' });
+    if (typeof manquants[0].focus === 'function') manquants[0].focus();
     return;
   }
 

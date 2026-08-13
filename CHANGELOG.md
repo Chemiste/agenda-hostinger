@@ -12,6 +12,23 @@
   son titre seul en bas d'une page), un rendez-vous seul sur sa ligne
   occupe toute la largeur, et la feuille porte sa date d'impression.
 
+- **Champs obligatoires manquants signalés sur place.** Au clic sur
+  "Enregistrer", les champs vides (date, heure, personne) s'entourent de
+  rouge, leur libellé et le titre de leur section passent en rouge, et le
+  premier est amené à l'écran — au lieu d'une phrase en bas du formulaire
+  qu'il fallait lire puis traduire en "quel champ, déjà ?". Le rouge
+  disparaît dès que le champ est rempli.
+
+- **Cartes de l'accueil : moins de blanc, plus rien de coupé.** Le nom du
+  médecin passe sur deux lignes au lieu d'être tronqué par "…", les
+  badges "Aujourd'hui"/"Demain" reprennent leur largeur naturelle au lieu
+  de s'étirer en bandeau, chaque carte prend sa hauteur réelle, et un mois
+  à un seul rendez-vous occupe toute la largeur.
+
+- **Lieu et route sur une seule ligne** ("Route 551 · Hôpital St Luc") :
+  seul Saint-Luc utilise la notion de route, elle n'a de sens qu'accolée
+  au lieu — une ligne gagnée par carte, à l'écran comme à l'impression.
+
 - **Notes affichées en entier sur l'accueil.** Une note n'est plus coupée
   à la première ligne avec "..." : elle s'affiche complètement sur la carte
   du rendez-vous. Le survol et le clic pour la déplier disparaissent du
