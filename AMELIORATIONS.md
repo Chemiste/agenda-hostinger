@@ -15,7 +15,7 @@ suivant.
 | 2 | Nom de la personne = plus petit texte de la carte imprimée | ✅ à tester |
 | 4 | Date abrégée sur la carte ("mar. 18") | ✅ à tester |
 | 3 | Textes coupés par « … » (médecin, adresse, route) | ⬜ à faire |
-| 5 | Pas de date d'impression ni de numéro de page sur la feuille | ⬜ à faire |
+| 5 | Pas de date d'impression ni de numéro de page sur la feuille | ✅ à tester |
 | 6 | Médicaments et Pathologies cachés dans le menu du prénom | ⬜ à faire |
 | 7 | « Normal » / « Compact » ne veulent rien dire | ✅ à tester |
 | 8 | Beaucoup de commandes avant d'arriver aux rendez-vous | ⬜ à faire |
@@ -82,6 +82,39 @@ sont toutes dans `assets/style.css`, bloc `@media print`).
 3. Vérifier sur téléphone Android aussi (le délai de 300 ms qui corrigeait
    l'ancien bug est conservé).
 
+## 5 — Date d'impression et numéro de page ✅ à tester
+
+**Date d'impression** — faite dans le code : « Imprimé le 13 août 2026 »
+s'affiche sous le titre de la feuille, calculée au moment du clic sur
+Imprimer (`#dateImpression` dans `index.php`, rempli par `app.js`).
+
+**Numéro de page « 1 sur 2 » — réglage du navigateur, pas du code.**
+
+Les compteurs CSS prévus pour ça (`@page { @bottom-right { content:
+counter(page) " / " counter(pages) } }`) font bien partie du standard CSS
+Paged Media, mais **aucun navigateur ne les implémente** : seuls les
+moteurs de rendu PDF dédiés le font (WeasyPrint, Prince, typeset.sh...).
+Il faudrait donc générer le PDF côté serveur, ce qu'on a choisi de ne pas
+faire. Décision prise : laisser Firefox numéroter.
+
+Par défaut Firefox ajoute aussi l'URL et le titre, ce qui alourdit la
+feuille. On peut ne garder que le numéro de page :
+
+1. Barre d'adresse → `about:config` → accepter l'avertissement
+2. Rechercher `print.print_`
+3. Vider (valeur vide) : `print_headerleft`, `print_headercenter`,
+   `print_headerright`, `print_footerleft`, `print_footercenter`
+4. Mettre `print_footerright` à `&PT`
+5. Dans le dialogue d'impression, cocher « Imprimer les en-têtes et pieds
+   de page » (section « Plus de réglages »)
+
+Codes disponibles : `&PT` (page X sur Y), `&P` (numéro seul), `&D` (date),
+`&T` (titre), `&U` (URL). Inutile de garder `&D` : la date est déjà dans
+la page.
+
+⚠️ Réglage propre à chaque profil Firefox — à refaire sur l'ordinateur de
+Michel et Christiane s'ils impriment eux-mêmes.
+
 **Commit suggéré**
 ```
 Improve printed agenda for elderly readers
@@ -92,5 +125,7 @@ so a page break never hides which month an appointment belongs to.
 
 Drop the Normal/Compact print menu: the card grid is now the only
 printed format and the Imprimer button prints straight away. Add a
-full-width month heading before each new month in the printed grid.
+full-width month heading before each new month in the printed grid,
+keep short months unbreakable so a heading never sits alone at the
+bottom of a page, and stamp the sheet with its printing date.
 ```

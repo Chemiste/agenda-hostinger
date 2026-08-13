@@ -8,7 +8,9 @@
   ("mardi 18 août · 14h05"), notes incluses. Le menu "Normal / Compact"
   disparaît — la grille de cartes est le seul format et le bouton
   "Imprimer" imprime directement. Un titre de mois sépare désormais les
-  groupes de rendez-vous sur la feuille.
+  groupes de rendez-vous sur la feuille (un mois court ne peut pas laisser
+  son titre seul en bas d'une page), un rendez-vous seul sur sa ligne
+  occupe toute la largeur, et la feuille porte sa date d'impression.
 
 - **Notes affichées en entier sur l'accueil.** Une note n'est plus coupée
   à la première ligne avec "..." : elle s'affiche complètement sur la carte

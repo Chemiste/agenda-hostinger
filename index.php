@@ -84,8 +84,13 @@ $p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
 
   <div class="page-layout">
     <div class="colonne-principale">
+      <!-- Visible uniquement à l'impression (voir #entete-impression dans
+           style.css). La date est remplie juste avant d'imprimer, pour
+           qu'une feuille retrouvée sur la table dise toujours de quand
+           elle date. -->
       <div id="entete-impression">
         <h1>Rendez-vous médicaux — <span id="filtreImpression">Tous</span></h1>
+        <p id="dateImpression"></p>
       </div>
 
       <div id="liste">

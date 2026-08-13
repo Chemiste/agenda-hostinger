@@ -499,6 +499,27 @@ function heureLisible(heure) {
   return (heure || '').replace(':', 'h');
 }
 
+// Lieu et route sur une seule ligne ("Hôpital St Luc · Route 551") plutot
+// que deux : seul Saint-Luc utilise cette notion de route (le circuit
+// interne à suivre une fois sur place), elle n'a donc de sens qu'accolée
+// au lieu - et ça economise une ligne par carte a l'impression.
+// Si un rendez-vous n'a qu'une route sans lieu, elle garde sa propre
+// ligne avec son icone habituelle.
+function lieuEtRouteHtml(r) {
+  var lieu = r.location ? (r.location_affichage || r.location) : '';
+  if (lieu === '' && !r.route) return '';
+  if (!r.route) {
+    return '<div class="contact">' + ICONES.lieu + escapeHtml(lieu) + '</div>';
+  }
+  // Route en tete : voir le mot "Route" suffit a savoir qu'on est a
+  // Saint-Luc (seul etablissement qui utilise cette notion), et c'est
+  // l'information a suivre une fois sur place.
+  return '<div class="contact">' + ICONES.route +
+    '<span class="route-en-ligne">' + escapeHtml(r.route) + '</span>' +
+    (lieu !== '' ? ' · ' + escapeHtml(lieu) : '') +
+    '</div>';
+}
+
 function classeBadge(personne) {
   if (personne === window.PERSONNE_1) return 'papa';
   if (personne === window.PERSONNE_2) return 'maman';
@@ -634,9 +655,8 @@ function afficherListe() {
         (t.departement ? '<div class="departement">' + escapeHtml(t.departement) + '</div>' : '') +
         '<div class="medecin">' + ICONES.medecin + escapeHtml(t.medecin) + '</div>' +
         (r.pathologie_nom ? '<div class="pathologie-rdv">' + escapeHtml(r.pathologie_nom) + '</div>' : '') +
-        (r.location ? '<div class="contact">' + ICONES.lieu + escapeHtml(r.location_affichage || r.location) + '</div>' : '') +
+        lieuEtRouteHtml(r) +
         (r.phone ? '<div class="contact">' + ICONES.telephone + escapeHtml(r.phone) + '</div>' : '') +
-        (r.route ? '<div class="route">' + ICONES.route + escapeHtml(r.route) + '</div>' : '') +
         (r.accompagnant ? '<div class="accompagnant">' + ICONES.accompagnant + escapeHtml(r.accompagnant) + '</div>' : '') +
         (r.notes ? '<div class="notes">' + ICONES.note + escapeHtml(r.notes) + '</div>' : '') +
         (r.questions ? '<div class="questions">' +
@@ -810,6 +830,20 @@ function genererGrilleCompacte(filtres) {
   }).join('');
 }
 
+// Meme regroupement lieu + route que sur les cartes de l'ecran (voir
+// lieuEtRouteHtml), pour la grille imprimee.
+function lieuEtRouteCompactHtml(r) {
+  var lieu = r.location ? (r.location_affichage || r.location) : '';
+  if (lieu === '' && !r.route) return '';
+  if (!r.route) {
+    return '<div class="cc-adresse">' + escapeHtml(lieu) + '</div>';
+  }
+  return '<div class="cc-adresse">' +
+    '<span class="cc-route-en-ligne">' + escapeHtml(r.route) + '</span>' +
+    (lieu !== '' ? ' · ' + escapeHtml(lieu) : '') +
+    '</div>';
+}
+
 function carteCompacteHtml(r) {
   var d = formatDateCompacte(r.date);
   var cls = classeBadge(r.person);
@@ -828,8 +862,7 @@ function carteCompacteHtml(r) {
         '<div class="cc-contenu">' +
           (t.departement ? '<div class="cc-sous">' + escapeHtml(t.departement) + '</div>' : '') +
           '<div class="cc-titre">' + escapeHtml(t.medecin) + '</div>' +
-          (r.location ? '<div class="cc-adresse">' + escapeHtml(r.location_affichage || r.location) + '</div>' : '') +
-          (r.route ? '<div class="cc-route">' + escapeHtml(r.route) + '</div>' : '') +
+          lieuEtRouteCompactHtml(r) +
           (r.pathologie_nom ? '<div class="cc-pathologie">' + escapeHtml(r.pathologie_nom) + '</div>' : '') +
           (r.accompagnant ? '<div class="cc-accompagnant">Avec ' + escapeHtml(r.accompagnant) + '</div>' : '') +
           (r.notes ? '<div class="cc-notes">' + escapeHtml(r.notes) + '</div>' : '') +
@@ -1120,6 +1153,15 @@ initMenuSuspendu('menuCompte', 'btnMenuCompte');
 document.getElementById('btnImprimer').addEventListener('click', function () {
   fermerMenusSuspendus();
   document.body.classList.add('impression-compacte');
+
+  // Date du jour inscrite sur la feuille : une feuille qui traine sur la
+  // table ne dit sinon pas si elle date d'hier ou d'il y a six semaines.
+  var champDate = document.getElementById('dateImpression');
+  if (champDate) {
+    champDate.textContent = 'Imprimé le ' + new Date().toLocaleDateString('fr-FR', {
+      day: 'numeric', month: 'long', year: 'numeric'
+    });
+  }
 
   // On ajoute le délai ici pour Android
   setTimeout(function() {

@@ -743,8 +743,15 @@ button.danger:active { transform: scale(0.97); }
 .badge-demain { background: var(--tous-bg); color: var(--tous); }
 .medecin { font-size: 16px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .departement { font-size: 16px; font-weight: 700; color: var(--text-secondary); font-style: italic; }
-.contact { font-size: 13px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* La ligne "lieu · route" peut etre longue : elle se replie sur une
+   deuxieme ligne plutot que d'etre coupee par "..." (l'adresse tronquee
+   etait inutilisable). */
+.contact { font-size: 13px; color: var(--text-muted); }
 .route { font-size: 13px; font-weight: 700; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Route accolee au lieu sur la meme ligne (voir lieuEtRouteHtml dans
+   app.js) : gardee en gras et en couleur de texte normale pour rester
+   reperable au milieu de la ligne d'adresse, plus discrete. */
+.route-en-ligne { font-weight: 700; color: var(--text); white-space: nowrap; }
 .accompagnant { font-size: 13px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* Pathologie associee au rendez-vous (voir pathologies.php) : petite
    etiquette sous le nom du medecin, pour voir d'un coup d'oeil "ce
@@ -1025,6 +1032,7 @@ button.danger:active { transform: scale(0.97); }
     line-height: 1.25;
   }
   .cc-route { font-size: 10pt; font-weight: 700; margin-top: 1px; }
+  .cc-route-en-ligne { font-weight: 700; color: #222; white-space: nowrap; }
   .cc-accompagnant { font-size: 10pt; color: #555; margin-top: 1px; }
   .cc-pathologie { font-size: 10pt; font-weight: 700; color: #444; margin-top: 1px; }
   .cc-notes {
@@ -1086,7 +1094,8 @@ button.danger:active { transform: scale(0.97); }
 }
 #entete-impression { display: none; }
 @media print {
-  #entete-impression { display: block; margin-bottom: 10px; }
-  #entete-impression h1 { font-size: 15pt; margin: 0 0 2px; }
-  #entete-impression p { font-size: 9pt; color: #444; margin: 0; }
+  #entete-impression { display: block; margin-bottom: 12px; }
+  #entete-impression h1 { font-size: 16pt; margin: 0 0 3px; }
+  #entete-impression p { font-size: 11pt; color: #444; margin: 0; }
+  #entete-impression p:empty { display: none; }
 }
