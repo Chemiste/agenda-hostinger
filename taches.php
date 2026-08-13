@@ -8,6 +8,7 @@
 
 require_once __DIR__ . '/lib/auth.php';
 requireIdentite();
+require_once __DIR__ . '/lib/entete.php';
 require_once __DIR__ . '/lib/db.php';
 require_once __DIR__ . '/lib/taches.php';
 
@@ -98,12 +99,10 @@ function classePersonneTache($personne, $p1, $p2) {
 <link rel="stylesheet" href="/assets/admin.css?v=<?= filemtime(__DIR__ . '/assets/admin.css') ?>">
 </head>
 <body>
+  <?php afficherEnteteNavigation('taches'); ?>
+
   <div class="barre-admin">
     <h1>Tâches</h1>
-    <div>
-      <span class="qui-connecte"><?= htmlspecialchars(personneSessionActuelle()) ?></span>
-      <a href="/index.php">Retour à l'agenda</a>
-    </div>
   </div>
   <p class="sous-titre" style="margin-bottom:18px;">Des choses à faire qui ne sont pas (encore) un rendez-vous : "prendre rdv chez...", "annuler le rendez-vous de...".</p>
 
@@ -220,5 +219,6 @@ function classePersonneTache($personne, $p1, $p2) {
   <?php endif; ?>
 
   <script src="/assets/admin-ui.js?v=<?= filemtime(__DIR__ . '/assets/admin-ui.js') ?>"></script>
+  <script src="/assets/entete.js?v=<?= filemtime(__DIR__ . '/assets/entete.js') ?>"></script>
 </body>
 </html>

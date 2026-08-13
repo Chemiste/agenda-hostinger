@@ -8,6 +8,7 @@
 
 require_once __DIR__ . '/lib/auth.php';
 requireIdentite();
+require_once __DIR__ . '/lib/entete.php';
 require_once __DIR__ . '/lib/db.php';
 require_once __DIR__ . '/lib/medecins.php';
 
@@ -138,12 +139,10 @@ function afficherRangeeMedecin($m) {
 <link rel="stylesheet" href="/assets/admin.css?v=<?= filemtime(__DIR__ . '/assets/admin.css') ?>">
 </head>
 <body>
+  <?php afficherEnteteNavigation('medecins'); ?>
+
   <div class="barre-admin">
     <h1>Médecins</h1>
-    <div>
-      <span class="qui-connecte"><?= htmlspecialchars(personneSessionActuelle()) ?></span>
-      <a href="/index.php">Retour à l'agenda</a>
-    </div>
   </div>
   <p class="sous-titre" style="margin-bottom:18px;">Un carnet de référence (médecin, spécialité, adresse, téléphone...) à garder même sans rendez-vous prévu. Utilisé aussi pour pré-remplir automatiquement le formulaire de rendez-vous.</p>
 
@@ -226,5 +225,6 @@ function afficherRangeeMedecin($m) {
   </div>
 
   <script src="/assets/admin-ui.js?v=<?= filemtime(__DIR__ . '/assets/admin-ui.js') ?>"></script>
+  <script src="/assets/entete.js?v=<?= filemtime(__DIR__ . '/assets/entete.js') ?>"></script>
 </body>
 </html>

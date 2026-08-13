@@ -19,6 +19,7 @@
 
 require_once __DIR__ . '/lib/auth.php';
 requireIdentite();
+require_once __DIR__ . '/lib/entete.php';
 require_once __DIR__ . '/lib/db.php';
 require_once __DIR__ . '/lib/medicaments.php';
 
@@ -209,12 +210,10 @@ foreach ($tousLesMedicaments as $m) {
 <link rel="stylesheet" href="/assets/admin.css?v=<?= filemtime(__DIR__ . '/assets/admin.css') ?>">
 </head>
 <body>
+  <?php afficherEnteteNavigation('medicaments'); ?>
+
   <div class="barre-admin">
     <h1>Médicaments</h1>
-    <div>
-      <span class="qui-connecte"><?= htmlspecialchars(personneSessionActuelle()) ?></span>
-      <a href="/index.php">Retour à l'agenda</a>
-    </div>
   </div>
   <p class="sous-titre" style="margin-bottom:18px;">
     Plan de prise de <?= htmlspecialchars($personneCible) ?>, à générer soi-même en fiche imprimable.
@@ -223,12 +222,13 @@ foreach ($tousLesMedicaments as $m) {
     <?php endif; ?>
   </p>
 
-  <div class="outil">
-    <a class="principal" href="/medicaments_plan.php" style="gap:8px;">
-      <svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6"/><rect x="4" y="9" width="16" height="8" rx="1"/><path d="M6 17v4h12v-4"/></svg>
-      Voir / imprimer la fiche
-    </a>
-  </div>
+  <!-- Meme presentation que sur Pathologies : bouton pose directement dans
+       la page (pas dans une carte blanche) et classe .bouton-fiche
+       commune, sinon les deux boutons n'avaient pas la meme hauteur. -->
+  <a class="principal bouton-fiche" href="/medicaments_plan.php">
+    <svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6"/><rect x="4" y="9" width="16" height="8" rx="1"/><path d="M6 17v4h12v-4"/></svg>
+    Voir / imprimer la fiche
+  </a>
 
   <?php if ($peutModifier): ?>
   <div class="outil" id="formulaireMedicament" style="margin-top:16px;">
@@ -414,5 +414,6 @@ foreach ($tousLesMedicaments as $m) {
     }
   })();
   </script>
+  <script src="/assets/entete.js?v=<?= filemtime(__DIR__ . '/assets/entete.js') ?>"></script>
 </body>
 </html>

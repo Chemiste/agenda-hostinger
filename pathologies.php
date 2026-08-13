@@ -15,6 +15,7 @@
 
 require_once __DIR__ . '/lib/auth.php';
 requireIdentite();
+require_once __DIR__ . '/lib/entete.php';
 require_once __DIR__ . '/lib/db.php';
 require_once __DIR__ . '/lib/pathologies.php';
 
@@ -138,12 +139,10 @@ function classePersonnePathologie($personne, $p1, $p2) {
 <link rel="stylesheet" href="/assets/admin.css?v=<?= filemtime(__DIR__ . '/assets/admin.css') ?>">
 </head>
 <body>
+  <?php afficherEnteteNavigation('pathologies'); ?>
+
   <div class="barre-admin">
     <h1>Pathologies</h1>
-    <div>
-      <span class="qui-connecte"><?= htmlspecialchars(personneSessionActuelle()) ?></span>
-      <a href="/index.php">Retour à l'agenda</a>
-    </div>
   </div>
   <p class="sous-titre" style="margin-bottom:18px;">
     Pour chaque pathologie : la cause/raison, et ce qui est fait pour la soigner (kiné, médecin, médicaments...).
@@ -167,7 +166,7 @@ function classePersonnePathologie($personne, $p1, $p2) {
          l'onglet actif l'indique deja, et l'emboitement de cartes (padding +
          marges a chaque niveau) laissait beaucoup de blanc perdu. -->
     <div class="section-personne-pathologies <?= $personne === $personneActive ? 'active' : '' ?>" id="section-<?= htmlspecialchars($personne) ?>" data-personne="<?= htmlspecialchars($personne) ?>">
-      <a class="principal bouton-fiche-pathologies" href="/pathologies_plan.php?person=<?= urlencode($personne) ?>">
+      <a class="principal bouton-fiche" href="/pathologies_plan.php?person=<?= urlencode($personne) ?>">
         <svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6"/><rect x="4" y="9" width="16" height="8" rx="1"/><path d="M6 17v4h12v-4"/></svg>
         Voir / imprimer la fiche de <?= htmlspecialchars($personne) ?>
       </a>
@@ -285,5 +284,6 @@ function classePersonnePathologie($personne, $p1, $p2) {
   })();
   </script>
   <script src="/assets/admin-ui.js?v=<?= filemtime(__DIR__ . '/assets/admin-ui.js') ?>"></script>
+  <script src="/assets/entete.js?v=<?= filemtime(__DIR__ . '/assets/entete.js') ?>"></script>
 </body>
 </html>

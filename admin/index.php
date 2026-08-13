@@ -142,5 +142,16 @@ $reminderDelai = getSetting($db, 'reminder_hours_before', '24');
     </div>
     <span class="fleche">›</span>
   </a>
+  <!-- Adresses et preferences par personne : retirees du menu familial,
+       Michel et Christiane ne s'en servent pas et c'est Laurent qui les
+       renseigne pour eux. La page reste la meme, seul son point d'entree
+       change. -->
+  <a class="carte-accueil carte-large carte-notif" href="/mes_rappels.php">
+    <div>
+      <div class="titre">Adresses email et préférences par personne</div>
+      <div class="detail">Qui reçoit quels rappels</div>
+    </div>
+    <span class="fleche">›</span>
+  </a>
 </body>
 </html>

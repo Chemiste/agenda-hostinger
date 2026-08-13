@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/lib/auth.php';
 requireIdentite();
+require_once __DIR__ . '/lib/entete.php';
 
 $config = require __DIR__ . '/config.php';
 $p1 = isset($config['personne_1']) ? $config['personne_1'] : 'Papa';
@@ -17,10 +18,16 @@ $p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
 </head>
 <body>
 
+  <?php afficherEnteteNavigation('agenda'); ?>
+
   <div class="topbar">
+    <!-- Deuxieme etage : le titre de la page et SES actions. "Ajouter" et
+         "Imprimer" ne sont pas des destinations - ils n'ont donc rien a
+         faire dans la barre de navigation ci-dessus, d'autant qu'ils
+         n'imprimeraient pas la meme chose d'une page a l'autre. -->
     <div class="entete">
       <div>
-        <h1>Agenda médical</h1>
+        <h1>Rendez-vous</h1>
       </div>
       <div class="entete-actions">
         <button class="bouton-compact bouton-compact-principal" id="btnAjouter">
@@ -34,46 +41,6 @@ $p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
           <svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6"/><rect x="4" y="9" width="16" height="8" rx="1"/><path d="M6 17v4h12v-4"/></svg>
           Imprimer
         </button>
-        <!-- Raccourcis vers les deux fiches que Michel et Christiane
-             voudront consulter/imprimer : cachees derriere le menu a leur
-             prenom, personne ne les trouvait ("mon prenom = un menu" n'est
-             pas devinable). Visibles uniquement sur grand ecran (voir CSS) :
-             sur telephone la place manque, ils restent dans le menu. -->
-        <a class="bouton-compact raccourci-desktop" href="/medicaments.php">
-          <svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="7" rx="3.5"/><path d="M8 11v7"/><circle cx="17" cy="6" r="3"/></svg>
-          Médicaments
-        </a>
-        <a class="bouton-compact raccourci-desktop" href="/pathologies.php">
-          <svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-          Pathologies
-        </a>
-        <div class="menu-suspendu" id="menuCompte">
-          <button class="bouton-compact bouton-menu-suspendu" id="btnMenuCompte" type="button" aria-haspopup="true" aria-expanded="false">
-            <svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-            <?= htmlspecialchars(personneSessionActuelle()) ?>
-            <svg class="icone icone-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
-          </button>
-          <div class="menu-deroulant" id="menuCompteListe">
-            <?php if (personneSessionActuelle() === 'Laurent'): ?>
-            <a href="/admin/index.php"><svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20a8 8 0 1 0 0-16 8 8 0 0 0 0 16z"/><path d="M12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>Administration</a>
-            <?php endif; ?>
-            <a href="/historique.php"><svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 7v5l3 3"/></svg>Journal d'activité</a>
-            <a href="/taches.php"><svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="6" height="6" rx="1"/><path d="M3 15h6v6H3z"/><path d="M13 5h8M13 9h8M13 15h8M13 19h8"/></svg>Tâches</a>
-            <a href="/medecins.php"><svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>Médecins</a>
-            <!-- Masquees sur grand ecran (voir CSS) : les memes raccourcis
-                 sont alors deja dans la barre du haut, inutile de les
-                 proposer deux fois. Sur telephone ils n'y sont pas, donc
-                 c'est ici qu'on les trouve. -->
-            <a href="/medicaments.php" class="doublon-raccourci"><svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="7" rx="3.5"/><path d="M8 11v7"/><circle cx="17" cy="6" r="3"/></svg>Médicaments</a>
-            <a href="/pathologies.php" class="doublon-raccourci"><svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>Pathologies</a>
-            <a href="/mes_rappels.php"><svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>Rappels par email</a>
-            <!-- Ecarte des autres liens et confirme avant d'agir (voir
-                 app.js) : un clic par megarde deconnecte, et Michel ou
-                 Christiane ne connaissent pas le mot de passe familial
-                 pour revenir. -->
-            <a href="/logout.php" id="lienDeconnexion" class="lien-deconnexion"><svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>Déconnexion</a>
-          </div>
-        </div>
       </div>
     </div>
 
@@ -286,5 +253,6 @@ $p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
     window.PERSONNE_CONNECTEE = <?= json_encode(personneSessionActuelle()) ?>;
   </script>
   <script src="/assets/app.js?v=<?= filemtime(__DIR__ . '/assets/app.js') ?>"></script>
+  <script src="/assets/entete.js?v=<?= filemtime(__DIR__ . '/assets/entete.js') ?>"></script>
 </body>
 </html>

@@ -12,6 +12,24 @@
   son titre seul en bas d'une page), un rendez-vous seul sur sa ligne
   occupe toute la largeur, et la feuille porte sa date d'impression.
 
+- **Barre de navigation partagée par toutes les pages familiales.**
+  Auparavant l'accueil avait sa barre de boutons et les autres pages une
+  barre grise "Retour à l'agenda" : aller de Médicaments à Pathologies
+  obligeait à repasser par l'agenda puis à rouvrir un menu. Désormais deux
+  étages : en haut la navigation (Agenda, Tâches, Médecins, Médicaments,
+  Pathologies), identique partout, avec la page courante marquée ; en
+  dessous le titre de la page et ses propres actions. "Ajouter" et
+  "Imprimer" redescendent donc dans l'agenda — ce ne sont pas des
+  destinations, et ils n'impriment pas la même chose d'une page à l'autre.
+  L'en-tête vit dans un seul fichier (`lib/entete.php`) au lieu d'être
+  réécrit par chaque page. Sur téléphone, les destinations restent dans le
+  menu déroulant comme avant, faute de place.
+
+- **Journal d'activité et rappels par email passent côté administration.**
+  Michel et Christiane ne s'en servent pas ; les liens quittent le menu
+  familial. Le journal complet existait déjà dans l'administration, et les
+  adresses/préférences par personne y sont maintenant accessibles.
+
 - **Champs obligatoires manquants signalés sur place.** Au clic sur
   "Enregistrer", les champs vides (date, heure, personne) s'entourent de
   rouge, leur libellé et le titre de leur section passent en rouge, et le

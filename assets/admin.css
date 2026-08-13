@@ -38,10 +38,12 @@
    restent dans le DOM mais cachees, bascule geree en JS sans recharger. --- */
 .section-personne-pathologies { display:none; }
 .section-personne-pathologies.active { display:block; }
-/* Bouton "Voir / imprimer la fiche" pose directement dans la section (plus
+/* Bouton "Voir / imprimer la fiche", pose directement dans la page (pas
    dans sa propre carte) : un peu plus discret que le bouton d'action
-   principal d'un formulaire, puisque c'est un simple lien de consultation. */
-a.bouton-fiche-pathologies { flex:none; gap:8px; padding:10px 16px; font-size:14px; }
+   principal d'un formulaire, puisque c'est un simple lien de consultation.
+   Classe commune a Medicaments et Pathologies - les deux avaient des
+   hauteurs differentes tant que seule Pathologies l'utilisait. */
+a.bouton-fiche { flex:none; gap:8px; padding:10px 16px; font-size:14px; }
 /* Cartes de cette page un peu moins hautes : le formulaire et la liste ont
    chacun leur carte, pas besoin d'y ajouter le padding genereux du reste
    de l'admin (voir .outil). */

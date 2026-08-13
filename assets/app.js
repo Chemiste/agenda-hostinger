@@ -1226,16 +1226,21 @@ document.addEventListener('keydown', function (e) {
   }
 });
 
-initMenuSuspendu('menuCompte', 'btnMenuCompte');
+// Le menu du compte est desormais gere par assets/entete.js, partage avec
+// les autres pages (l'ouverture/fermeture ne doit etre branchee qu'une
+// fois, sinon un clic ouvre puis referme aussitot).
 
 // Confirmation avant de se deconnecter : le lien voisine avec ceux des
 // autres pages dans le meme menu, et un clic de trop renvoie a l'ecran de
-// mot de passe - que Michel et Christiane n'ont pas.
+// mot de passe - que Michel et Christiane n'ont pas. Ici on utilise la
+// boite de dialogue maison, qui n'existe que sur cette page ; entete.js
+// se rabat sur confirm() natif ailleurs.
 var lienDeconnexion = document.getElementById('lienDeconnexion');
 if (lienDeconnexion) {
   lienDeconnexion.addEventListener('click', function (e) {
     e.preventDefault();
-    fermerMenusSuspendus();
+    var menuCompte = document.getElementById('menuCompte');
+    if (menuCompte) menuCompte.classList.remove('ouvert');
     confirmerPerso(
       'Se déconnecter ? Il faudra retaper le mot de passe pour revenir sur l\'agenda.',
       'Se déconnecter'

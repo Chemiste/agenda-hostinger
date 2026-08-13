@@ -89,6 +89,78 @@ h1 { font-size: 24px; margin: 0 0 2px; letter-spacing: -0.01em; }
    beaucoup de place, surtout "+ Ajouter un rendez-vous" en toutes
    lettres). Sur mobile, "Ajouter" reste cache (voir plus bas) : le bouton
    rond flottant (.fab) prend deja ce role. */
+/* --- Barre de navigation partagee (voir lib/entete.php) -------------
+   Premier etage : ou puis-je aller. Les actions propres a chaque page
+   (Ajouter, Imprimer...) vivent en dessous, dans la page elle-meme. */
+.barre-nav {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 0;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+}
+.logo-site {
+  display: inline-flex;
+  flex: none;
+  line-height: 0;
+  border-radius: 8px;
+}
+.logo-site svg { width: 30px; height: 30px; display: block; }
+.logo-site:hover { opacity: 0.85; }
+
+/* Texte reserve aux lecteurs d'ecran : retire de l'affichage sans etre
+   retire du document (display:none le rendrait invisible pour eux aussi). */
+.lecture-ecran {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+.nav-destinations { display: flex; gap: 4px; flex-wrap: wrap; }
+.nav-lien {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.nav-lien:hover { background: var(--surface); color: var(--text); }
+/* Page affichee : fond fonce + gras + soulignement. Trois marques plutot
+   qu'une seule couleur, et surtout PAS de vert - il est reserve aux
+   actions principales (Ajouter, Enregistrer) et ne doit pas signifier
+   aussi "vous etes ici". */
+.nav-lien.actif {
+  background: var(--text);
+  color: #fff;
+  font-weight: 700;
+  cursor: default;
+}
+.barre-nav .menu-suspendu { margin-left: auto; }
+
+/* Les destinations sont dans la barre a partir de cette largeur, et donc
+   retirees du menu deroulant ; en dessous c'est l'inverse (la barre ne
+   peut pas afficher cinq boutons sur un telephone). Meme seuil des deux
+   cotes : toujours exactement un chemin vers chaque page. */
+@media (min-width: 901px) {
+  .menu-deroulant .doublon-nav { display: none !important; }
+}
+@media (max-width: 900px) {
+  .nav-destinations { display: none; }
+}
+@media print { .barre-nav { display: none !important; } }
+
 .bouton-compact {
   display: inline-flex;
   align-items: center;
