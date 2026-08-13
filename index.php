@@ -225,7 +225,10 @@ $p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
          pouvait passer inapercue. -->
     <div class="form-boutons">
       <p class="erreur" id="erreurForm"></p>
-      <button type="button" class="lien-danger" id="btnSupprimer" style="display:none;">Supprimer ce rendez-vous</button>
+      <button type="button" class="bouton-supprimer-rdv" id="btnSupprimer" style="display:none;" title="Supprimer ce rendez-vous" aria-label="Supprimer ce rendez-vous">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+        <span class="texte-supprimer-rdv">Supprimer</span>
+      </button>
       <button class="principal" id="btnEnregistrer">Enregistrer</button>
       <button class="secondaire" id="btnAnnuler">Annuler</button>
     </div>

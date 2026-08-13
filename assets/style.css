@@ -485,15 +485,40 @@ button.danger:active { transform: scale(0.97); }
 /* Message d'erreur : toute la largeur, au-dessus des boutons. */
 .modal .form-boutons .erreur { flex: 1 0 100%; margin: 0 0 8px; }
 .modal .form-boutons .erreur:empty { display: none; }
-/* "Supprimer ce rendez-vous" : lien discret pousse a gauche, a l'ecart
-   des deux boutons d'action (marge auto a droite), pour rester visible
-   sans risquer d'etre confondu avec "Enregistrer". */
-.modal .form-boutons #btnSupprimer {
+/* "Supprimer" : vrai bouton rouge avec icone poubelle, pousse a gauche et
+   a l'ecart des deux boutons d'action (marge auto a droite) - un lien
+   souligne se remarquait mal, alors qu'une corbeille rouge est comprise
+   sans lire. Contour plutot que fond plein : reste identifiable comme
+   destructif sans rivaliser visuellement avec "Enregistrer". La
+   confirmation avant suppression reste en place (voir app.js). */
+.modal .form-boutons .bouton-supprimer-rdv {
   flex: 0 0 auto;
   margin-right: auto;
-  padding: 10px 0;
-  margin-top: 0;
-  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 11px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--danger);
+  background: none;
+  border: 1.5px solid var(--danger);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.modal .form-boutons .bouton-supprimer-rdv svg { width: 17px; height: 17px; flex: none; }
+.modal .form-boutons .bouton-supprimer-rdv:hover {
+  background: var(--danger);
+  color: #fff;
+}
+.modal .form-boutons .bouton-supprimer-rdv:active { transform: scale(0.97); }
+/* Sur petit ecran, seule la corbeille reste : le mot "Supprimer" prendrait
+   la place des boutons Enregistrer/Annuler sur la meme ligne. */
+@media (max-width: 480px) {
+  .modal .form-boutons .texte-supprimer-rdv { display: none; }
+  .modal .form-boutons .bouton-supprimer-rdv { padding: 11px 12px; }
 }
 
 @media (min-width: 641px) {
