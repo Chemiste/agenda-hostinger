@@ -218,10 +218,14 @@ $p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
         </div>
       </div>
 
+    </div>
+    <!-- Message d'erreur et "Supprimer" places dans la barre fixe du bas
+         (hors de .modal-corps qui defile) : sinon il fallait faire defiler
+         tout le formulaire pour les atteindre, et une erreur de validation
+         pouvait passer inapercue. -->
+    <div class="form-boutons">
       <p class="erreur" id="erreurForm"></p>
       <button type="button" class="lien-danger" id="btnSupprimer" style="display:none;">Supprimer ce rendez-vous</button>
-    </div>
-    <div class="form-boutons">
       <button class="principal" id="btnEnregistrer">Enregistrer</button>
       <button class="secondaire" id="btnAnnuler">Annuler</button>
     </div>

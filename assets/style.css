@@ -479,6 +479,21 @@ button.danger:active { transform: scale(0.97); }
   margin-top: 0;
   padding: 10px 20px calc(14px + env(safe-area-inset-bottom, 0px));
   border-top: 1px solid var(--border);
+  flex-wrap: wrap;
+  align-items: center;
+}
+/* Message d'erreur : toute la largeur, au-dessus des boutons. */
+.modal .form-boutons .erreur { flex: 1 0 100%; margin: 0 0 8px; }
+.modal .form-boutons .erreur:empty { display: none; }
+/* "Supprimer ce rendez-vous" : lien discret pousse a gauche, a l'ecart
+   des deux boutons d'action (marge auto a droite), pour rester visible
+   sans risquer d'etre confondu avec "Enregistrer". */
+.modal .form-boutons #btnSupprimer {
+  flex: 0 0 auto;
+  margin-right: auto;
+  padding: 10px 0;
+  margin-top: 0;
+  font-size: 13px;
 }
 
 @media (min-width: 641px) {
@@ -526,6 +541,14 @@ button.danger:active { transform: scale(0.97); }
     padding-top: 0;
     border-top: none;
   }
+
+  /* Date sur sa propre ligne, Heure et Duree en dessous : une colonne de
+     modale fait moitie moins large qu'avant, et Date + Heure + Duree cote
+     a cote n'y tiennent pas sans rogner l'annee ("31 / 08 / 202"). Ca
+     equilibre au passage les deux colonnes, la section "Qui" ayant un
+     champ de plus. */
+  #formCard .champ-ligne-3 { flex-wrap: wrap; }
+  #formCard .champ-ligne-3 .champ:nth-child(1) { flex: 1 0 100%; min-width: 0; }
 }
 
 @media (max-width: 640px) {
@@ -584,8 +607,13 @@ button.danger:active { transform: scale(0.97); }
 }
 /* Date a besoin de plus de place que Heure/Duree pour afficher
    "jj/mm/aaaa" sans se faire couper - largeurs inegales plutot que le
-   partage a 1/3 - 1/3 - 1/3 par defaut (voir .champ-ligne .champ ci-dessus). */
-.champ-ligne-3 .champ:nth-child(1) { flex: 1.3; }
+   partage a 1/3 - 1/3 - 1/3 par defaut (voir .champ-ligne .champ ci-dessus).
+   min-width : depuis le passage du formulaire en 2 colonnes sur desktop,
+   la ligne dispose de moitie moins de largeur et l'annee se retrouvait
+   coupee ("09 / 10 / 20"). Un plancher en pixels garantit la place du
+   "jj/mm/aaaa" complet plus l'icone calendrier du navigateur ; ce sont
+   Heure et Duree qui se resserrent si besoin (leur min-width vaut 0). */
+.champ-ligne-3 .champ:nth-child(1) { flex: 1.3; min-width: 132px; }
 .champ-ligne-3 .champ:nth-child(2) { flex: 0.85; }
 .champ-ligne-3 .champ:nth-child(3) { flex: 1; }
 .champ input[type=date], .champ input[type=time], .champ input[type=text], .champ input[type=tel], .champ select, .champ textarea {

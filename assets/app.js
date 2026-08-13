@@ -947,7 +947,9 @@ function ouvrirEnEdition(id) {
   // les pathologies de CETTE personne avant qu'on y resélectionne la
   // valeur enregistree.
   actualiserChoixPathologies(r.pathologie_id || 0);
-  document.getElementById('btnSupprimer').style.display = 'block';
+  // Chaine vide (et non "block") : le bouton reprend le display de sa
+  // regle CSS, maintenant qu'il vit dans la barre flex du bas.
+  document.getElementById('btnSupprimer').style.display = '';
   actualiserBoutonImporterMedecin();
   ouvrirModal('formCard');
 }
