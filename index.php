@@ -27,17 +27,13 @@ $p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
           <svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
           Ajouter
         </button>
-        <div class="menu-suspendu" id="menuImpression">
-          <button class="bouton-compact bouton-menu-suspendu" id="btnMenuImprimer" type="button" aria-haspopup="true" aria-expanded="false">
-            <svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6"/><rect x="4" y="9" width="16" height="8" rx="1"/><path d="M6 17v4h12v-4"/></svg>
-            Imprimer
-            <svg class="icone icone-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
-          </button>
-          <div class="menu-deroulant" id="menuImpressionListe">
-            <button type="button" id="btnImprimer">Normal</button>
-            <button type="button" id="btnImprimerCompact">Compact</button>
-          </div>
-        </div>
+        <!-- Un seul mode d'impression : le bouton imprime directement, il
+             n'ouvre plus un menu "Normal / Compact" dont les intitules ne
+             disaient rien a la personne qui clique. -->
+        <button class="bouton-compact" id="btnImprimer" type="button">
+          <svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6"/><rect x="4" y="9" width="16" height="8" rx="1"/><path d="M6 17v4h12v-4"/></svg>
+          Imprimer
+        </button>
         <div class="menu-suspendu" id="menuCompte">
           <button class="bouton-compact bouton-menu-suspendu" id="btnMenuCompte" type="button" aria-haspopup="true" aria-expanded="false">
             <svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>

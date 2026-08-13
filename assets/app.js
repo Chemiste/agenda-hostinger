@@ -481,9 +481,22 @@ function moisAnnee(dateStr) {
   return texte.charAt(0).toUpperCase() + texte.slice(1);
 }
 
+// Date en toutes lettres sur chaque carte ("mardi 18 août"), et non plus
+// abregee ("mar. 18") : le mois n'est ecrit que dans le titre de groupe
+// plus haut, or a l'impression un saut de page peut separer les deux - on
+// ne saurait alors plus de quel mois il s'agit. L'annee reste dans le
+// titre de groupe (elle est rarement ambigue et alourdirait chaque carte).
 function dateCourte(dateStr) {
   var d = new Date(dateStr + 'T00:00:00');
-  return d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric' });
+  return d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+}
+
+// "14h05" plutot que "14:05" : ecriture francaise usuelle de l'heure, plus
+// naturelle a lire que la notation informatique. Le champ du formulaire
+// reste en "HH:MM" (format impose par <input type="time">), c'est juste
+// l'affichage qui change.
+function heureLisible(heure) {
+  return (heure || '').replace(':', 'h');
 }
 
 function classeBadge(personne) {
@@ -614,7 +627,7 @@ function afficherListe() {
     html += '<div class="rdv" data-id="' + r.id + '" tabindex="0" role="button" aria-label="Modifier ce rendez-vous">' +
       '<div class="rdv-entete rdv-' + cls + '">' +
         '<span class="rdv-entete-nom">' + escapeHtml(r.person) + '</span>' +
-        '<span class="rdv-entete-heure">' + dateCourte(r.date) + ' · ' + r.time + '</span>' +
+        '<span class="rdv-entete-heure">' + dateCourte(r.date) + ' · ' + heureLisible(r.time) + '</span>' +
       '</div>' +
       badgeJour +
       '<div class="rdv-corps">' +
@@ -749,11 +762,10 @@ window.addEventListener('resize', ajusterHauteurTopbar);
 window.addEventListener('load', ajusterHauteurTopbar);
 
 // ---------------------------------------------------------------
-// Grille compacte (mode d'impression "compact") : mêmes données que la
-// liste détaillée, mais rendues sous forme de cartes (date en évidence,
-// titre, département, heure), sans regroupement par jour. Ce conteneur
-// reste caché en toute circonstance sauf quand on imprime en mode
-// compact (voir bouton "Imprimer (compact)" plus bas et la règle CSS
+// Grille imprimee : mêmes données que la liste détaillée de l'écran, mais
+// rendues sous forme de cartes (date en évidence, titre, département,
+// heure). Ce conteneur reste caché à l'écran et n'apparait qu'à
+// l'impression (voir le bouton "Imprimer" plus bas et la règle CSS
 // "body.impression-compacte").
 // ---------------------------------------------------------------
 
@@ -763,11 +775,46 @@ function genererGrilleCompacte(filtres) {
     conteneur.innerHTML = '<p class="vide">Aucun rendez-vous.</p>';
     return;
   }
-  conteneur.innerHTML = filtres.map(function (r) {
-    var d = formatDateCompacte(r.date);
-    var cls = classeBadge(r.person);
-    var t = titreAffichage(r);
-    return '<div class="carte-compacte">' +
+  // Un bloc par mois : titre ("Août 2026") suivi de la grille des cartes
+  // de ce mois. Le titre est volontairement HORS de la grille - en tant
+  // qu'element de grille, "break-after: avoid" est ignore par les
+  // navigateurs et un titre pouvait se retrouver seul en bas d'une page,
+  // sans aucun rendez-vous sous lui.
+  var mois = [];
+  var parCle = {};
+  filtres.forEach(function (r) {
+    var cle = r.date.slice(0, 7);
+    if (!parCle[cle]) {
+      parCle[cle] = { libelle: moisAnnee(r.date), rdvs: [] };
+      mois.push(parCle[cle]);
+    }
+    parCle[cle].rdvs.push(r);
+  });
+
+  // "break-after: avoid" sur le titre ne suffit pas : les navigateurs le
+  // respectent mal quand l'element suivant est une grille, et un mois
+  // court se retrouvait quand meme seul en bas de page. On rend donc le
+  // bloc entier insecable quand le mois est assez court pour tenir sur une
+  // page (MOIS_COURT lignes de cartes ou moins) : il bascule alors en
+  // entier sur la page suivante. Au-dela, on laisse le mois se couper
+  // normalement, sinon un mois charge laisserait un grand blanc.
+  var MOIS_COURT = 6;
+
+  conteneur.innerHTML = mois.map(function (m) {
+    var lignes = Math.ceil(m.rdvs.length / 2);
+    var classe = 'cc-mois-bloc' + (lignes <= MOIS_COURT ? ' cc-mois-bloc-insecable' : '');
+    return '<div class="' + classe + '">' +
+      '<div class="cc-mois-titre">' + escapeHtml(m.libelle) + '</div>' +
+      '<div class="cc-mois-grille">' + m.rdvs.map(carteCompacteHtml).join('') + '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function carteCompacteHtml(r) {
+  var d = formatDateCompacte(r.date);
+  var cls = classeBadge(r.person);
+  var t = titreAffichage(r);
+  return '<div class="carte-compacte">' +
       '<div class="cc-entete cc-' + cls + '">' +
         '<span class="cc-entete-nom">' + escapeHtml(r.person) + '</span>' +
       '</div>' +
@@ -776,7 +823,7 @@ function genererGrilleCompacte(filtres) {
           '<span class="cc-jour">' + d.jour + '</span>' +
           '<span class="cc-mois">' + d.mois + '</span>' +
           '<span class="cc-annee">' + d.annee + '</span>' +
-          '<span class="cc-heure">' + r.time + '</span>' +
+          '<span class="cc-heure">' + heureLisible(r.time) + '</span>' +
         '</div>' +
         '<div class="cc-contenu">' +
           (t.departement ? '<div class="cc-sous">' + escapeHtml(t.departement) + '</div>' : '') +
@@ -790,7 +837,6 @@ function genererGrilleCompacte(filtres) {
         '</div>' +
       '</div>' +
     '</div>';
-  }).join('');
 }
 
 // Section "Tâches" ajoutee sous la grille a l'impression compacte (voir
@@ -1070,15 +1116,8 @@ document.addEventListener('keydown', function (e) {
 });
 
 initMenuSuspendu('menuCompte', 'btnMenuCompte');
-initMenuSuspendu('menuImpression', 'btnMenuImprimer');
 
 document.getElementById('btnImprimer').addEventListener('click', function () {
-  fermerMenusSuspendus();
-  document.body.classList.remove('impression-compacte');
-  window.print();
-});
-
-document.getElementById('btnImprimerCompact').addEventListener('click', function () {
   fermerMenusSuspendus();
   document.body.classList.add('impression-compacte');
 

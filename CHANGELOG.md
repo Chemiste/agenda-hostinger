@@ -2,9 +2,13 @@
 
 ## Non publié
 
-- **Notes incluses dans l'impression compacte.** La grille de cartes du
-  mode "Compact" affiche désormais la note de chaque rendez-vous, comme
-  l'impression normale.
+- **Impression repensée pour Michel et Christiane** (voir
+  `AMELIORATIONS.md`) : tailles de texte nettement remontées, nom de la
+  personne mis en avant sur chaque carte, dates écrites en entier
+  ("mardi 18 août · 14h05"), notes incluses. Le menu "Normal / Compact"
+  disparaît — la grille de cartes est le seul format et le bouton
+  "Imprimer" imprime directement. Un titre de mois sépare désormais les
+  groupes de rendez-vous sur la feuille.
 
 - **Notes affichées en entier sur l'accueil.** Une note n'est plus coupée
   à la première ligne avec "..." : elle s'affiche complètement sur la carte
