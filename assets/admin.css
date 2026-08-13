@@ -31,6 +31,35 @@
 .panneau-titre { display:flex; align-items:center; gap:8px; margin:0 0 6px; font-size:17px; }
 .panneau-titre svg { flex:none; color:var(--text-secondary); }
 
+/* --- Sections "une personne a la fois" (voir pathologies.php) : au lieu
+   d'empiler le formulaire+liste de chaque personne (page de plus en plus
+   longue si on ajoute des personnes), un onglet en haut (.tabs, deja
+   utilise sur l'accueil) choisit quelle section afficher - les autres
+   restent dans le DOM mais cachees, bascule geree en JS sans recharger. --- */
+.section-personne-pathologies { display:none; }
+.section-personne-pathologies.active { display:block; }
+/* Bouton "Voir / imprimer la fiche" pose directement dans la section (plus
+   dans sa propre carte) : un peu plus discret que le bouton d'action
+   principal d'un formulaire, puisque c'est un simple lien de consultation. */
+a.bouton-fiche-pathologies { flex:none; gap:8px; padding:10px 16px; font-size:14px; }
+/* Cartes de cette page un peu moins hautes : le formulaire et la liste ont
+   chacun leur carte, pas besoin d'y ajouter le padding genereux du reste
+   de l'admin (voir .outil). */
+.section-personne-pathologies .outil { padding:14px 16px; }
+/* Rendez-vous rattaches a une pathologie (colonne pathologie_id, voir
+   migration 0018) : repond a "j'ai un rendez-vous prevu pour ca ?" sans
+   avoir a fouiller l'agenda. */
+.rdv-lies-pathologie { margin-top:6px; padding-top:6px; border-top:1px dashed var(--border-strong); }
+.etiquette-rdv-lies { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.02em; color:var(--text-muted); }
+.rdv-lies-pathologie ul { margin:3px 0 0; padding-left:16px; font-size:13px; color:var(--text-secondary); }
+.rdv-lies-pathologie li { margin:1px 0; }
+/* Cause et Suivi cote a cote sur desktop (voir .champ-ligne), mais empiles
+   sur telephone : deux zones de texte a moitie de largeur y seraient
+   inutilisables. */
+@media (max-width:640px) {
+  .section-personne-pathologies .champ-ligne { flex-direction:column; gap:0; }
+}
+
 /* --- Bandeau de sélection au-dessus d'une liste de résultats --- */
 .barre-selection { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin:14px 0 4px; padding:8px 12px; background:var(--page-bg); border-radius:var(--radius-sm); }
 .barre-selection .compte-resultats { font-size:13px; font-weight:600; color:var(--text); }

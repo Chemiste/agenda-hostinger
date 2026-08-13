@@ -743,17 +743,24 @@ button.danger:active { transform: scale(0.97); }
 .contact { font-size: 13px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .route { font-size: 13px; font-weight: 700; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .accompagnant { font-size: 13px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.notes { font-size: 14px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: help; }
-/* Note tronquee sur une ligne par defaut (voir .notes ci-dessus) : au
-   survol de la souris sur la note elle-meme (pas toute la carte), le
-   texte se deplie en entier sur plusieurs lignes plutot que de rester
-   coupe avec "...". Le survol n'existe pas sur mobile : la classe
-   ".etendu" fait pareil, ajoutee/retiree en JS au tap sur la note. */
-.notes:hover, .notes.etendu {
-  white-space: normal;
-  overflow: visible;
-  text-overflow: clip;
+/* Pathologie associee au rendez-vous (voir pathologies.php) : petite
+   etiquette sous le nom du medecin, pour voir d'un coup d'oeil "ce
+   rendez-vous, c'est pour le dos". */
+.pathologie-rdv {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  background: var(--page-bg);
+  border-radius: 999px;
+  padding: 2px 9px;
+  margin-top: 3px;
 }
+/* Note toujours affichee en entier : plus de troncature sur une ligne avec
+   "..." (il fallait alors survoler ou taper la note pour la lire, ce qui
+   n'etait pas devinable). Les cartes d'une meme rangee sont de toute facon
+   etirees a la meme hauteur par la grille (voir .jour-groupe). */
+.notes { font-size: 14px; color: var(--text-muted); white-space: pre-line; }
 
 /* Liste de questions a poser au professionnel (voir listeQuestionsHtml()
    dans app.js) : contrairement a .notes, toujours affichee en entier (pas
@@ -950,6 +957,12 @@ button.danger:active { transform: scale(0.97); }
   .medecin { font-size: 10.5pt; }
   .departement { font-size: 10pt; font-weight: 700; }
   .contact, .route, .accompagnant, .notes { font-size: 9pt; }
+  .pathologie-rdv {
+    font-size: 8pt;
+    background: #f0f0f2;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
 
   /* Le texte complet doit rester lisible a l'impression : pas de
      troncature avec "..." comme dans la liste a l'ecran. */
@@ -1033,6 +1046,14 @@ button.danger:active { transform: scale(0.97); }
   }
   .cc-route { font-size: 7.5pt; font-weight: 700; margin-top: 1px; }
   .cc-accompagnant { font-size: 7.5pt; color: #555; margin-top: 1px; }
+  .cc-pathologie { font-size: 7.5pt; font-weight: 700; color: #444; margin-top: 1px; }
+  .cc-notes {
+    font-size: 7.5pt;
+    color: #555;
+    margin-top: 2px;
+    line-height: 1.25;
+    white-space: pre-line;
+  }
   .cc-questions { margin-top: 2px; }
   .cc-questions-titre { font-size: 7pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: #666; }
   .cc-questions-liste { margin: 1px 0 0; padding-left: 12px; font-size: 7.5pt; line-height: 1.25; }

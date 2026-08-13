@@ -46,7 +46,7 @@ function correspondRecherche(r) {
   if (filtreRecherche === '') return true;
   var texte = normaliserTexte([
     r.doctor, r.department, r.location, r.location_affichage,
-    r.notes, r.accompagnant, r.person, r.questions
+    r.notes, r.accompagnant, r.person, r.questions, r.pathologie_nom
   ].join(' '));
   return texte.indexOf(filtreRecherche) !== -1;
 }
@@ -231,6 +231,7 @@ function charger() {
       construireInfosParMedecin(rdvs);
       remplirListeMedecins();
       chargerCarnetMedecins();
+      chargerPathologies();
     })
     .catch(function (err) {
       document.getElementById('liste').innerHTML =
@@ -421,6 +422,54 @@ function chargerCarnetMedecins() {
     .catch(function () { /* le carnet manque simplement a l'auto-remplissage */ });
 }
 
+// Pathologies suivies (voir pathologies.php), par personne : sert a
+// proposer "Pathologie concernee" dans le formulaire de rendez-vous, pour
+// pouvoir ensuite retrouver depuis une pathologie les rendez-vous qui s'y
+// rapportent ("j'ai un rendez-vous prevu pour mon bras debut octobre").
+var pathologiesParPersonne = {};
+function chargerPathologies() {
+  fetch('/api.php?action=pathologies')
+    .then(function (r) { return r.json(); })
+    .then(function (parPersonne) {
+      if (!parPersonne || typeof parPersonne !== 'object') return;
+      pathologiesParPersonne = parPersonne;
+      actualiserChoixPathologies();
+    })
+    .catch(function () { /* le champ reste simplement masque */ });
+}
+
+// Remplit le menu "Pathologie concernee" avec les seules pathologies de la
+// personne actuellement cochee - et masque tout le champ si elle n'en a
+// aucune (inutile de montrer un menu vide). $idPreselectionne permet de
+// retrouver le choix enregistre a l'ouverture d'un rendez-vous existant.
+function actualiserChoixPathologies(idPreselectionne) {
+  var champ = document.getElementById('champPathologie');
+  var select = document.getElementById('fPathologie');
+  if (!champ || !select) return;
+
+  var personneInput = document.querySelector('.personnes input:checked');
+  var personne = personneInput ? personneInput.value : '';
+  var liste = (personne && pathologiesParPersonne[personne]) ? pathologiesParPersonne[personne] : [];
+
+  // Conserve le choix en cours si on n'en impose pas un (ex. l'utilisateur
+  // change de personne apres avoir choisi une pathologie).
+  var valeurVoulue = (idPreselectionne !== undefined && idPreselectionne !== null)
+    ? String(idPreselectionne)
+    : select.value;
+
+  select.innerHTML = '<option value="0">— Aucune —</option>' +
+    liste.map(function (p) {
+      return '<option value="' + escapeHtml(p.id) + '">' + escapeHtml(p.nom) + '</option>';
+    }).join('');
+
+  // La pathologie retenue n'existe pas pour cette personne : on retombe
+  // sur "Aucune" plutot que de garder un lien incoherent.
+  select.value = valeurVoulue;
+  if (select.selectedIndex === -1) select.value = '0';
+
+  champ.style.display = liste.length ? '' : 'none';
+}
+
 // Regroupement par mois (ex. "Août 2026") au lieu d'un titre par jour :
 // avec beaucoup de rendez-vous, un titre par mois donne une vue plus
 // synthetique. La date precise de chaque rendez-vous est alors affichee
@@ -571,6 +620,7 @@ function afficherListe() {
       '<div class="rdv-corps">' +
         (t.departement ? '<div class="departement">' + escapeHtml(t.departement) + '</div>' : '') +
         '<div class="medecin">' + ICONES.medecin + escapeHtml(t.medecin) + '</div>' +
+        (r.pathologie_nom ? '<div class="pathologie-rdv">' + escapeHtml(r.pathologie_nom) + '</div>' : '') +
         (r.location ? '<div class="contact">' + ICONES.lieu + escapeHtml(r.location_affichage || r.location) + '</div>' : '') +
         (r.phone ? '<div class="contact">' + ICONES.telephone + escapeHtml(r.phone) + '</div>' : '') +
         (r.route ? '<div class="route">' + ICONES.route + escapeHtml(r.route) + '</div>' : '') +
@@ -606,16 +656,6 @@ function afficherListe() {
     });
   });
 
-  // Note tronquee sur une ligne : la souris peut la deplier au survol
-  // (CSS pur, voir .notes:hover), mais il n'y a pas de survol sur mobile
-  // - on deplie donc aussi au tap. stopPropagation() empeche ce tap
-  // d'ouvrir en plus le formulaire d'edition (clic sur la carte parente).
-  document.querySelectorAll('.notes').forEach(function (el) {
-    el.addEventListener('click', function (e) {
-      e.stopPropagation();
-      el.classList.toggle('etendu');
-    });
-  });
 }
 
 function choisirTab(tab) {
@@ -743,7 +783,9 @@ function genererGrilleCompacte(filtres) {
           '<div class="cc-titre">' + escapeHtml(t.medecin) + '</div>' +
           (r.location ? '<div class="cc-adresse">' + escapeHtml(r.location_affichage || r.location) + '</div>' : '') +
           (r.route ? '<div class="cc-route">' + escapeHtml(r.route) + '</div>' : '') +
+          (r.pathologie_nom ? '<div class="cc-pathologie">' + escapeHtml(r.pathologie_nom) + '</div>' : '') +
           (r.accompagnant ? '<div class="cc-accompagnant">Avec ' + escapeHtml(r.accompagnant) + '</div>' : '') +
+          (r.notes ? '<div class="cc-notes">' + escapeHtml(r.notes) + '</div>' : '') +
           (r.questions ? '<div class="cc-questions"><div class="cc-questions-titre">Questions à poser</div><ul class="cc-questions-liste">' + listeQuestionsHtml(r.questions) + '</ul></div>' : '') +
         '</div>' +
       '</div>' +
@@ -801,6 +843,9 @@ function viderFormulaire() {
   document.getElementById('btnSupprimer').style.display = 'none';
   idEnEdition = null;
   actualiserBoutonImporterMedecin();
+  // Aucune personne cochee a ce stade : le champ se masque de lui-meme et
+  // reapparaitra des qu'une personne ayant des pathologies sera choisie.
+  actualiserChoixPathologies(0);
 }
 
 function ouvrirEnEdition(id) {
@@ -819,6 +864,10 @@ function ouvrirEnEdition(id) {
   document.getElementById('fNotes').value = r.notes || '';
   document.getElementById('fQuestions').value = r.questions || '';
   selectionnerPersonne(r.person);
+  // Apres selectionnerPersonne() : le menu doit d'abord etre rempli avec
+  // les pathologies de CETTE personne avant qu'on y resélectionne la
+  // valeur enregistree.
+  actualiserChoixPathologies(r.pathologie_id || 0);
   document.getElementById('btnSupprimer').style.display = 'block';
   actualiserBoutonImporterMedecin();
   ouvrirModal('formCard');
@@ -837,6 +886,9 @@ document.querySelectorAll('.personnes input').forEach(function (input) {
   input.addEventListener('change', function () {
     document.querySelectorAll('.personnes label').forEach(function (l) { l.classList.remove('checked'); });
     input.nextElementSibling.classList.add('checked');
+    // Chacun a ses propres pathologies : le menu doit suivre le changement
+    // de personne (et disparaitre si la nouvelle n'en a aucune).
+    actualiserChoixPathologies();
   });
 });
 
@@ -965,7 +1017,8 @@ function restaurerRdv(r) {
     route: r.route,
     accompagnant: r.accompagnant,
     notes: r.notes,
-    questions: r.questions
+    questions: r.questions,
+    pathologie_id: r.pathologie_id
   })
     .then(function () {
       charger();
@@ -1049,6 +1102,7 @@ document.getElementById('btnEnregistrer').addEventListener('click', function () 
   var accompagnant = document.getElementById('fAccompagnant').value;
   var notes = document.getElementById('fNotes').value;
   var questions = document.getElementById('fQuestions').value;
+  var pathologieId = document.getElementById('fPathologie').value || '0';
 
   if (!date || !heure || !personneInput) {
     document.getElementById('erreurForm').textContent =
@@ -1069,7 +1123,8 @@ document.getElementById('btnEnregistrer').addEventListener('click', function () 
     route: route,
     accompagnant: accompagnant,
     notes: notes,
-    questions: questions
+    questions: questions,
+    pathologie_id: pathologieId
   };
 
   var btn = document.getElementById('btnEnregistrer');

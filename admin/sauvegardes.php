@@ -93,7 +93,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 $dureeRestauree = (!empty($ligne['duration_minutes']) && (int) $ligne['duration_minutes'] > 0)
                     ? (int) $ligne['duration_minutes'] : 30;
 
-                $stmt = $db->prepare('INSERT INTO appointments (id, appt_date, appt_time, duration_minutes, person, doctor, department, location, phone, route, accompagnant, notes, questions, calendar_event_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+                $stmt = $db->prepare('INSERT INTO appointments (id, appt_date, appt_time, duration_minutes, person, doctor, department, location, phone, route, accompagnant, notes, questions, pathologie_id, calendar_event_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
                 $stmt->execute([
                     $id,
                     $ligne['appt_date'],
@@ -108,6 +108,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     isset($ligne['accompagnant']) ? $ligne['accompagnant'] : '',
                     isset($ligne['notes']) ? $ligne['notes'] : '',
                     isset($ligne['questions']) ? $ligne['questions'] : '',
+                    isset($ligne['pathologie_id']) ? (int) $ligne['pathologie_id'] : 0,
                     '', // nouvel événement Calendar recréé ci-dessous (l'ancien id est périmé)
                     isset($ligne['created_at']) ? $ligne['created_at'] : date('Y-m-d H:i:s'),
                 ]);

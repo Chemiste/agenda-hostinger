@@ -52,6 +52,7 @@ $p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
             <a href="/taches.php"><svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="6" height="6" rx="1"/><path d="M3 15h6v6H3z"/><path d="M13 5h8M13 9h8M13 15h8M13 19h8"/></svg>Tâches</a>
             <a href="/medecins.php"><svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>Médecins</a>
             <a href="/medicaments.php"><svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="7" rx="3.5"/><path d="M8 11v7"/><circle cx="17" cy="6" r="3"/></svg>Médicaments</a>
+            <a href="/pathologies.php"><svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>Pathologies</a>
             <a href="/mes_rappels.php"><svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>Rappels par email</a>
             <a href="/logout.php"><svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>Déconnexion</a>
           </div>
@@ -158,6 +159,15 @@ $p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
         <div class="champ">
           <label>Accompagnant (facultatif)</label>
           <input type="text" id="fAccompagnant" placeholder="Ex. Chem, Laurent, Hélène...">
+        </div>
+        <!-- Options remplies en JS selon la personne cochee ci-dessus (voir
+             chargerPathologies()/actualiserChoixPathologies() dans app.js) :
+             chacune n'a que ses propres pathologies. -->
+        <div class="champ" id="champPathologie" style="display:none;">
+          <label>Pathologie concernée (facultatif)</label>
+          <select id="fPathologie">
+            <option value="0">— Aucune —</option>
+          </select>
         </div>
       </div>
 

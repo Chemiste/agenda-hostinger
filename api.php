@@ -2,8 +2,8 @@
 /**
  * API JSON utilisée par index.php (fetch côté navigateur).
  * Actions : list, add, update, delete, bulk_add, taches (lecture seule),
- * tache_toggle, medecins (lecture seule), importer_medecin (Laurent
- * uniquement).
+ * tache_toggle, medecins (lecture seule), pathologies (lecture seule),
+ * importer_medecin (Laurent uniquement).
  *
  * "questions" : liste libre de questions a poser au professionnel lors du
  * rendez-vous (une par ligne), affichee sur la carte et imprimee avec le
@@ -18,6 +18,7 @@ require_once __DIR__ . '/lib/address_aliases.php';
 require_once __DIR__ . '/lib/activity_log.php';
 require_once __DIR__ . '/lib/taches.php';
 require_once __DIR__ . '/lib/medecins.php';
+require_once __DIR__ . '/lib/pathologies.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -70,6 +71,19 @@ try {
             // (voir construireInfosParMedecin()/chargerCarnetMedecins()
             // dans assets/app.js).
             echo json_encode(listerMedecins($db));
+            break;
+        case 'pathologies':
+            // Alimente le menu "Pathologie concernee" du formulaire de
+            // rendez-vous (voir assets/app.js) : la liste affichee est
+            // filtree cote JS selon la personne cochee. Lecture seule -
+            // la gestion complete reste sur pathologies.php.
+            $parPersonne = [];
+            foreach ($PERSONNES_VALIDES as $personne) {
+                $parPersonne[$personne] = array_map(function ($p) {
+                    return ['id' => (string) $p['id'], 'nom' => $p['nom']];
+                }, listerPathologies($db, $personne));
+            }
+            echo json_encode($parPersonne);
             break;
         case 'importer_medecin':
             // Bouton "Importer dans le carnet" sur le formulaire de
@@ -125,7 +139,7 @@ function validateAppt($appt) {
 }
 
 function listAppointments($db) {
-    $stmt = $db->query('SELECT id, appt_date AS date, appt_time AS time, duration_minutes AS duration, person, doctor, department, location, phone, route, accompagnant, notes, questions FROM appointments ORDER BY appt_date, appt_time');
+    $stmt = $db->query('SELECT id, appt_date AS date, appt_time AS time, duration_minutes AS duration, person, doctor, department, location, phone, route, accompagnant, notes, questions, pathologie_id FROM appointments ORDER BY appt_date, appt_time');
     $rows = $stmt->fetchAll();
 
     // "location_affichage" : version simplifiee de l'adresse pour
@@ -136,11 +150,23 @@ function listAppointments($db) {
     // navigation Waze/Maps depuis le calendrier partage).
     $aliases = listerAliasAdresses($db);
 
+    // "pathologie_nom" : nom lisible de la pathologie associee, resolu ici
+    // une bonne fois (une seule requete) plutot que par une jointure a
+    // chaque ligne. Reste vide si le rendez-vous n'est rattache a aucune
+    // pathologie (pathologie_id = 0) ou si celle-ci a ete supprimee depuis.
+    $nomsPathologies = [];
+    foreach ($db->query('SELECT id, nom FROM pathologies')->fetchAll() as $p) {
+        $nomsPathologies[(int) $p['id']] = $p['nom'];
+    }
+
     foreach ($rows as &$r) {
         $r['id'] = (string) $r['id'];
         $r['time'] = substr($r['time'], 0, 5);
         $r['duration'] = (int) $r['duration'];
         $r['location_affichage'] = empty($aliases) ? $r['location'] : appliquerAliasAdresse($r['location'], $aliases);
+        $idPatho = (int) $r['pathologie_id'];
+        $r['pathologie_id'] = (string) $idPatho;
+        $r['pathologie_nom'] = isset($nomsPathologies[$idPatho]) ? $nomsPathologies[$idPatho] : '';
     }
     return $rows;
 }
@@ -152,7 +178,7 @@ function dureeAppt($appt) {
 
 function addAppointment($db, $sync, $appt) {
     validateAppt($appt);
-    $stmt = $db->prepare('INSERT INTO appointments (appt_date, appt_time, duration_minutes, person, doctor, department, location, phone, route, accompagnant, notes, questions) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+    $stmt = $db->prepare('INSERT INTO appointments (appt_date, appt_time, duration_minutes, person, doctor, department, location, phone, route, accompagnant, notes, questions, pathologie_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
     $stmt->execute([
         $appt['date'],
         $appt['time'],
@@ -166,6 +192,7 @@ function addAppointment($db, $sync, $appt) {
         isset($appt['accompagnant']) ? $appt['accompagnant'] : '',
         isset($appt['notes']) ? $appt['notes'] : '',
         isset($appt['questions']) ? $appt['questions'] : '',
+        isset($appt['pathologie_id']) ? (int) $appt['pathologie_id'] : 0,
     ]);
     $id = $db->lastInsertId();
 
@@ -211,7 +238,7 @@ function updateAppointmentAction($db, $sync, $appt) {
     $dateHeureChangee = ($row['appt_date'] !== $appt['date']) || (substr($row['appt_time'], 0, 5) !== $appt['time']);
 
     $upd = $db->prepare(
-        'UPDATE appointments SET appt_date = ?, appt_time = ?, duration_minutes = ?, person = ?, doctor = ?, department = ?, location = ?, phone = ?, route = ?, accompagnant = ?, notes = ?, questions = ?'
+        'UPDATE appointments SET appt_date = ?, appt_time = ?, duration_minutes = ?, person = ?, doctor = ?, department = ?, location = ?, phone = ?, route = ?, accompagnant = ?, notes = ?, questions = ?, pathologie_id = ?'
         . ($dateHeureChangee ? ', reminder_sent_at = NULL' : '')
         . ' WHERE id = ?'
     );
@@ -228,6 +255,7 @@ function updateAppointmentAction($db, $sync, $appt) {
         isset($appt['accompagnant']) ? $appt['accompagnant'] : '',
         isset($appt['notes']) ? $appt['notes'] : '',
         isset($appt['questions']) ? $appt['questions'] : '',
+        isset($appt['pathologie_id']) ? (int) $appt['pathologie_id'] : 0,
         $appt['id'],
     ]);
 

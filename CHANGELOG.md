@@ -2,6 +2,40 @@
 
 ## Non publié
 
+- **Notes incluses dans l'impression compacte.** La grille de cartes du
+  mode "Compact" affiche désormais la note de chaque rendez-vous, comme
+  l'impression normale.
+
+- **Notes affichées en entier sur l'accueil.** Une note n'est plus coupée
+  à la première ligne avec "..." : elle s'affiche complètement sur la carte
+  du rendez-vous. Le survol et le clic pour la déplier disparaissent du
+  même coup (ils n'étaient pas devinables).
+
+- **Rendez-vous rattachés à une pathologie.** Nouveau champ "Pathologie
+  concernée (facultatif)" dans le formulaire de rendez-vous, proposant
+  uniquement les pathologies de la personne cochée. La pathologie apparaît
+  sur la carte du rendez-vous (à l'écran et aux deux modes d'impression),
+  et surtout l'inverse : la page Pathologies et la fiche imprimable listent
+  les rendez-vous à venir de chaque pathologie ("Rendez-vous à venir :
+  3 octobre 2026 à 10:30 — Dr Dupont"). Migration `0018`.
+
+- **Pathologies : sélecteur de personne au lieu de sections empilées.**
+  `pathologies.php` affiche maintenant un onglet par personne en haut
+  (comme les onglets Papa/Maman de l'accueil) et une seule section à la
+  fois, plutôt que d'empiler le formulaire et la liste de chacun — reste
+  compact même si d'autres personnes s'ajoutent un jour. Mise en page
+  resserrée dans la foulée : plus de carte englobante ni de titre répétant
+  le nom déjà affiché sur l'onglet, bouton d'impression allégé, et champs
+  Cause / Suivi côte à côte sur desktop (empilés sur téléphone).
+
+- **Nouveau : suivi des pathologies.** Pour Michel et Christiane, une liste
+  de pathologies (ex. "Dos", "Bras") avec leur cause/raison et ce qui est
+  fait pour les soigner (kiné, médecin, médicaments...), en texte libre.
+  Nouvelle page `pathologies.php` (gestion, réservée à Laurent comme les
+  médicaments — les autres consultent/impriment) et `pathologies_plan.php`
+  (fiche imprimable par personne, à emmener à un rendez-vous). Lien
+  "Pathologies" ajouté au menu du compte.
+
 - **Formulaire de rendez-vous en 2 colonnes sur desktop large (≥ 860px).**
   Le formulaire a grossi (12 champs) et devenait long à faire défiler dans
   la modale ; sur desktop, les sections s'organisent maintenant côte à côte
