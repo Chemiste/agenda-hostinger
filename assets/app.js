@@ -764,6 +764,33 @@ if (champRecherche && btnEffacerRecherche) {
   });
 }
 
+// La recherche est repliee au chargement (voir index.php) : le bouton
+// "Rechercher" la deplie, un second clic la referme et efface le filtre en
+// cours - sinon on pourrait cacher la barre en laissant une recherche
+// active, et la liste paraitrait incomplete sans qu'on comprenne pourquoi.
+var btnOuvrirRecherche = document.getElementById('btnOuvrirRecherche');
+var rechercheBarre = document.getElementById('rechercheBarre');
+if (btnOuvrirRecherche && rechercheBarre && champRecherche) {
+  btnOuvrirRecherche.addEventListener('click', function () {
+    var ouverte = rechercheBarre.style.display !== 'none';
+    if (ouverte) {
+      rechercheBarre.style.display = 'none';
+      btnOuvrirRecherche.setAttribute('aria-expanded', 'false');
+      if (filtreRecherche !== '') {
+        champRecherche.value = '';
+        filtreRecherche = '';
+        btnEffacerRecherche.style.display = 'none';
+        afficherListe();
+      }
+    } else {
+      rechercheBarre.style.display = '';
+      btnOuvrirRecherche.setAttribute('aria-expanded', 'true');
+      champRecherche.focus();
+    }
+    ajusterHauteurTopbar();
+  });
+}
+
 // La colonne "Taches" (desktop) doit rester collee juste sous le bandeau
 // du haut au scroll (voir --hauteur-topbar dans style.css). Ce bandeau
 // est sticky et sa hauteur varie (recherche, onglets...) : on la mesure

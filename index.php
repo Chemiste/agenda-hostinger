@@ -60,15 +60,25 @@ $p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
       <div class="tab tous active" data-filtre="Tous" tabindex="0" role="tab" aria-selected="true">Tous</div>
       <div class="tab papa" data-filtre="<?= htmlspecialchars($p1) ?>" tabindex="0" role="tab" aria-selected="false"><?= htmlspecialchars($p1) ?></div>
       <div class="tab maman" data-filtre="<?= htmlspecialchars($p2) ?>" tabindex="0" role="tab" aria-selected="false"><?= htmlspecialchars($p2) ?></div>
+      <!-- Recherche repliee par defaut, sur la meme ligne que les onglets
+           (place libre a leur droite) : ca evite une ligne entiere avant
+           d'arriver aux rendez-vous. Le bouton la deplie (voir app.js). -->
+      <button type="button" id="btnOuvrirRecherche" class="btn-ouvrir-recherche" aria-expanded="false" aria-controls="rechercheBarre" title="Rechercher un rendez-vous">
+        <svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        <span class="texte-btn-recherche">Rechercher</span>
+      </button>
     </div>
 
     <div class="tabs tabs-temps" id="tabsTemps" role="tablist">
       <div class="tab-temps active" data-temps="avenir" tabindex="0" role="tab" aria-selected="true">À venir <span class="compteur-tab" id="compteurAvenir"></span></div>
       <div class="tab-temps" data-temps="passes" tabindex="0" role="tab" aria-selected="false">Passés <span class="compteur-tab" id="compteurPasses"></span></div>
-      <div class="tab-temps" data-temps="tous" tabindex="0" role="tab" aria-selected="false">Tout l'historique <span class="compteur-tab" id="compteurTous"></span></div>
+      <!-- "Tous les rendez-vous" et non "Tout l'historique" : le mot
+           historique evoque le passe, l'onglet semblait donc faire double
+           emploi avec "Passes" alors qu'il montre passe ET futur. -->
+      <div class="tab-temps" data-temps="tous" tabindex="0" role="tab" aria-selected="false">Tous les rendez-vous <span class="compteur-tab" id="compteurTous"></span></div>
     </div>
 
-    <div class="recherche-barre">
+    <div class="recherche-barre" id="rechercheBarre" style="display:none;">
       <svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
       <input type="search" id="champRecherche" placeholder="Rechercher (médecin, notes, adresse...)" autocomplete="off" aria-label="Rechercher un rendez-vous">
       <button type="button" id="btnEffacerRecherche" class="btn-effacer-recherche" aria-label="Effacer la recherche" style="display:none;">

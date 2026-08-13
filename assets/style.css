@@ -171,6 +171,40 @@ h1 { font-size: 24px; margin: 0 0 2px; letter-spacing: -0.01em; }
 .compteur-tab { font-size: 12px; font-weight: 700; color: var(--text-muted); }
 .tab-temps.active .compteur-tab { color: var(--accent); }
 
+/* Bouton qui deplie la recherche (repliee par defaut, voir index.php et
+   app.js) : loge dans la rangee des onglets de personne, pousse tout a
+   droite par "margin-left:auto" - la place y etait libre, ca evite une
+   ligne de plus avant les rendez-vous. Volontairement discret : il ne doit
+   pas attirer l'oeil plus que les onglets ou les rendez-vous. */
+.tabs .btn-ouvrir-recherche {
+  flex: 0 0 auto;
+  margin-left: auto;
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: none;
+  border: 1.5px solid var(--border);
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.tabs .btn-ouvrir-recherche:hover { border-color: var(--border-strong); color: var(--text-secondary); }
+.tabs .btn-ouvrir-recherche[aria-expanded="true"] { border-color: var(--accent); color: var(--accent); }
+/* Sur telephone les trois onglets occupent toute la largeur (flex:1) : le
+   bouton se reduit a la loupe seule pour ne pas les etrangler. */
+@media (max-width: 640px) {
+  .tabs .texte-btn-recherche { display: none; }
+  .tabs .btn-ouvrir-recherche { padding: 8px 10px; }
+}
+@media print { .btn-ouvrir-recherche { display: none !important; } }
+
 .recherche-barre { position: relative; margin: 2px 0 14px; }
 .recherche-barre .icone {
   position: absolute;
