@@ -436,6 +436,31 @@ button.danger:active { transform: scale(0.97); }
   transition: background var(--dur) var(--ease);
 }
 .menu-deroulant button:hover, .menu-deroulant a:hover { background: var(--page-bg); }
+/* "Deconnexion" ecarte du reste par un filet : il ne doit pas se cliquer
+   dans la foulee des liens de navigation qui le precedent. */
+.menu-deroulant .lien-deconnexion {
+  margin-top: 6px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+}
+
+/* Raccourcis "Médicaments" et "Pathologies" dans la barre du haut : les
+   deux fiches que Michel et Christiane consultent/impriment, sorties du
+   menu a leur prenom ou personne ne les trouvait. Uniquement sur grand
+   ecran - sur telephone la barre est deja pleine (voir la regle mobile
+   plus bas), ils restent accessibles par le menu. */
+.raccourci-desktop { text-decoration: none; }
+@media (max-width: 900px) {
+  .raccourci-desktop { display: none !important; }
+}
+/* Reciproquement : au-dessus de ce seuil, les memes entrees disparaissent
+   du menu deroulant, ou elles feraient doublon avec les raccourcis de la
+   barre juste au-dessus. Les deux regles utilisent le meme seuil (900px)
+   pour qu'il y ait toujours exactement un chemin vers chaque page. */
+@media (min-width: 901px) {
+  .menu-deroulant .doublon-raccourci { display: none !important; }
+}
 
 #btnImportIcs { width: 100%; margin-bottom: 22px; }
 

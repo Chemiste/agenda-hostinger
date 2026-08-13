@@ -141,12 +141,15 @@ function ouvrirDialogue(message, boutons) {
 
 // Remplace confirm(message) : retourne une Promise<boolean> (true si
 // confirme). Fermer via l'overlay ou Echap equivaut a "Annuler".
-function confirmerPerso(message) {
+// $texteConfirmation : libelle du bouton qui valide ("Supprimer" par
+// defaut). Le nommer d'apres l'action plutot qu'un "Oui" generique evite
+// de valider sans avoir lu la question.
+function confirmerPerso(message, texteConfirmation) {
   return new Promise(function (resolve) {
     dialogueResolveEnAttente = function () { resolve(false); };
     ouvrirDialogue(message, [
       { texte: 'Annuler', classe: 'secondaire', action: function () { resolve(false); } },
-      { texte: 'Supprimer', classe: 'danger', action: function () { resolve(true); } }
+      { texte: texteConfirmation || 'Supprimer', classe: 'danger', action: function () { resolve(true); } }
     ]);
   });
 }
@@ -1178,6 +1181,23 @@ document.addEventListener('keydown', function (e) {
 });
 
 initMenuSuspendu('menuCompte', 'btnMenuCompte');
+
+// Confirmation avant de se deconnecter : le lien voisine avec ceux des
+// autres pages dans le meme menu, et un clic de trop renvoie a l'ecran de
+// mot de passe - que Michel et Christiane n'ont pas.
+var lienDeconnexion = document.getElementById('lienDeconnexion');
+if (lienDeconnexion) {
+  lienDeconnexion.addEventListener('click', function (e) {
+    e.preventDefault();
+    fermerMenusSuspendus();
+    confirmerPerso(
+      'Se déconnecter ? Il faudra retaper le mot de passe pour revenir sur l\'agenda.',
+      'Se déconnecter'
+    ).then(function (confirme) {
+      if (confirme) window.location.href = '/logout.php';
+    });
+  });
+}
 
 document.getElementById('btnImprimer').addEventListener('click', function () {
   fermerMenusSuspendus();
