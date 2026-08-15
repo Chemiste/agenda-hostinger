@@ -84,6 +84,15 @@ if (isset($patients[$personCibleId])) {
  * chacune des deux boîtes d'une carte « l'un OU l'autre ».
  */
 function afficherBoiteMedicament($b, $detailCommun) {
+    // Photo A GAUCHE, texte a droite. Empilee, la photo etait bridee par
+    // sa hauteur (44px a l'impression) : avec un rapport de 1,25, elle
+    // n'occupait qu'un quart de la largeur de la carte. Cote a cote, elle
+    // peut prendre toute la hauteur du bloc texte - donc grandir - ET la
+    // carte raccourcit, puisque sa hauteur devient celle du plus haut des
+    // deux au lieu de leur somme.
+    echo '<div class="boite-contenu">';
+
+    echo '<div class="zone-photo">';
     if (!empty($b['image'])) {
         echo '<img class="photo-medicament" src="/medicaments_photos/'
             . rawurlencode($b['image']) . '" alt="">';
@@ -94,6 +103,9 @@ function afficherBoiteMedicament($b, $detailCommun) {
             . '<rect x="3" y="11" width="18" height="7" rx="3.5"/><path d="M8 11v7"/>'
             . '<circle cx="17" cy="6" r="3"/></svg></div>';
     }
+    echo '</div>';
+
+    echo '<div class="zone-texte">';
     echo '<div class="nom-medicament">' . htmlspecialchars($b['nom']) . '</div>';
     if ($b['quantite'] !== '') {
         echo '<div class="quantite-medicament">' . htmlspecialchars($b['quantite']) . '</div>';
@@ -101,6 +113,9 @@ function afficherBoiteMedicament($b, $detailCommun) {
     if ($b['detail'] !== '' && $b['detail'] !== $detailCommun) {
         echo '<div class="detail-medicament">' . htmlspecialchars($b['detail']) . '</div>';
     }
+    echo '</div>';
+
+    echo '</div>';
 }
 
 ?>
@@ -135,9 +150,22 @@ function afficherBoiteMedicament($b, $detailCommun) {
   .badge-moment { display:inline-block; color:#fff; font-size:13px; font-weight:700; letter-spacing:0.03em; text-transform:uppercase; padding:5px 14px; border-radius:999px; margin-bottom:12px; }
   .grille-cartes-moment { display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; }
   .carte-medicament { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:12px; }
-  .photo-medicament { display:block; width:100%; height:86px; object-fit:contain; margin-bottom:8px; }
-  .icone-medicament-defaut { display:flex; align-items:center; justify-content:center; width:100%; height:86px; margin-bottom:8px; color:var(--border-strong); }
-  .icone-medicament-defaut svg { width:36px; height:36px; }
+  /* Contenu centre verticalement : la grille etire toutes les cartes d'une
+     rangee a la hauteur de la plus grande (celle qui porte un bandeau
+     "l'un OU l'autre", par exemple). Sans ca, une carte courte gardait son
+     contenu colle en haut avec un grand vide en dessous.
+     La carte a alternative est exclue : son bandeau doit rester en tete. */
+  .carte-medicament:not(.carte-avec-alternative) {
+    display:flex; flex-direction:column; justify-content:center;
+  }
+  /* Photo a gauche, texte a droite : la hauteur de la carte devient celle
+     du plus haut des deux, au lieu de leur somme. */
+  .boite-contenu { display:flex; align-items:center; gap:10px; }
+  .zone-photo { flex:none; width:88px; }
+  .zone-texte { flex:1; min-width:0; }
+  .photo-medicament { display:block; width:100%; height:78px; object-fit:contain; }
+  .icone-medicament-defaut { display:flex; align-items:center; justify-content:center; width:100%; height:78px; color:var(--border-strong); }
+  .icone-medicament-defaut svg { width:34px; height:34px; }
   .nom-medicament { font-size:15px; font-weight:700; color:var(--text); line-height:1.25; }
   .quantite-medicament { font-size:14px; font-weight:700; color:var(--text); margin-top:3px; }
   .detail-medicament { font-size:12.5px; color:var(--text-secondary); margin-top:3px; }
@@ -196,12 +224,18 @@ function afficherBoiteMedicament($b, $detailCommun) {
     .barre-actions-medicaments, .barre-admin, .sous-titre-medicaments, .onglets-patients { display:none !important; }
     .entete-plan { display:block; margin-bottom:10px; }
     .entete-plan h1 { font-size:18px; }
-    .section-moment { padding:9px 11px; margin-bottom:9px; break-inside:avoid; page-break-inside:avoid; -webkit-print-color-adjust:exact; print-color-adjust:exact; color-adjust:exact; }
-    .badge-moment { font-size:10.5px; padding:3.5px 11px; margin-bottom:7px; -webkit-print-color-adjust:exact; print-color-adjust:exact; color-adjust:exact; }
+    .section-moment { padding:7px 9px; margin-bottom:7px; break-inside:avoid; page-break-inside:avoid; -webkit-print-color-adjust:exact; print-color-adjust:exact; color-adjust:exact; }
+    .badge-moment { font-size:10.5px; padding:3px 10px; margin-bottom:5px; -webkit-print-color-adjust:exact; print-color-adjust:exact; color-adjust:exact; }
     .grille-cartes-moment { grid-template-columns:repeat(3, 1fr); gap:7px; }
-    .carte-medicament { min-height:90px; padding:7px; break-inside:avoid; page-break-inside:avoid; }
-    .photo-medicament, .icone-medicament-defaut { height:44px; margin-bottom:4px; }
-    .icone-medicament-defaut svg { width:25px; height:25px; }
+    /* Plus de min-height : la carte prend la hauteur de son contenu, qui
+       est desormais celle de la photo (60px) et non photo + texte. */
+    .carte-medicament { padding:7px; break-inside:avoid; page-break-inside:avoid; }
+    /* La photo peut enfin s'etaler : 68px de large sur 60 de haut au lieu
+       de 44px de haut brides par la largeur restante. */
+    .boite-contenu { gap:7px; }
+    .zone-photo { width:68px; }
+    .photo-medicament, .icone-medicament-defaut { height:60px; }
+    .icone-medicament-defaut svg { width:24px; height:24px; }
     .nom-medicament { font-size:12px; }
     .quantite-medicament { font-size:11px; }
     .detail-medicament { font-size:10px; }
@@ -210,16 +244,21 @@ function afficherBoiteMedicament($b, $detailCommun) {
        c'est justement sur le papier, pose pres des boites, qu'ils
        servent. Seules les tailles sont resserrees. */
     .carte-avec-alternative { padding:0; }
-    .bandeau-un-seul { font-size:10.5px; padding:4px 8px; gap:5px; -webkit-print-color-adjust:exact; print-color-adjust:exact; color-adjust:exact; }
-    .bandeau-un-seul svg { width:12px; height:12px; }
-    .paire-medicaments { gap:7px; padding:7px 8px 0; }
-    .mention-boite { font-size:9.5px; margin-bottom:3px; }
+    /* Bandeau et mentions resserres, mais TOUS CONSERVES : ce sont les
+       trois reperes qui empechent de prendre les deux medicaments. On
+       gagne de la hauteur sur les marges, pas sur l'avertissement. */
+    .bandeau-un-seul { font-size:10px; padding:2px 8px; gap:4px; -webkit-print-color-adjust:exact; print-color-adjust:exact; color-adjust:exact; }
+    .bandeau-un-seul svg { width:11px; height:11px; }
+    .paire-medicaments { gap:6px; padding:5px 8px 0; }
+    /* La mention passe au-dessus du nom, dans la colonne de texte : sur
+       toute la largeur de la boite, elle coutait une ligne entiere. */
+    .mention-boite { font-size:9px; margin-bottom:2px; letter-spacing:0.02em; }
     .separateur-ou-vertical span { font-size:10.5px; padding:1px 7px; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
     .separateur-ou-vertical::before, .separateur-ou-vertical::after {
       -webkit-print-color-adjust:exact;
       print-color-adjust:exact;
     }
-    .detail-commun { padding:4px 8px 7px; }
+    .detail-commun { padding:3px 8px 5px; }
   }
 </style>
 </head>

@@ -2,6 +2,21 @@
 
 ## Non publié
 
+- **Fiche des médicaments : photos plus grandes, et une seule page.** Les
+  deux venaient du même défaut. La photo était empilée au-dessus du texte
+  et bridée à 44 px de haut ; avec un rapport de 1,25, elle n'occupait
+  qu'un quart de la largeur de sa carte. Photo à gauche et texte à droite,
+  elle passe à 68 × 60 px — et la hauteur de la carte devient celle du
+  plus haut des deux au lieu de leur somme, soit environ 27 px gagnés par
+  carte. Avec quelques millimètres repris sur les marges des sections, la
+  fiche de Christiane tient sur une page.
+  Les photos ont aussi été recadrées de leurs marges blanches, mais c'est
+  marginal : 10 % de surface, là où j'avais annoncé 30 à 50 % — la mesure
+  a corrigé l'intuition. Les originaux sont conservés hors du dépôt.
+  L'avertissement « UN SEUL DES DEUX » garde ses trois repères (bandeau,
+  cadre, mentions) : la hauteur est reprise sur les marges, jamais sur ce
+  qui empêche de prendre les deux médicaments.
+
 - **Les formulaires d'ajout passent en modale, comme les rendez-vous.**
   Sur Médecins, Tâches, Pathologies et le plan de médicaments, le
   formulaire occupait le premier écran alors qu'on consulte ces pages
