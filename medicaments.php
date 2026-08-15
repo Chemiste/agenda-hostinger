@@ -229,16 +229,14 @@ foreach (construirePlan($db, $personneCible) as $section) {
               $boites = array_merge([$m], $m['alternatives']);
               $avecAlternative = count($boites) > 1;
 
-              // Largeur de la carte, en colonnes. Cas particulier : un
-              // moment qui ne contient QUE ce medicament-la (« 15h00 » chez
-              // Christiane) - la carte prend toute la largeur plutot que de
-              // laisser un tiers de ligne vide. L'ordre des medicaments est
-              // deja calcule pour remplir les lignes, voir
-              // ordonnerPourGrille() dans lib/medicaments.php.
+              // Largeur de la carte, en colonnes : une par boite. Elle ne
+              // s'etire jamais pour combler une fin de ligne - une carte
+              // etiree n'aurait plus la meme taille que les autres, et le
+              // plan doit rester lisible comme une grille reguliere.
+              // L'ordre des medicaments est calcule en amont pour remplir
+              // les lignes, voir ordonnerPourGrille() dans
+              // lib/medicaments.php.
               $colonnes = min(count($boites), 3);
-              if ($avecAlternative && count($section['medicaments']) === 1) {
-                  $colonnes = 3;
-              }
 
               // Detail commun ecrit une seule fois, en bas de carte : pour
               // Paracetamol/Dafalgan c'est la meme phrase de deux lignes,

@@ -10,8 +10,8 @@
   en quatre lignes pleines. À chaque emplacement, on prend maintenant le
   médicament le plus large qui tient encore ; à largeur égale, l'ordre
   alphabétique départage. Résultat sur le plan de Christiane : quatre
-  lignes, aucun trou. Un moment qui ne contient qu'une seule carte à
-  alternative (« 15h00 ») la laisse s'étendre sur toute la largeur.
+  lignes, aucun trou. Une carte ne s'étire jamais pour combler une fin de
+  ligne — toutes gardent la même taille, le plan reste une grille régulière.
 
 - **L'alternative passe à droite du médicament, plus en dessous.** Empilée,
   elle rendait sa carte deux fois plus haute que ses voisines — qui
