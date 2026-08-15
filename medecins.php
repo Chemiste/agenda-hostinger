@@ -145,14 +145,19 @@ function afficherRangeeMedecin($m) {
 <body>
   <?php afficherEnteteNavigation('medecins'); ?>
 
+  <?php /* Titre a gauche, actions compactes a droite : meme disposition
+           que la barre du titre de l'agenda, pour que les boutons soient
+           toujours au meme endroit d'une page a l'autre. */ ?>
   <div class="barre-admin">
     <h1>Médecins</h1>
+    <div class="entete-actions">
+      <button type="button" class="bouton-compact bouton-compact-principal" data-ouvre-modal="modalMedecin">
+        <svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+        Ajouter
+      </button>
+    </div>
   </div>
   <p class="sous-titre" style="margin-bottom:18px;">Un carnet de référence (médecin, spécialité, adresse, téléphone...) à garder même sans rendez-vous prévu. Utilisé aussi pour pré-remplir automatiquement le formulaire de rendez-vous.</p>
-
-  <div class="barre-ajouter">
-    <button type="button" class="principal bouton-ajouter-medicament" data-ouvre-modal="modalMedecin">+ Ajouter un médecin</button>
-  </div>
 
   <?php /* Une carte par patient, engendree par la boucle : ces deux blocs
            etaient ecrits en dur pour personne_1 et personne_2, une

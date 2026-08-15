@@ -19,7 +19,11 @@
    style.css) : avant, chaque page ecrasait le titre a 20px en style
    inline et ne laissait que 8px en dessous, ce qui rendait ces pages
    plus "tassees" que l'accueil. */
-.barre-admin { display:flex; align-items:flex-start; justify-content:space-between; margin:18px 0 6px; flex-wrap:wrap; gap:10px; }
+/* 22px en haut = la meme valeur que le padding-top de .topbar sur
+   l'agenda, pour que le titre des pages soit toujours a la meme hauteur.
+   Le bloc d'actions (.entete-actions) se place a droite du titre, comme
+   "Ajouter"/"Imprimer" sur l'agenda. */
+.barre-admin { display:flex; align-items:flex-start; justify-content:space-between; margin:22px 0 6px; flex-wrap:wrap; gap:10px; }
 .barre-admin a { font-size:13px; color:var(--text-muted); }
 .barre-admin h1 { margin:0 0 2px; }
 /* Les liens de sortie, identiques partout (voir lib/entete_admin.php) :
@@ -47,12 +51,6 @@
    restent dans le DOM mais cachees, bascule geree en JS sans recharger. --- */
 .section-personne-pathologies { display:none; }
 .section-personne-pathologies.active { display:block; }
-/* Bouton "Voir / imprimer la fiche", pose directement dans la page (pas
-   dans sa propre carte) : un peu plus discret que le bouton d'action
-   principal d'un formulaire, puisque c'est un simple lien de consultation.
-   Classe commune a Medicaments et Pathologies - les deux avaient des
-   hauteurs differentes tant que seule Pathologies l'utilisait. */
-a.bouton-fiche { flex:none; gap:8px; padding:10px 16px; font-size:14px; }
 /* Cartes de cette page un peu moins hautes : le formulaire et la liste ont
    chacun leur carte, pas besoin d'y ajouter le padding genereux du reste
    de l'admin (voir .outil). */

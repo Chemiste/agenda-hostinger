@@ -144,8 +144,24 @@ function classePersonnePathologie($rang) {
 <body>
   <?php afficherEnteteNavigation('pathologies'); ?>
 
+  <?php /* Titre a gauche, actions compactes a droite : meme disposition
+           que la barre du titre de l'agenda. "Imprimer" pointe vers la
+           fiche de la personne de l'onglet actif - son href est reecrit en
+           JS a chaque changement d'onglet (voir plus bas). */ ?>
   <div class="barre-admin">
     <h1>Pathologies</h1>
+    <div class="entete-actions">
+      <?php if ($peutModifier): ?>
+        <button type="button" class="bouton-compact bouton-compact-principal" id="btnAjouterPathologie" data-ouvre-modal="modalPathologie">
+          <svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+          Ajouter
+        </button>
+      <?php endif; ?>
+      <a class="bouton-compact" id="lienFichePathologies" href="/pathologies_plan.php?person=<?= $personIdActif ?>">
+        <svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6"/><rect x="4" y="9" width="16" height="8" rx="1"/><path d="M6 17v4h12v-4"/></svg>
+        Imprimer
+      </a>
+    </div>
   </div>
   <p class="sous-titre" style="margin-bottom:18px;">
     Pour chaque pathologie : la cause/raison, et ce qui est fait pour la soigner (kiné, médecin, médicaments...).
@@ -164,7 +180,6 @@ function classePersonnePathologie($rang) {
     <?php
       $personne = $patient['nom'];
       $personId = (int) $patient['id'];
-      $estAffichee = $personIdAffiche === $personId;
       $enEditionIci = $peutModifier && $pathologieEnEdition !== null && (int) $pathologieEnEdition['person_id'] === $personId;
       $listePersonne = $pathologiesParPersonne[$personId];
     ?>
@@ -172,23 +187,12 @@ function classePersonnePathologie($rang) {
          l'onglet actif l'indique deja, et l'emboitement de cartes (padding +
          marges a chaque niveau) laissait beaucoup de blanc perdu. -->
     <div class="section-personne-pathologies <?= $personId === $personIdActif ? 'active' : '' ?>" id="section-<?= $personId ?>" data-personne="<?= $personId ?>">
-      <a class="principal bouton-fiche" href="/pathologies_plan.php?person=<?= $personId ?>">
-        <svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6"/><rect x="4" y="9" width="16" height="8" rx="1"/><path d="M6 17v4h12v-4"/></svg>
-        Voir / imprimer la fiche de <?= htmlspecialchars($personne) ?>
-      </a>
-
-      <?php if ($peutModifier): ?>
-        <div class="barre-ajouter" style="margin-top:14px;">
-          <button type="button" class="principal bouton-ajouter-medicament" data-ouvre-modal="modalPathologie<?= $personId ?>">+ Ajouter une pathologie</button>
-        </div>
-      <?php endif; ?>
-
       <?php if (empty($listePersonne)): ?>
-        <div class="outil" style="margin-top:14px;">
+        <div class="outil">
           <p class="vide">Aucune pathologie enregistrée pour <?= htmlspecialchars($personne) ?>.</p>
         </div>
       <?php else: ?>
-        <div class="outil" style="margin-top:14px;">
+        <div class="outil">
           <div class="grille-medecins">
             <?php foreach ($listePersonne as $path): ?>
               <div class="rangee-medecin">
@@ -239,15 +243,27 @@ function classePersonnePathologie($rang) {
   (function () {
     var onglets = document.querySelectorAll('#tabsPersonnesPathologies .tab');
     var sections = document.querySelectorAll('.section-personne-pathologies');
-    function activerPersonne(nom) {
+    // "Imprimer" et "Ajouter" vivent en haut de page, hors des sections :
+    // ils doivent donc suivre l'onglet actif, sinon on imprimerait la
+    // fiche de quelqu'un d'autre que celui qu'on regarde.
+    var lienFiche = document.getElementById('lienFichePathologies');
+    var champPersonne = document.getElementById('champPersonnePathologie');
+    function activerPersonne(id) {
       onglets.forEach(function (o) {
-        var actif = o.dataset.personne === nom;
+        var actif = o.dataset.personne === id;
         o.classList.toggle('active', actif);
         o.setAttribute('aria-selected', actif ? 'true' : 'false');
       });
       sections.forEach(function (s) {
-        s.classList.toggle('active', s.dataset.personne === nom);
+        s.classList.toggle('active', s.dataset.personne === id);
       });
+      if (lienFiche) {
+        lienFiche.href = '/pathologies_plan.php?person=' + encodeURIComponent(id);
+      }
+      // Le formulaire d'ajout s'ouvre pre-rempli sur la personne affichee
+      // (modifiable dans la modale). Absent en modification : la personne
+      // y est figee, transmise en champ cache.
+      if (champPersonne) { champPersonne.value = id; }
     }
     onglets.forEach(function (o) {
       o.addEventListener('click', function () { activerPersonne(o.dataset.personne); });
@@ -258,60 +274,81 @@ function classePersonnePathologie($rang) {
   })();
   </script>
 
-  <?php /* Les modales sont posees HORS des sections par personne : une
-           section inactive est en display:none, et une modale
-           position:fixed a l'interieur ne s'afficherait jamais. Une modale
-           par patient, pour garder son person_id et ses valeurs saisies. */ ?>
+  <?php /* UNE SEULE modale, avec un choix de personne, plutot qu'une par
+           patient : le formulaire est identique pour tout le monde, seul
+           le destinataire change. Elle reste posee HORS des sections par
+           personne - une section inactive est en display:none, et une
+           modale position:fixed a l'interieur ne s'afficherait jamais.
+           En modification la personne n'est pas modifiable
+           (modifierPathologie() ne la touche pas) : elle est rappelee
+           dans le titre et transmise en champ cache, plutot qu'offerte
+           dans une liste qui n'aurait aucun effet. */ ?>
   <?php if ($peutModifier): ?>
-    <?php foreach ($patients as $patient): ?>
-      <?php
-        $personId = (int) $patient['id'];
-        $estAffichee = $personIdAffiche === $personId;
-        $enEditionIci = $pathologieEnEdition !== null && (int) $pathologieEnEdition['person_id'] === $personId;
-      ?>
-      <div class="modal" id="modalPathologie<?= $personId ?>"<?= ($enEditionIci || ($erreur && $estAffichee)) ? ' data-ouvrir-au-chargement' : '' ?>>
-        <div class="modal-corps">
-        <h2><?= $enEditionIci ? 'Modifier la pathologie' : 'Ajouter une pathologie' ?></h2>
+    <?php $personIdModale = $pathologieEnEdition !== null ? (int) $pathologieEnEdition['person_id'] : $personIdActif; ?>
+    <?php /* modal-large (760px au lieu de 460px) : "Cause" et "Suivi" sont
+             cote a cote et ce sont des textes libres de plusieurs lignes -
+             a la largeur par defaut, chaque zone ne faisait qu'une petite
+             colonne de ~210px. Meme largeur que la modale des medicaments. */ ?>
+    <div class="modal modal-large" id="modalPathologie"<?= ($pathologieEnEdition !== null || $erreur !== '') ? ' data-ouvrir-au-chargement' : '' ?>>
+      <div class="modal-corps">
+        <h2>
+          <?php if ($pathologieEnEdition !== null): ?>
+            Modifier la pathologie de <?= htmlspecialchars(nomPerson($db, $personIdModale)) ?>
+          <?php else: ?>
+            Ajouter une pathologie
+          <?php endif; ?>
+        </h2>
 
-        <?php if ($erreur && $estAffichee): ?>
+        <?php if ($erreur !== ''): ?>
           <p class="erreur"><?= htmlspecialchars($erreur) ?></p>
         <?php endif; ?>
 
         <form method="post">
-          <input type="hidden" name="action" value="<?= $enEditionIci ? 'modifier' : 'ajouter' ?>">
-          <input type="hidden" name="person_id" value="<?= $personId ?>">
-          <?php if ($enEditionIci): ?>
+          <input type="hidden" name="action" value="<?= $pathologieEnEdition !== null ? 'modifier' : 'ajouter' ?>">
+          <?php if ($pathologieEnEdition !== null): ?>
             <input type="hidden" name="id" value="<?= (int) $idEnEdition ?>">
+            <input type="hidden" name="person_id" value="<?= $personIdModale ?>">
+          <?php else: ?>
+            <div class="champ">
+              <label for="champPersonnePathologie">Personne</label>
+              <select name="person_id" id="champPersonnePathologie" required>
+                <?php foreach ($patients as $patient): ?>
+                  <option value="<?= (int) $patient['id'] ?>"<?= (int) $patient['id'] === $personIdModale ? ' selected' : '' ?>><?= htmlspecialchars($patient['nom']) ?></option>
+                <?php endforeach; ?>
+              </select>
+            </div>
           <?php endif; ?>
           <div class="champ">
             <label>Pathologie</label>
-            <input type="text" name="nom" placeholder="Ex. Dos, Bras..." required value="<?= $estAffichee && isset($_POST['nom']) ? htmlspecialchars($_POST['nom']) : '' ?>">
+            <input type="text" name="nom" placeholder="Ex. Dos, Bras..." required value="<?= isset($_POST['nom']) ? htmlspecialchars($_POST['nom']) : '' ?>">
           </div>
           <div class="champ-ligne">
             <div class="champ">
               <label>Cause / raison (facultatif)</label>
-              <textarea name="cause" rows="2" placeholder="Ex. Tassement des vertèbres, selon le scanner fait à St Luc"><?= $estAffichee && isset($_POST['cause']) ? htmlspecialchars($_POST['cause']) : '' ?></textarea>
+              <textarea name="cause" rows="5" placeholder="Ex. Tassement des vertèbres, selon le scanner fait à St Luc"><?= isset($_POST['cause']) ? htmlspecialchars($_POST['cause']) : '' ?></textarea>
             </div>
             <div class="champ">
               <label>Ce qui est fait pour soigner (facultatif)</label>
-              <textarea name="traitement" rows="2" placeholder="Ex. Kiné 2x/semaine, revu par Dr Dupont en octobre, Dafalgan si besoin"><?= $estAffichee && isset($_POST['traitement']) ? htmlspecialchars($_POST['traitement']) : '' ?></textarea>
+              <textarea name="traitement" rows="5" placeholder="Ex. Kiné 2x/semaine, revu par Dr Dupont en octobre, Dafalgan si besoin"><?= isset($_POST['traitement']) ? htmlspecialchars($_POST['traitement']) : '' ?></textarea>
             </div>
           </div>
+          <?php /* .modal-corps se referme ICI, avant les boutons : la
+                   modale est une colonne flex dont le corps defile et dont
+                   le pied reste visible. Meme decoupe que la modale de
+                   Medecins et celle des rendez-vous. */ ?>
           </div>
           <div class="form-boutons">
-            <button class="principal" type="submit"><?= $enEditionIci ? 'Enregistrer les modifications' : 'Ajouter' ?></button>
-            <?php if ($enEditionIci): ?>
+            <button class="principal" type="submit"><?= $pathologieEnEdition !== null ? 'Enregistrer les modifications' : 'Ajouter' ?></button>
+            <?php if ($pathologieEnEdition !== null): ?>
               <?php /* Un lien : il faut aussi retirer "?modifier=" de l'URL,
                        sinon la modale se rouvrirait au rechargement. */ ?>
-              <a class="secondaire" href="/pathologies.php?p=<?= $personId ?>">Annuler</a>
+              <a class="secondaire" href="/pathologies.php?p=<?= $personIdModale ?>">Annuler</a>
             <?php else: ?>
               <button type="button" class="secondaire" data-ferme-modal>Fermer</button>
             <?php endif; ?>
           </div>
         </form>
-      </div>
-
-    <?php endforeach; ?>
+    </div>
   <?php endif; ?>
 
   <script src="/assets/admin-ui.js?v=<?= filemtime(__DIR__ . '/assets/admin-ui.js') ?>"></script>

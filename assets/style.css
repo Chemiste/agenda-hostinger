@@ -61,12 +61,18 @@ body {
 h1 { font-size: 24px; margin: 0 0 2px; letter-spacing: -0.01em; }
 .sous-titre { color: var(--text-secondary); margin: 0; font-size: 14px; }
 
+/* Le titre de page et ses actions se collent SOUS la barre de navigation,
+   pas par-dessus. --h-nav est mesuree en JS (assets/entete.js) car la
+   barre peut passer sur deux lignes selon la largeur ; 52px est le repli
+   si le script n'a pas encore tourne. */
 .topbar {
   position: sticky;
-  top: 0;
+  top: var(--h-nav, 52px);
   z-index: 20;
   background: var(--page-bg);
-  padding-top: 18px;
+  /* 22px = les 18px d'origine + les 4px de marge que .barre-nav a perdus,
+     pour garder exactement le meme air entre la barre et le titre. */
+  padding-top: 22px;
   margin: 0 -16px;
   padding-left: 16px;
   padding-right: 16px;
@@ -96,8 +102,21 @@ h1 { font-size: 24px; margin: 0 0 2px; letter-spacing: -0.01em; }
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 10px 0;
-  margin-bottom: 4px;
+  /* Toujours visible : naviguer d'une page a l'autre ne doit pas obliger
+     a remonter en haut. Les marges negatives font deborder le fond sur
+     toute la largeur, sinon le contenu defilant apparaitrait sur les
+     cotes (meme technique que .topbar). */
+  position: sticky;
+  top: 0;
+  z-index: 26;
+  background: var(--page-bg);
+  padding: 10px 16px;
+  /* Aucune marge sous la barre : le bandeau du titre (.topbar) s'y colle a
+     ras, sinon le contenu de la page defile dans l'interstice. L'air qui
+     separe la barre du titre est repris dans le padding-top de .topbar.
+     Sur les pages sans .topbar, .barre-admin apporte deja sa marge de
+     18px (qui absorbait de toute facon ces 4px par fusion des marges). */
+  margin: 0 -16px;
   border-bottom: 1px solid var(--border);
 }
 .logo-site {
@@ -173,6 +192,9 @@ h1 { font-size: 24px; margin: 0 0 2px; letter-spacing: -0.01em; }
   border: none;
   background: var(--surface);
   color: var(--text);
+  /* La classe sert aussi sur des <a> (ex. "Modifier le plan") : sans ca
+     ils gardent le soulignement par defaut du navigateur. */
+  text-decoration: none;
   box-shadow: var(--shadow-sm);
   cursor: pointer;
   white-space: nowrap;
@@ -376,13 +398,16 @@ h1 { font-size: 24px; margin: 0 0 2px; letter-spacing: -0.01em; }
   .barre-taches {
     display: block;
     position: sticky;
-    /* --hauteur-topbar est mesuree en JS (voir ajusterHauteurTopbar() dans
-       app.js) car la hauteur du bandeau du haut varie (recherche, onglets)
-       - un chiffre fixe se desynchronisait et le titre "Taches" se
-       retrouvait cache sous le bandeau du haut au scroll. 220px : repli
-       raisonnable si le JS n'a pas encore tourne. */
-    top: calc(var(--hauteur-topbar, 220px) + 14px);
-    max-height: calc(100vh - var(--hauteur-topbar, 220px) - 34px);
+    /* Deux bandeaux collants se superposent au-dessus de cette colonne :
+       la barre de navigation (--h-nav) puis le bandeau du titre
+       (--hauteur-topbar). Les deux hauteurs sont mesurees en JS
+       (mesurer() dans entete.js, ajusterHauteurTopbar() dans app.js) car
+       elles varient avec la largeur, la recherche et les onglets - un
+       chiffre fixe se desynchronisait et le titre "Taches" se retrouvait
+       cache derriere. Les replis (52px / 220px) servent si le JS n'a pas
+       encore tourne. */
+    top: calc(var(--h-nav, 52px) + var(--hauteur-topbar, 220px) + 14px);
+    max-height: calc(100vh - var(--h-nav, 52px) - var(--hauteur-topbar, 220px) - 34px);
     overflow-y: auto;
     background: var(--surface);
     border-radius: var(--radius-md);

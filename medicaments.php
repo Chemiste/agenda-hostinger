@@ -134,11 +134,6 @@ function afficherBoiteMedicament($b, $detailCommun) {
          Aucune règle d'impression dedans, la feuille n'est pas affectée. */ ?>
 <link rel="stylesheet" href="/assets/admin.css?v=<?= filemtime(__DIR__ . '/assets/admin.css') ?>">
 <style>
-  .barre-actions-medicaments { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:0 0 18px; }
-  .btn-imprimer-plan { display:inline-flex; align-items:center; gap:8px; background:var(--accent); color:#fff; border:none; border-radius:var(--radius-md); padding:12px 20px; font-size:15px; font-weight:600; cursor:pointer; box-shadow:var(--shadow-sm); }
-  .btn-imprimer-plan:hover { background:var(--accent-hover); }
-  .lien-gerer-plan { display:inline-flex; align-items:center; gap:6px; font-size:13.5px; color:var(--text-secondary); text-decoration:none; border:1px solid var(--border); border-radius:var(--radius-md); padding:11px 16px; }
-  .lien-gerer-plan:hover { border-color:var(--accent); color:var(--accent); }
 
   /* Titre de la feuille imprimee. A l'ecran il ferait doublon avec le
      titre "Médicaments" de la page, il n'apparait donc qu'au moment
@@ -221,7 +216,7 @@ function afficherBoiteMedicament($b, $detailCommun) {
        disparait pour ne laisser que le plan. */
     @page { margin: 0.85cm; }
     body { max-width:100%; padding:0; background:#fff; }
-    .barre-actions-medicaments, .barre-admin, .sous-titre-medicaments, .onglets-patients { display:none !important; }
+    .barre-admin, .sous-titre-medicaments, .onglets-patients { display:none !important; }
     .entete-plan { display:block; margin-bottom:10px; }
     .entete-plan h1 { font-size:18px; }
     .section-moment { padding:7px 9px; margin-bottom:7px; break-inside:avoid; page-break-inside:avoid; -webkit-print-color-adjust:exact; print-color-adjust:exact; color-adjust:exact; }
@@ -265,8 +260,22 @@ function afficherBoiteMedicament($b, $detailCommun) {
 <body>
   <?php afficherEnteteNavigation('medicaments'); ?>
 
+  <?php /* Titre a gauche, actions compactes a droite : meme disposition
+           que la barre du titre de l'agenda. */ ?>
   <div class="barre-admin">
     <h1>Médicaments</h1>
+    <div class="entete-actions">
+      <button type="button" class="bouton-compact" onclick="window.print()">
+        <svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6"/><rect x="4" y="9" width="16" height="8" rx="1"/><path d="M6 17v4h12v-4"/></svg>
+        Imprimer
+      </button>
+      <?php if ($peutModifier): ?>
+        <a class="bouton-compact" href="/admin/medicaments.php?person=<?= $personCibleId ?>">
+          <svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+          Modifier le plan
+        </a>
+      <?php endif; ?>
+    </div>
   </div>
   <p class="sous-titre sous-titre-medicaments" style="margin-bottom:18px;">
     Plan de prise de <?= htmlspecialchars($personneCible) ?>, dans l'ordre des bacs du pilulier.
@@ -286,19 +295,6 @@ function afficherBoiteMedicament($b, $detailCommun) {
       <?php endforeach; ?>
     </div>
   <?php endif; ?>
-
-  <div class="barre-actions-medicaments">
-    <button type="button" class="btn-imprimer-plan" onclick="window.print()">
-      <svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6"/><rect x="4" y="9" width="16" height="8" rx="1"/><path d="M6 17v4h12v-4"/></svg>
-      Imprimer / Enregistrer en PDF
-    </button>
-    <?php if ($peutModifier): ?>
-      <a class="lien-gerer-plan" href="/admin/medicaments.php?person=<?= $personCibleId ?>">
-        <svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
-        Modifier le plan
-      </a>
-    <?php endif; ?>
-  </div>
 
   <div class="entete-plan">
     <h1>Traitement de <?= htmlspecialchars($personneCible) ?> — Plan de prise quotidien</h1>

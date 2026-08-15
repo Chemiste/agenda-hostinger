@@ -2,6 +2,47 @@
 
 ## Non publié
 
+- **Les boutons d'action sont au même endroit sur toutes les pages.**
+  L'agenda plaçait « Ajouter » et « Imprimer » en haut à droite du titre ;
+  Médecins et Tâches posaient un gros bouton à gauche sous le sous-titre,
+  Médicaments un bouton vert encore ailleurs, et Pathologies un jeu de
+  boutons répété dans la section de chaque personne. Tout est ramené à
+  droite du titre, en boutons compacts, comme sur l'agenda.
+  Conséquences notables :
+  - Médecins et Tâches n'ont **pas** gagné de bouton Imprimer : ces deux
+    pages n'ont aucune règle `@media print`, l'impression sortirait la
+    navigation et les boutons.
+  - Sur Pathologies, les N modales (une par patient) deviennent **une
+    seule**, avec un choix de personne. Le formulaire était identique pour
+    tout le monde, seul le destinataire changeait. En modification la
+    personne reste figée — `modifierPathologie()` ne la touche pas — donc
+    elle est rappelée dans le titre de la modale plutôt qu'offerte dans une
+    liste sans effet.
+  - « Imprimer » sur Pathologies vit maintenant hors des sections : son
+    `href` suit l'onglet actif en JS, sinon on imprimerait la fiche de
+    quelqu'un d'autre que celui qu'on regarde.
+  - `.barre-admin` passe à 22 px de marge haute, la même valeur que le
+    `padding-top` du bandeau de l'agenda : les titres de toutes les pages
+    sont enfin à la même hauteur.
+
+- **La barre de navigation reste visible en défilant.** Aller de Médicaments
+  à Pathologies n'oblige plus à remonter en haut de page. Sur l'agenda, la
+  barre du titre (« Rendez-vous », onglets, recherche) se colle juste en
+  dessous plutôt que par-dessus : sa position haute vaut `--h-nav`, une
+  variable CSS que `entete.js` renseigne avec la hauteur **mesurée** de la
+  barre — celle-ci passe sur deux lignes à certaines largeurs, une valeur
+  écrite en dur aurait décalé l'affichage. La barre a par ailleurs perdu sa
+  `margin-bottom: 4px` (récupérée dans le `padding-top` du bandeau du
+  titre) : tant qu'elle subsistait, soit le bandeau se collait 4 px trop
+  haut et sautait au premier défilement, soit il laissait un interstice de
+  4 px où le contenu de la page défilait à découvert. `--h-nav` est mesurée
+  en valeur fractionnaire (`getBoundingClientRect()` plutôt
+  qu'`offsetHeight`, qui arrondit à l'entier et laissait 1 px du même
+  effet). La colonne « Tâches » de droite
+  est elle aussi collante et se cale désormais sous **les deux** bandeaux
+  (`--h-nav` + `--hauteur-topbar`), sans quoi son titre passait dessous.
+  Rien ne change à l'impression, où la barre est de toute façon masquée.
+
 - **Fiche des médicaments : photos plus grandes, et une seule page.** Les
   deux venaient du même défaut. La photo était empilée au-dessus du texte
   et bridée à 44 px de haut ; avec un rapport de 1,25, elle n'occupait
