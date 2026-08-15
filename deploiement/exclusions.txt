@@ -24,6 +24,7 @@ service-account.json
 
 # Sauvegardes locales/generees, jamais a redeployer.
 backups/*.json
+backups/*.sql
 
 # Documentation interne au developpement : utile en local, pas sur le
 # site en ligne (aucun lien ne pointe dessus, mais pas la peine).

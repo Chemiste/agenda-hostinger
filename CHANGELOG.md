@@ -2,6 +2,14 @@
 
 ## Non publié
 
+- **Accueil de l'administration resserré.** Sept intertitres pour neuf
+  outils, dont six occupaient seuls toute la largeur : chaque outil coûtait
+  une ligne entière et la page s'étirait sur près de deux écrans. Toutes
+  les tuiles sont désormais dans une grille de trois colonnes (deux sous
+  760 px, une sous 480), les rubriques sont regroupées ("Alias d'adresses"
+  rejoint Rendez-vous, le journal et les sauvegardes forment "Suivi"), et
+  les marges sont réduites. Rien n'a disparu, la page tient sur un écran.
+
 - **La page Médicaments est coupée en deux : lire d'un côté, saisir de
   l'autre.** Elle mélangeait le formulaire d'ajout, la liste et la gestion
   des moments sur un seul écran, et répétait chaque médicament autant de

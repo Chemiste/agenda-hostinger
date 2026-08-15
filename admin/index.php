@@ -81,6 +81,12 @@ $reminderDelai = getSetting($db, 'reminder_hours_before', '24');
     </div>
   </div>
 
+  <?php /* Toutes les tuiles vivent dans la meme grille, aucune ne prend
+           toute la largeur : avec une tuile par ligne, chaque outil coutait
+           une ligne entiere et la page s'etirait sur pres de deux ecrans.
+           Les rubriques sont aussi regroupees - "Alias d'adresses" concerne
+           l'affichage des rendez-vous, et le journal d'activite va de pair
+           avec les sauvegardes. */ ?>
   <div class="groupe-titre">Rendez-vous</div>
   <div class="grille-cartes">
     <a class="carte-accueil carte-rdv" href="/admin/import.php">
@@ -91,6 +97,10 @@ $reminderDelai = getSetting($db, 'reminder_hours_before', '24');
       <div class="titre">Corriger des rendez-vous</div>
       <div class="detail">3 outils de nettoyage</div>
     </a>
+    <a class="carte-accueil carte-rdv" href="/admin/alias_adresses.php">
+      <div class="titre">Alias d'adresses</div>
+      <div class="detail">Simplifier l'affichage</div>
+    </a>
   </div>
 
   <?php /* La saisie du plan de medicaments vit ici et non plus sur la page
@@ -98,42 +108,42 @@ $reminderDelai = getSetting($db, 'reminder_hours_before', '24');
            consultent Michel et Christiane doit rester une simple fiche a
            lire (voir /medicaments.php). */ ?>
   <div class="groupe-titre">Santé</div>
-  <a class="carte-accueil carte-large carte-adresse" href="/admin/medicaments.php">
-    <div>
+  <div class="grille-cartes">
+    <a class="carte-accueil carte-adresse" href="/admin/medicaments.php">
       <div class="titre">Plan de médicaments</div>
-      <div class="detail">Médicaments, quantités et moments de la journée</div>
-    </div>
-    <span class="fleche">›</span>
-  </a>
+      <div class="detail">Médicaments, quantités et moments</div>
+    </a>
+  </div>
 
-  <div class="groupe-titre">Journal d'activité</div>
-  <a class="carte-accueil carte-large carte-adresse" href="/admin/historique.php">
-    <div>
-      <div class="titre">Voir le journal complet</div>
-      <div class="detail">Connexions, ajouts, modifications, suppressions</div>
-    </div>
-    <span class="fleche">›</span>
-  </a>
-
-  <div class="groupe-titre">Affichage</div>
-  <a class="carte-accueil carte-large carte-adresse" href="/admin/alias_adresses.php">
-    <div>
-      <div class="titre">Alias d'adresses</div>
-      <div class="detail">Simplifier l'affichage sans toucher au calendrier</div>
-    </div>
-    <span class="fleche">›</span>
-  </a>
-
-  <div class="groupe-titre">Sauvegardes</div>
-  <a class="carte-accueil carte-large carte-backup" href="/admin/sauvegardes.php">
-    <div>
+  <div class="groupe-titre">Suivi</div>
+  <div class="grille-cartes">
+    <a class="carte-accueil carte-backup" href="/admin/historique.php">
+      <div class="titre">Journal d'activité</div>
+      <div class="detail">Connexions et modifications</div>
+    </a>
+    <a class="carte-accueil carte-backup" href="/admin/sauvegardes.php">
       <div class="titre">Restaurer un rendez-vous</div>
-      <div class="detail"><?= $nbBackups ?> sauvegarde<?= $nbBackups > 1 ? 's' : '' ?> disponible<?= $nbBackups > 1 ? 's' : '' ?></div>
-    </div>
-    <span class="fleche">›</span>
-  </a>
+      <div class="detail"><?= $nbBackups ?> sauvegarde<?= $nbBackups > 1 ? 's' : '' ?></div>
+    </a>
+  </div>
 
-  <div class="groupe-titre">Données de développement</div>
+  <div class="groupe-titre">Notifications</div>
+  <div class="grille-cartes">
+    <a class="carte-accueil carte-notif" href="/admin/reglages.php">
+      <div class="titre">Rappels par email</div>
+      <div class="detail"><?= $reminderEnabled ? 'Activés · délai ' . htmlspecialchars($reminderDelai) . 'h' : 'Désactivés' ?></div>
+    </a>
+    <?php /* Adresses et preferences par personne : retirees du menu
+             familial, Michel et Christiane ne s'en servent pas et c'est
+             Laurent qui les renseigne pour eux. La page reste la meme, seul
+             son point d'entree change. */ ?>
+    <a class="carte-accueil carte-notif" href="/mes_rappels.php">
+      <div class="titre">Adresses par personne</div>
+      <div class="detail">Qui reçoit quels rappels</div>
+    </a>
+  </div>
+
+  <div class="groupe-titre">Développement</div>
   <div class="grille-cartes">
     <a class="carte-accueil carte-dev" href="/admin/exporter_donnees.php">
       <div class="titre">Exporter les données</div>
@@ -146,25 +156,5 @@ $reminderDelai = getSetting($db, 'reminder_hours_before', '24');
       </a>
     <?php endif; ?>
   </div>
-
-  <div class="groupe-titre">Notifications</div>
-  <a class="carte-accueil carte-large carte-notif" href="/admin/reglages.php">
-    <div>
-      <div class="titre">Réglages des rappels par email</div>
-      <div class="detail"><?= $reminderEnabled ? 'Activés · délai ' . htmlspecialchars($reminderDelai) . 'h' : 'Désactivés' ?></div>
-    </div>
-    <span class="fleche">›</span>
-  </a>
-  <!-- Adresses et preferences par personne : retirees du menu familial,
-       Michel et Christiane ne s'en servent pas et c'est Laurent qui les
-       renseigne pour eux. La page reste la meme, seul son point d'entree
-       change. -->
-  <a class="carte-accueil carte-large carte-notif" href="/mes_rappels.php">
-    <div>
-      <div class="titre">Adresses email et préférences par personne</div>
-      <div class="detail">Qui reçoit quels rappels</div>
-    </div>
-    <span class="fleche">›</span>
-  </a>
 </body>
 </html>
