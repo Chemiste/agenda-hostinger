@@ -62,12 +62,15 @@ function traiterUploadImageMedicament() {
 // nouvel upload), on ne retient que si son nom figure bien dans la liste
 // des photos existantes de cette personne (protege d'un nom de fichier
 // arbitraire envoye a la main dans le formulaire).
-function imageExistanteChoisie($db, $personneCible) {
+function imageExistanteChoisie($dossierPhotos) {
     if (empty($_POST['image_existante'])) {
         return false;
     }
     $candidat = basename((string) $_POST['image_existante']);
-    return in_array($candidat, listerPhotosExistantes($db, $personneCible), true) ? $candidat : false;
+    // Compare a la liste reelle du dossier : c'est elle qui fait foi
+    // desormais (le selecteur propose toutes les photos deposees, pas
+    // seulement celles deja rattachees a un medicament).
+    return in_array($candidat, listerPhotosDuDossier($dossierPhotos), true) ? $candidat : false;
 }
 
 if ($peutModifier && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
@@ -75,7 +78,7 @@ if ($peutModifier && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['acti
         try {
             $image = traiterUploadImageMedicament();
             if ($image === false) {
-                $existante = imageExistanteChoisie($db, $personneCible);
+                $existante = imageExistanteChoisie($DOSSIER_PHOTOS);
                 if ($existante !== false) {
                     $image = $existante;
                 }
@@ -158,7 +161,7 @@ if ($peutModifier && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['acti
             if ($uploadee !== false) {
                 $nouvelleImage = $uploadee;
             } elseif (empty($_POST['supprimer_image'])) {
-                $existante = imageExistanteChoisie($db, $personneCible);
+                $existante = imageExistanteChoisie($DOSSIER_PHOTOS);
                 if ($existante !== false) {
                     $nouvelleImage = $existante;
                 }
@@ -186,12 +189,13 @@ if ($peutModifier && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['acti
                 $nouvelleImage,
                 $alternativeDe
             );
-            // Une photo peut etre partagee entre plusieurs medicaments (ex.
-            // reutilisee via le selecteur) : ne jamais effacer le fichier
-            // si une autre ligne y fait encore reference.
-            if (!empty($ancienneImage) && !imageEncoreUtilisee($db, $personneCible, $ancienneImage, $_POST['id'])) {
-                @unlink($DOSSIER_PHOTOS . $ancienneImage);
-            }
+            // Le fichier photo n'est PLUS efface quand plus aucun
+            // medicament ne s'en sert : le dossier medicaments_photos/ est
+            // devenu une bibliotheque ou l'on depose a l'avance des photos
+            // de boites, et le selecteur les propose toutes. Les effacer
+            // automatiquement ferait disparaitre des photos deposees a la
+            // main. Elles restent simplement disponibles pour un prochain
+            // medicament ($ancienneImage n'est donc plus utilise ici).
             // Meme motif "Post/Redirect/Get" qu'a l'ajout : repart sur un
             // formulaire vide (mode "Ajouter") plutot que de rester rempli
             // avec le medicament qu'on vient de modifier.
@@ -202,10 +206,10 @@ if ($peutModifier && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['acti
             $idEnEdition = (int) $_POST['id'];
         }
     } elseif ($_POST['action'] === 'supprimer' && isset($_POST['id'])) {
-        $image = supprimerMedicament($db, $_POST['id']);
-        if (!empty($image) && !imageEncoreUtilisee($db, $personneCible, $image)) {
-            @unlink($DOSSIER_PHOTOS . $image);
-        }
+        // Photo conservee dans le dossier (voir le commentaire ci-dessus) :
+        // supprimer un medicament ne doit pas faire disparaitre l'image de
+        // sa boite, on peut vouloir la reutiliser plus tard.
+        supprimerMedicament($db, $_POST['id']);
     } elseif ($_POST['action'] === 'deplacer_moment' && isset($_POST['moment'], $_POST['direction'])) {
         deplacerMoment($db, $personneCible, $_POST['moment'], $_POST['direction']);
     }
@@ -230,7 +234,10 @@ if ($idEnEdition !== null) {
 
 $tousLesMedicaments = listerMedicaments($db, $personneCible);
 $momentsExistants = listerMomentsExistants($db, $personneCible);
-$photosExistantes = listerPhotosExistantes($db, $personneCible);
+// Toutes les photos du dossier, et non plus seulement celles deja
+// rattachees a un medicament : on peut y deposer a l'avance la photo d'une
+// boite et la choisir au moment de creer le medicament.
+$photosExistantes = listerPhotosDuDossier($DOSSIER_PHOTOS);
 // Medicaments proposables comme "principal" d'une alternative (voir le
 // champ du formulaire) : ceux qui n'en sont pas eux-memes une.
 $medicamentsPrincipaux = listerMedicamentsPrincipaux($db, $personneCible, $idEnEdition);
@@ -372,8 +379,11 @@ foreach (grouperAlternatives($tousLesMedicaments) as $m) {
                   // presélectionnée visuellement, pas besoin de recliquer.
                   $dejaUtiliseeIci = $medicamentEnEdition !== null && $medicamentEnEdition['image'] === $nomPhoto;
                 ?>
-                <button type="button" class="vignette-photo-existante<?= $dejaUtiliseeIci ? ' selectionnee' : '' ?>" data-fichier="<?= htmlspecialchars($nomPhoto) ?>" title="Utiliser cette photo">
+                <button type="button" class="vignette-photo-existante<?= $dejaUtiliseeIci ? ' selectionnee' : '' ?>" data-fichier="<?= htmlspecialchars($nomPhoto) ?>" title="<?= htmlspecialchars($nomPhoto) ?>">
                   <img src="/medicaments_photos/<?= rawurlencode($nomPhoto) ?>" alt="">
+                  <!-- Apercu agrandi au survol : une vignette de 56px ne
+                       suffit pas a reconnaitre une boite. -->
+                  <span class="apercu-photo"><img src="/medicaments_photos/<?= rawurlencode($nomPhoto) ?>" alt=""></span>
                 </button>
               <?php endforeach; ?>
             </div>
@@ -423,7 +433,7 @@ foreach (grouperAlternatives($tousLesMedicaments) as $m) {
           <?php foreach ($medicaments as $m): ?>
             <div class="rangee-medecin">
               <?php if (!empty($m['image'])): ?>
-                <img src="/medicaments_photos/<?= rawurlencode($m['image']) ?>" alt="" style="width:100%; max-height:90px; object-fit:contain; margin-bottom:6px;">
+                <img class="photo-medicament-carte" src="/medicaments_photos/<?= rawurlencode($m['image']) ?>" alt="" style="width:100%; max-height:90px; object-fit:contain; margin-bottom:6px;">
               <?php endif; ?>
               <div class="detail-medecin">
                 <div class="nom-medecin"><?= htmlspecialchars($m['nom']) ?></div>
@@ -452,7 +462,7 @@ foreach (grouperAlternatives($tousLesMedicaments) as $m) {
                 <div class="alternative-medicament">
                   <div class="etiquette-ou">ou</div>
                   <?php if (!empty($alt['image'])): ?>
-                    <img src="/medicaments_photos/<?= rawurlencode($alt['image']) ?>" alt="" style="width:100%; max-height:70px; object-fit:contain; margin-bottom:6px;">
+                    <img class="photo-medicament-carte" src="/medicaments_photos/<?= rawurlencode($alt['image']) ?>" alt="" style="width:100%; max-height:70px; object-fit:contain; margin-bottom:6px;">
                   <?php endif; ?>
                   <div class="detail-medecin">
                     <div class="nom-medecin"><?= htmlspecialchars($alt['nom']) ?></div>

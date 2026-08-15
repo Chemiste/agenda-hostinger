@@ -266,6 +266,38 @@ function listerMedicamentsPrincipaux($db, $person, $idExclu = null) {
 // Noms de fichiers photo deja utilises pour cette personne, pour proposer
 // de reutiliser une photo existante (ex. le meme medicament pris matin et
 // soir) plutot que d'avoir a la re-uploader.
+/**
+ * Toutes les photos presentes dans le dossier medicaments_photos/, qu'elles
+ * soient rattachees a un medicament ou non.
+ *
+ * Le dossier sert de bibliotheque : on peut y deposer a l'avance la photo
+ * d'une boite (recuperee sur le site du fabricant, par exemple) et la
+ * choisir plus tard au moment de creer le medicament. Auparavant le
+ * selecteur ne proposait que les photos deja utilisees par une ligne
+ * existante - une photo fraichement deposee restait donc invisible.
+ */
+function listerPhotosDuDossier($dossier) {
+    if (!is_dir($dossier)) {
+        return [];
+    }
+    $extensions = ['jpg', 'jpeg', 'png', 'webp'];
+    $photos = [];
+    foreach (scandir($dossier) as $fichier) {
+        if ($fichier === '.' || $fichier === '..') {
+            continue;
+        }
+        if (!is_file($dossier . $fichier)) {
+            continue;
+        }
+        $ext = strtolower(pathinfo($fichier, PATHINFO_EXTENSION));
+        if (in_array($ext, $extensions, true)) {
+            $photos[] = $fichier;
+        }
+    }
+    sort($photos);
+    return $photos;
+}
+
 function listerPhotosExistantes($db, $person) {
     $stmt = $db->prepare(
         "SELECT DISTINCT image FROM medicaments WHERE person = ? AND image != '' ORDER BY image"
