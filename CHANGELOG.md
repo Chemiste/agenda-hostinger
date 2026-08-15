@@ -2,6 +2,17 @@
 
 ## Non publié
 
+- **L'ordre des médicaments remplit les lignes au lieu de suivre l'alphabet.**
+  Une carte à alternative occupe deux colonnes sur trois : il suffisait
+  qu'il ne reste qu'une colonne libre en fin de ligne pour qu'elle parte à
+  la ligne suivante et laisse un trou. « Matin » occupait ainsi cinq lignes
+  dont deux à moitié vides, alors que ses 12 colonnes tiennent exactement
+  en quatre lignes pleines. À chaque emplacement, on prend maintenant le
+  médicament le plus large qui tient encore ; à largeur égale, l'ordre
+  alphabétique départage. Résultat sur le plan de Christiane : quatre
+  lignes, aucun trou. Un moment qui ne contient qu'une seule carte à
+  alternative (« 15h00 ») la laisse s'étendre sur toute la largeur.
+
 - **L'alternative passe à droite du médicament, plus en dessous.** Empilée,
   elle rendait sa carte deux fois plus haute que ses voisines — qui
   s'étiraient pour rien, puisque la grille aligne les hauteurs d'une même

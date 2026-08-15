@@ -229,6 +229,17 @@ foreach (construirePlan($db, $personneCible) as $section) {
               $boites = array_merge([$m], $m['alternatives']);
               $avecAlternative = count($boites) > 1;
 
+              // Largeur de la carte, en colonnes. Cas particulier : un
+              // moment qui ne contient QUE ce medicament-la (« 15h00 » chez
+              // Christiane) - la carte prend toute la largeur plutot que de
+              // laisser un tiers de ligne vide. L'ordre des medicaments est
+              // deja calcule pour remplir les lignes, voir
+              // ordonnerPourGrille() dans lib/medicaments.php.
+              $colonnes = min(count($boites), 3);
+              if ($avecAlternative && count($section['medicaments']) === 1) {
+                  $colonnes = 3;
+              }
+
               // Detail commun ecrit une seule fois, en bas de carte : pour
               // Paracetamol/Dafalgan c'est la meme phrase de deux lignes,
               // l'imprimer deux fois ne fait qu'allonger la feuille. Des que
@@ -260,7 +271,7 @@ foreach (construirePlan($db, $personneCible) as $section) {
                    plus epais, "OU" au centre, et mention au-dessus de chaque
                    boite. Sur un plan de medicaments lu par des personnes
                    agees, mieux vaut le dire trois fois qu'une. -->
-              <div class="carte-medicament carte-avec-alternative" style="grid-column:span <?= min(count($boites), 3) ?>;">
+              <div class="carte-medicament carte-avec-alternative" style="grid-column:span <?= $colonnes ?>;">
                 <div class="bandeau-un-seul">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
                   UN SEUL DES DEUX — jamais les deux ensemble

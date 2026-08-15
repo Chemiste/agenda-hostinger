@@ -390,19 +390,91 @@ function construirePlan($db, $person) {
             }
         }
 
-        // Tri alphabetique a l'interieur du moment : plus facile a
-        // retrouver sur la fiche qu'un ordre d'ajout.
+        // Tri alphabetique a l'interieur du moment, puis reordonne pour
+        // remplir les lignes de la grille (voir ordonnerPourGrille).
         uasort($principaux, function ($a, $b) {
             return strcasecmp($a['nom'], $b['nom']);
         });
 
         $plan[] = [
             'moment' => $moment,
-            'medicaments' => array_values($principaux),
+            'medicaments' => ordonnerPourGrille(array_values($principaux)),
         ];
     }
 
     return $plan;
+}
+
+/**
+ * Réordonne les médicaments d'un moment pour qu'un maximum de lignes de la
+ * fiche soient complètes.
+ *
+ * Un médicament qui a une alternative occupe deux colonnes sur trois (les
+ * deux boîtes côte à côte, voir medicaments.php). En ordre purement
+ * alphabétique, il suffit qu'il ne reste qu'une seule colonne libre en fin
+ * de ligne pour qu'un médicament double parte à la ligne suivante et
+ * laisse un trou. Sur le plan de Christiane, « Matin » occupait ainsi cinq
+ * lignes dont deux à moitié vides, alors que ses 12 colonnes tiennent
+ * exactement en quatre lignes pleines.
+ *
+ * Règle : à chaque emplacement on prend le médicament le PLUS LARGE qui
+ * tient encore dans la ligne en cours ; à largeur égale, l'ordre
+ * alphabétique départage. Prendre le plus large d'abord évite de se
+ * retrouver en fin de ligne avec une seule colonne libre et uniquement des
+ * médicaments doubles à placer.
+ *
+ * L'ordre alphabétique n'est donc plus garanti — c'est assumé : sur une
+ * feuille posée près du pilulier, une ligne à moitié vide coûte plus cher
+ * qu'un ordre parfait, et on repère un médicament à sa photo bien avant de
+ * lire son nom.
+ *
+ * @param array $medicaments Déjà triés alphabétiquement.
+ * @param int   $colonnes    Largeur de la grille (3 sur la fiche).
+ */
+function ordonnerPourGrille($medicaments, $colonnes = 3) {
+    $restants = [];
+    foreach ($medicaments as $m) {
+        // Une carte occupe une colonne par boîte (le médicament + ses
+        // alternatives), sans jamais dépasser la largeur de la grille.
+        $largeur = 1 + (isset($m['alternatives']) ? count($m['alternatives']) : 0);
+        $restants[] = ['medicament' => $m, 'largeur' => min($largeur, $colonnes)];
+    }
+
+    $ordonnes = [];
+    $espace = $colonnes;
+
+    while (!empty($restants)) {
+        // Le plus large qui tient encore ; à largeur égale, le premier de
+        // la liste, donc le premier dans l'ordre alphabétique.
+        $choisi = null;
+        foreach ($restants as $i => $r) {
+            if ($r['largeur'] > $espace) {
+                continue;
+            }
+            if ($choisi === null || $r['largeur'] > $restants[$choisi]['largeur']) {
+                $choisi = $i;
+            }
+        }
+
+        if ($choisi === null) {
+            // Plus rien ne tient dans la place restante : on passe à la
+            // ligne suivante. La ligne en cours garde son trou, il était
+            // inévitable (ex. une seule colonne libre et plus que des
+            // médicaments à alternative).
+            $espace = $colonnes;
+            continue;
+        }
+
+        $ordonnes[] = $restants[$choisi]['medicament'];
+        $espace -= $restants[$choisi]['largeur'];
+        array_splice($restants, $choisi, 1);
+
+        if ($espace === 0) {
+            $espace = $colonnes;
+        }
+    }
+
+    return $ordonnes;
 }
 
 // ------------------------------------------------------------------
