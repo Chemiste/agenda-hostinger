@@ -25,44 +25,20 @@ if (personneSessionActuelle() !== null) {
 
 $db = getDb();
 
-// La liste vient de la base (voir admin/personnes.php). Repli sur
-// config.php si la table est vide ou absente : une installation neuve, ou
-// un environnement ou la migration 0021 n'est pas encore appliquee, doit
-// continuer a laisser tout le monde entrer.
-$membres = [];
-try {
-    $membres = listerMembresFamille($db);
-} catch (Exception $e) {
-    $membres = [];
-}
-
-$replisurConfig = empty($membres);
-if ($replisurConfig) {
-    $config = require __DIR__ . '/config.php';
-    $noms = (isset($config['membres_famille']) && is_array($config['membres_famille']) && !empty($config['membres_famille']))
-        ? $config['membres_famille']
-        : ['Michel', 'Christiane', 'Helene', 'Laurent'];
-    foreach ($noms as $nom) {
-        $membres[] = ['id' => 0, 'nom' => $nom];
-    }
-}
+// La liste vient de la base, et de nulle part ailleurs (voir
+// admin/personnes.php). Sur une installation neuve la table est vide :
+// le message plus bas renvoie vers l'administration, qui reste
+// accessible sans etre identifie (elle ne demande que les deux mots de
+// passe, pas l'ecran "Qui etes-vous ?").
+$membres = listerMembresFamille($db);
 
 $erreur = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Le bouton envoie un identifiant quand la table existe, un nom sinon.
     $choisi = null;
-    if (!$replisurConfig && isset($_POST['person_id'])) {
+    if (isset($_POST['person_id'])) {
         $id = (int) $_POST['person_id'];
         foreach ($membres as $m) {
             if ((int) $m['id'] === $id) {
-                $choisi = $m;
-                break;
-            }
-        }
-    } elseif ($replisurConfig && isset($_POST['personne'])) {
-        $nom = trim((string) $_POST['personne']);
-        foreach ($membres as $m) {
-            if ($m['nom'] === $nom) {
                 $choisi = $m;
                 break;
             }
@@ -100,11 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <?php endif; ?>
     <form method="post" class="choix-personnes">
       <?php foreach ($membres as $m): ?>
-        <?php if ($replisurConfig): ?>
-          <button class="secondaire" type="submit" name="personne" value="<?= htmlspecialchars($m['nom']) ?>"><?= htmlspecialchars($m['nom']) ?></button>
-        <?php else: ?>
-          <button class="secondaire" type="submit" name="person_id" value="<?= (int) $m['id'] ?>"><?= htmlspecialchars($m['nom']) ?></button>
-        <?php endif; ?>
+        <button class="secondaire" type="submit" name="person_id" value="<?= (int) $m['id'] ?>"><?= htmlspecialchars($m['nom']) ?></button>
       <?php endforeach; ?>
     </form>
     <?php if (empty($membres)): ?>

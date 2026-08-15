@@ -55,30 +55,14 @@ return [
     'smtp_utilisateur' => '',           // ex : 'agenda@votre-domaine.be' (adresse complete de la boite)
     'smtp_mot_de_passe' => '',          // mot de passe de cette boite mail (pas votre mot de passe hPanel)
 
-    // --- LES PERSONNES SE GERENT DANS LE SITE, PLUS ICI ---------------
-    //
-    // Depuis la migration 0021, les personnes vivent dans la table
-    // "persons" et se gerent depuis /admin/personnes.php : ajouter
-    // quelqu'un, le renommer ou le desactiver ne demande plus de toucher
-    // a ce fichier ni de redeployer. Renommer y est sans danger, toutes
-    // ses donnees suivent (ce n'etait PAS le cas avant : changer un nom
-    // ici faisait disparaitre ses medicaments et ses pathologies de
-    // l'ecran, en silence).
-    //
-    // Les trois cles ci-dessous ne servent plus qu'a AMORCER une
-    // installation neuve, tant que la table est vide : l'ecran
-    // "Qui etes-vous ?" retombe dessus, et le bouton "Reprendre depuis
-    // config.php" de /admin/personnes.php les recopie en base. Une fois
-    // les personnes creees, elles ne sont plus lues.
-    //
-    //   personne_1, personne_2 : les PATIENTS (on suit leurs rendez-vous,
-    //                            leurs medicaments, leurs pathologies).
-    //   membres_famille        : qui peut se connecter. Facultatif - sans
-    //                            elle, la liste par defaut ci-dessous
-    //                            s'applique.
-    'personne_1' => 'Papa',
-    'personne_2' => 'Maman',
-    // 'membres_famille' => ['Michel', 'Christiane', 'Helene', 'Laurent'],
+    // --- LES PERSONNES NE SONT PLUS ICI -------------------------------
+    // Elles vivent dans la table "persons" et se gerent depuis
+    // /admin/personnes.php : ajouter quelqu'un, le renommer ou le
+    // desactiver ne demande ni de toucher a ce fichier ni de redeployer.
+    // Renommer y est sans danger, toutes ses donnees suivent.
+    // (Sur une installation neuve : creez-les depuis l'administration
+    // AVANT de vous identifier - /admin/ ne demande que les deux mots de
+    // passe, pas l'ecran "Qui etes-vous ?".)
 
     // --- Synchronisation Google Calendar (facultatif) ---
     'google_calendar_id' => '',

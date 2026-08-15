@@ -28,22 +28,25 @@ require_once __DIR__ . '/../lib/medicaments.php';
 require_once __DIR__ . '/../lib/persons.php';
 require_once __DIR__ . '/../lib/entete_admin.php';
 
-$config = require __DIR__ . '/../config.php';
-
 $db = getDb();
 
-// Le patient dont on affiche le plan. Son identifiant vient desormais de
-// la table persons (voir lib/persons.php) et non plus d'un nom ecrit dans
-// config.php : le renommer ne fait plus disparaitre ses medicaments.
-// La cle personne_2 ne sert plus qu'a retrouver QUI, une derniere fois -
-// a defaut, on prend le premier patient de la liste.
+// Le patient dont on gere le plan, choisi par les onglets ("?person=").
+// Aucun nom n'est ecrit en dur : la liste vient de la table persons, et un
+// identifiant inconnu retombe sur le premier patient. Toutes les
+// redirections de cette page reconduisent ce parametre, sinon on
+// reviendrait sur un autre patient apres chaque enregistrement.
 $patients = listerPatients($db);
-$patient = personParNom($db, isset($config['personne_2']) ? $config['personne_2'] : '');
-if ($patient === null || !$patient['est_patient'] || !$patient['actif']) {
-    $patient = !empty($patients) ? reset($patients) : null;
+// Les formulaires de cette page postent vers l'URL courante, "?person="
+// comprise : $_GET reste renseigne pendant un POST, inutile d'ajouter un
+// champ cache dans chacun des neuf formulaires.
+$personCibleId = (int) (isset($_GET['person']) ? $_GET['person'] : 0);
+if (!isset($patients[$personCibleId])) {
+    $personCibleId = !empty($patients) ? (int) key($patients) : 0;
 }
-$personCibleId = $patient !== null ? $patient['id'] : 0;
-$personneCible = $patient !== null ? $patient['nom'] : 'Personne';
+$personneCible = isset($patients[$personCibleId]) ? $patients[$personCibleId]['nom'] : 'Personne';
+
+// Base des redirections : elle emporte toujours le patient en cours.
+$RETOUR = '/admin/medicaments.php?person=' . $personCibleId;
 
 $erreur = '';        // erreurs du formulaire médicament
 $erreurMoment = '';  // erreurs du bloc « Moments de la journée »
@@ -122,7 +125,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     if ($action === 'ajouter_moment') {
         try {
             ajouterMoment($db, $personCibleId, isset($_POST['libelle']) ? $_POST['libelle'] : '');
-            header('Location: /admin/medicaments.php#moments');
+            header('Location: ' . $RETOUR . '#moments');
             exit;
         } catch (Exception $e) {
             $erreurMoment = $e->getMessage();
@@ -134,7 +137,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 throw new Exception('Moment introuvable.');
             }
             renommerMoment($db, $_POST['moment_id'], isset($_POST['libelle']) ? $_POST['libelle'] : '');
-            header('Location: /admin/medicaments.php#moments');
+            header('Location: ' . $RETOUR . '#moments');
             exit;
         } catch (Exception $e) {
             $erreurMoment = $e->getMessage();
@@ -144,7 +147,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         if ($moment !== null && (int) $moment['person_id'] === $personCibleId) {
             deplacerMoment($db, $_POST['moment_id'], $_POST['direction']);
         }
-        header('Location: /admin/medicaments.php#moments');
+        header('Location: ' . $RETOUR . '#moments');
         exit;
     } elseif ($action === 'supprimer_moment' && isset($_POST['moment_id'])) {
         try {
@@ -153,7 +156,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 throw new Exception('Moment introuvable.');
             }
             supprimerMoment($db, $_POST['moment_id']);
-            header('Location: /admin/medicaments.php#moments');
+            header('Location: ' . $RETOUR . '#moments');
             exit;
         } catch (Exception $e) {
             $erreurMoment = $e->getMessage();
@@ -189,7 +192,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             // sans ca, la page se recharge avec le meme $_POST et le
             // formulaire restait rempli avec le medicament qu'on venait
             // d'ajouter au lieu de repartir vide pour le suivant.
-            header('Location: /admin/medicaments.php');
+            header('Location: ' . $RETOUR . '');
             exit;
         } catch (Exception $e) {
             $erreur = $e->getMessage();
@@ -226,7 +229,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             // ne s'en sert : le dossier medicaments_photos/ est une
             // bibliotheque ou l'on depose a l'avance des photos de boites,
             // et le selecteur les propose toutes.
-            header('Location: /admin/medicaments.php');
+            header('Location: ' . $RETOUR . '');
             exit;
         } catch (Exception $e) {
             $erreur = $e->getMessage();
@@ -234,7 +237,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         }
     } elseif ($action === 'supprimer' && isset($_POST['id'])) {
         supprimerMedicament($db, $_POST['id']);
-        header('Location: /admin/medicaments.php');
+        header('Location: ' . $RETOUR . '');
         exit;
     } elseif ($action === 'supprimer_photo' && isset($_POST['photo'])) {
         // Suppression manuelle d'une photo de la bibliotheque. Deux
@@ -248,7 +251,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $erreur = 'Cette photo est encore utilisée par un médicament : retire-la d\'abord de sa fiche.';
         } else {
             @unlink($DOSSIER_PHOTOS . $nomPhoto);
-            header('Location: /admin/medicaments.php#formulaireMedicament');
+            header('Location: ' . $RETOUR . '#formulaireMedicament');
             exit;
         }
     }
@@ -383,8 +386,23 @@ function pastillesDesPrises($prises, $libelleDuMoment) {
       'Plan de prise de ' . htmlspecialchars($personneCible) . ' — ' . count($tousLesMedicaments)
       . ' médicament' . (count($tousLesMedicaments) > 1 ? 's' : '') . ', ' . count($moments)
       . ' moment' . (count($moments) > 1 ? 's' : '') . ' de la journée. '
-      . '<a href="/medicaments.php">Voir la fiche telle que la famille la lit</a>.'
+      . '<a href="/medicaments.php?person=' . $personCibleId . '">Voir la fiche telle que la famille la lit</a>.'
   ); ?>
+
+  <?php /* Onglets masques quand il n'y a qu'un patient : un onglet unique
+           n'offre aucun choix. */ ?>
+  <?php if (count($patients) > 1): ?>
+    <div class="tabs onglets-patients" role="tablist">
+      <?php $rangOnglet = 0; foreach ($patients as $unPatient): ?>
+        <?php
+          $classeOnglet = $rangOnglet === 0 ? 'papa' : ($rangOnglet === 1 ? 'maman' : 'tous');
+          $rangOnglet++;
+          $estActif = (int) $unPatient['id'] === $personCibleId;
+        ?>
+        <a class="tab <?= $classeOnglet ?><?= $estActif ? ' active' : '' ?>" href="?person=<?= (int) $unPatient['id'] ?>" role="tab" aria-selected="<?= $estActif ? 'true' : 'false' ?>"><?= htmlspecialchars($unPatient['nom']) ?></a>
+      <?php endforeach; ?>
+    </div>
+  <?php endif; ?>
 
   <div class="outil">
     <div class="entete-liste-medicaments">
@@ -415,7 +433,7 @@ function pastillesDesPrises($prises, $libelleDuMoment) {
               </div>
               <div class="pastilles-prises"><?= pastillesDesPrises($prisesParMedicament[$idM], $libelleDuMoment) ?></div>
               <div class="actions-medicament-liste">
-                <a href="?modifier=<?= $idM ?>#formulaireMedicament" class="lien-modifier-tache">Modifier</a>
+                <a href="?person=<?= $personCibleId ?>&amp;modifier=<?= $idM ?>#formulaireMedicament" class="lien-modifier-tache">Modifier</a>
                 <form method="post" data-confirm="Supprimer « <?= htmlspecialchars($m['nom']) ?> » de tous les moments du plan ?<?= !empty($alternativesDe[$idM]) ? ' Son alternative restera dans le plan, comme médicament à part entière.' : '' ?>">
                   <input type="hidden" name="action" value="supprimer">
                   <input type="hidden" name="id" value="<?= $idM ?>">
@@ -447,7 +465,7 @@ function pastillesDesPrises($prises, $libelleDuMoment) {
                   </div>
                   <div class="pastilles-prises"><?= pastillesDesPrises($prisesParMedicament[$idA], $libelleDuMoment) ?></div>
                   <div class="actions-medicament-liste">
-                    <a href="?modifier=<?= $idA ?>#formulaireMedicament" class="lien-modifier-tache">Modifier</a>
+                    <a href="?person=<?= $personCibleId ?>&amp;modifier=<?= $idA ?>#formulaireMedicament" class="lien-modifier-tache">Modifier</a>
                     <form method="post" data-confirm="Supprimer l'alternative « <?= htmlspecialchars($alt['nom']) ?> » ?">
                       <input type="hidden" name="action" value="supprimer">
                       <input type="hidden" name="id" value="<?= $idA ?>">
@@ -588,7 +606,7 @@ function pastillesDesPrises($prises, $libelleDuMoment) {
       <div class="form-boutons">
         <button class="principal" type="submit"><?= $medicamentEnEdition !== null ? 'Enregistrer les modifications' : 'Ajouter' ?></button>
         <?php if ($medicamentEnEdition !== null): ?>
-          <a class="secondaire" href="/admin/medicaments.php">Annuler</a>
+          <a class="secondaire" href="<?= $RETOUR ?>">Annuler</a>
         <?php endif; ?>
       </div>
     </form>

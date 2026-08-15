@@ -2,6 +2,22 @@
 
 ## Non publié
 
+- **`config.php` ne contient plus aucun nom de personne.** `personne_1`,
+  `personne_2` et `membres_famille` disparaissent, ainsi que le bloc
+  « Reprendre depuis config.php » et le repli de « Qui êtes-vous ? » sur
+  ces clés. Une installation neuve crée ses personnes depuis
+  `/admin/personnes.php`, qui reste volontairement accessible **avant**
+  de s'être identifié : elle ne demande que les deux mots de passe, pas
+  l'écran « Qui êtes-vous ? » — c'est ce qui permet d'amorcer un site vide.
+  Une étape du guide d'installation y est consacrée.
+
+- **Sélecteur de patient sur les pages Médicaments.** Des onglets en haut
+  de page (`?person=`), comme sur Pathologies — c'était la dernière
+  dépendance à `personne_2`. Des liens plutôt qu'une bascule JavaScript :
+  la page de consultation s'imprime, et on ne veut imprimer que le plan
+  affiché. Les onglets sont masqués s'il n'y a qu'un patient, et ne
+  s'impriment pas.
+
 - **Page Personnes en tableau.** Les deux droits se lisent en colonne, avec
   un en-tête : on compare d'un coup d'œil qui est patient et qui se
   connecte. Chaque case affiche le symbole **et** le mot (`✔ oui` /

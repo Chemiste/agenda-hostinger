@@ -3,9 +3,14 @@
  * ADMINISTRATION : les personnes (table "persons", voir
  * migrations/0021_ajouter_persons.sql et lib/persons.php).
  *
- * Remplace les clés "personne_1", "personne_2" et "membres_famille" de
- * config.php : ajouter quelqu'un ou le renommer se fait ici, sans toucher
- * au code ni redéployer.
+ * Seul endroit où les personnes existent : config.php n'en contient plus
+ * aucune. Ajouter quelqu'un ou le renommer se fait ici, sans toucher au
+ * code ni redéployer.
+ *
+ * Cette page est volontairement accessible AVANT de s'être identifié :
+ * requireAdminLogin() ne demande que les deux mots de passe, pas l'écran
+ * « Qui êtes-vous ? ». C'est ce qui permet d'amorcer un site neuf, où
+ * cet écran n'aurait encore personne à proposer.
  *
  * Deux drapeaux par personne :
  *   Patient       — on suit sa santé : onglets de l'agenda, plan de
@@ -22,19 +27,14 @@ require_once __DIR__ . '/../lib/db.php';
 require_once __DIR__ . '/../lib/persons.php';
 require_once __DIR__ . '/../lib/entete_admin.php';
 
-$config = require __DIR__ . '/../config.php';
 $db = getDb();
 $erreur = '';
 $idEnEdition = null;
-$resumeReprise = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $action = $_POST['action'];
     try {
-        if ($action === 'reprendre_config') {
-            // Pas de redirection ici : on veut afficher ce qui a change.
-            $resumeReprise = reprendrePersonnesDeConfig($db, $config);
-        } elseif ($action === 'ajouter') {
+        if ($action === 'ajouter') {
             ajouterPerson(
                 $db,
                 isset($_POST['nom']) ? $_POST['nom'] : '',
@@ -58,11 +58,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         } elseif ($action === 'supprimer' && isset($_POST['id'])) {
             supprimerPerson($db, $_POST['id']);
         }
-        if ($resumeReprise === null) {
-            // Post/Redirect/Get : recharger la page ne rejoue pas l'action.
-            header('Location: /admin/personnes.php');
-            exit;
-        }
+        // Post/Redirect/Get : recharger la page ne rejoue pas l'action.
+        header('Location: /admin/personnes.php');
+        exit;
     } catch (Exception $e) {
         $erreur = $e->getMessage();
         if ($action === 'modifier' && isset($_POST['id'])) {
@@ -76,9 +74,6 @@ if ($idEnEdition === null && isset($_GET['modifier'])) {
 }
 
 $personnes = listerPersons($db);
-// Y a-t-il encore quelque chose a reprendre depuis config.php ? Sert a
-// n'afficher le bloc de reprise que quand il servirait (voir plus bas).
-$resteAReprendre = resteAReprendreDeConfig($db, $config);
 $donneesParPersonne = [];
 foreach ($personnes as $p) {
     $donneesParPersonne[$p['id']] = compterDonneesPerson($db, $p['id']);
@@ -107,21 +102,6 @@ $index = 0;
 
   <?php if ($erreur): ?>
     <p class="erreur"><?= htmlspecialchars($erreur) ?></p>
-  <?php endif; ?>
-
-  <?php if ($resumeReprise !== null): ?>
-    <?php if (empty($resumeReprise['crees']) && empty($resumeReprise['modifies'])): ?>
-      <p class="info">Rien à reprendre : tout le monde est déjà là avec les bons droits.</p>
-    <?php else: ?>
-      <p class="info">
-        <?php if (!empty($resumeReprise['crees'])): ?>
-          Ajouté<?= count($resumeReprise['crees']) > 1 ? 's' : '' ?> : <?= htmlspecialchars(implode(', ', $resumeReprise['crees'])) ?>.
-        <?php endif; ?>
-        <?php if (!empty($resumeReprise['modifies'])): ?>
-          Droits complétés : <?= htmlspecialchars(implode(', ', $resumeReprise['modifies'])) ?>.
-        <?php endif; ?>
-      </p>
-    <?php endif; ?>
   <?php endif; ?>
 
   <div class="outil">
@@ -257,32 +237,6 @@ $index = 0;
       <button type="submit" class="principal">Ajouter</button>
     </form>
   </div>
-
-  <?php if ($resteAReprendre): ?>
-  <?php /* Ce bloc ne s'affiche que s'il reste vraiment quelque chose a
-           reprendre : une fois la reprise faite il n'a plus rien a dire, et
-           il occupait l'ecran pour rien. Il reapparait tout seul sur une
-           installation neuve, ou si quelqu'un est ajoute dans config.php.
-
-           La migration deduit les personnes des donnees reelles, mais elle
-           lit activity_log pour reperer les membres de la famille - or ce
-           journal dit qui S'EST connecte, pas qui PEUT se connecter. */ ?>
-  <div class="outil" style="margin-top:16px;">
-    <h2 class="panneau-titre">Reprendre depuis config.php</h2>
-    <p class="aide">
-      Ajoute les personnes déclarées dans <code>config.php</code>
-      (<code>membres_famille</code>, <code>personne_1</code>, <code>personne_2</code>)
-      qui manqueraient ici, et complète leurs droits. Utile juste après la migration :
-      celle-ci ne peut deviner qu'une personne <em>peut</em> se connecter que si elle
-      s'est déjà connectée au moins une fois.
-      N'enlève jamais de droit — si tu as décoché une case exprès, elle le reste.
-    </p>
-    <form method="post">
-      <input type="hidden" name="action" value="reprendre_config">
-      <button type="submit" class="secondaire">Reprendre depuis config.php</button>
-    </form>
-  </div>
-  <?php endif; ?>
 
   <script src="/assets/admin-ui.js?v=<?= filemtime(__DIR__ . '/../assets/admin-ui.js') ?>"></script>
 </body>

@@ -51,7 +51,18 @@ Le site en utilise **deux** : le mot de passe *familial*, partagé avec tout le 
 
 Ouvrez `https://agenda.hellau.be/outils/migrate.php`, connectez-vous avec le mot de passe **d'administration** (appliquer une migration modifie la structure de la base : le mot de passe familial ne suffit pas), puis cliquez sur **Lancer les migrations**. La table `appointments` est créée.
 
-## Étape 7 — Tester
+## Étape 7 — Créer les personnes
+
+Ouvrez `https://agenda.hellau.be/admin/personnes.php` (mot de passe familial, puis mot de passe d'administration) et ajoutez chaque personne avec ses deux cases :
+
+- **Patient** — on suit sa santé : elle a un onglet dans l'agenda, un plan de médicaments, des pathologies, un carnet de médecins.
+- **Se connecte** — elle apparaît dans « Qui êtes-vous ? » à l'ouverture du site.
+
+Vos parents ont les deux ; les autres membres de la famille, seulement la seconde.
+
+> Cette page est volontairement accessible **avant** de s'être identifié : elle ne demande que les deux mots de passe. C'est ce qui permet d'amorcer un site vide, où « Qui êtes-vous ? » n'a encore personne à proposer.
+
+## Étape 8 — Tester
 
 1. Ouvrez `https://agenda.hellau.be`. Vous devez arriver sur l'écran de connexion.
 2. Entrez le mot de passe familial.
@@ -61,7 +72,7 @@ Ouvrez `https://agenda.hellau.be/outils/migrate.php`, connectez-vous avec le mot
 
 À partir de maintenant, vous, Papa et Maman partagez le même lien et le même mot de passe.
 
-## Étape 8 (facultatif) — Synchronisation vers Google Calendar
+## Étape 9 (facultatif) — Synchronisation vers Google Calendar
 
 Cette étape est plus technique ; elle n'est pas indispensable pour que le site fonctionne.
 
@@ -78,9 +89,9 @@ Cette étape est plus technique ; elle n'est pas indispensable pour que le site 
 
 C'est une synchronisation à sens unique (site → Calendar) : modifier un événement directement dans Google Calendar ne le modifiera pas sur le site.
 
-## Étape 9 (facultatif) — Importer une fois les rendez-vous déjà dans Google Calendar
+## Étape 10 (facultatif) — Importer une fois les rendez-vous déjà dans Google Calendar
 
-Si vous aviez déjà des rendez-vous dans le calendrier Google créé pour vos parents, vous pouvez les récupérer en une fois dans le site (nécessite d'avoir fait l'étape 8 juste avant, pour que le site puisse lire ce calendrier).
+Si vous aviez déjà des rendez-vous dans le calendrier Google créé pour vos parents, vous pouvez les récupérer en une fois dans le site (nécessite d'avoir fait l'étape 9 juste avant, pour que le site puisse lire ce calendrier).
 
 1. Ouvrez `https://agenda.hellau.be/outils/import_calendar.php`, connectez-vous avec le mot de passe **d'administration**.
 2. Choisissez une période (du / au), cliquez sur **Charger les évènements de cette période**.
@@ -191,7 +202,7 @@ Michel et Christiane ont les deux, Hélène et Laurent seulement la seconde.
 
 **Pour retirer quelqu'un**, préférez **Désactiver** à **Supprimer** dès qu'il a des données : il disparaît des listes et des onglets, mais les rendez-vous passés et le journal d'activité gardent un nom lisible. La suppression définitive n'est proposée que si plus rien n'y est rattaché.
 
-Les clés `personne_1`, `personne_2` et `membres_famille` de `config.php` ne servent plus qu'à amorcer une installation neuve, tant que la table est vide.
+`config.php` ne contient plus aucun nom de personne : tout est en base.
 3. Rechargez la page : onglets, formulaire, badges et description Google Calendar utilisent maintenant les nouveaux noms partout, sans avoir touché au code.
 
 ## Mettre à jour le site plus tard

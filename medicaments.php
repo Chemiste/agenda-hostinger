@@ -16,9 +16,9 @@
  * vit dans /admin/medicaments.php : l'écran que consultent les parents ne
  * doit pas être encombré de formulaires qui ne les concernent pas.
  *
- * Limité à un seul patient pour l'instant (le seul qui ait un plan) - les
- * tables gèrent déjà plusieurs personnes depuis la migration 0021, il
- * suffirait d'ajouter un sélecteur en haut de page.
+ * Les onglets en haut de page choisissent le patient ("?person="). Des
+ * liens plutôt qu'une bascule en JavaScript comme sur Pathologies : cette
+ * page s'imprime, et on veut n'imprimer QUE le plan affiché.
  */
 
 require_once __DIR__ . '/lib/auth.php';
@@ -28,23 +28,23 @@ require_once __DIR__ . '/lib/db.php';
 require_once __DIR__ . '/lib/medicaments.php';
 require_once __DIR__ . '/lib/persons.php';
 
-$config = require __DIR__ . '/config.php';
 $peutModifier = personneSessionActuelle() === 'Laurent';
 
 $db = getDb();
 
-// Le patient dont on affiche le plan. Son identifiant vient desormais de
-// la table persons (voir lib/persons.php) et non plus d'un nom ecrit dans
-// config.php : le renommer ne fait plus disparaitre ses medicaments.
-// La cle personne_2 ne sert plus qu'a retrouver QUI, une derniere fois -
-// a defaut, on prend le premier patient de la liste.
+// Le patient dont on affiche le plan, choisi par les onglets ("?person=").
+// Aucun nom n'est plus ecrit en dur nulle part : la liste vient de la
+// table persons, et un identifiant inconnu retombe sur le premier patient.
+//
+// Des liens plutot qu'une bascule en JavaScript, contrairement a
+// Pathologies : cette page s'imprime, et on veut n'imprimer QUE le plan
+// affiche - pas les deux l'un apres l'autre.
 $patients = listerPatients($db);
-$patient = personParNom($db, isset($config['personne_2']) ? $config['personne_2'] : '');
-if ($patient === null || !$patient['est_patient'] || !$patient['actif']) {
-    $patient = !empty($patients) ? reset($patients) : null;
+$personCibleId = (int) (isset($_GET['person']) ? $_GET['person'] : 0);
+if (!isset($patients[$personCibleId])) {
+    $personCibleId = !empty($patients) ? (int) key($patients) : 0;
 }
-$personCibleId = $patient !== null ? $patient['id'] : 0;
-$personneCible = $patient !== null ? $patient['nom'] : 'Personne';
+$personneCible = isset($patients[$personCibleId]) ? $patients[$personCibleId]['nom'] : 'Personne';
 
 /**
  * Une « boîte » du plan : sa photo, son nom, sa quantité, et son détail —
@@ -167,7 +167,7 @@ foreach (construirePlan($db, $personCibleId) as $section) {
        disparait pour ne laisser que le plan. */
     @page { margin: 0.85cm; }
     body { max-width:100%; padding:0; background:#fff; }
-    .barre-actions-medicaments, .barre-admin, .sous-titre-medicaments { display:none !important; }
+    .barre-actions-medicaments, .barre-admin, .sous-titre-medicaments, .onglets-patients { display:none !important; }
     .entete-plan { display:block; margin-bottom:10px; }
     .entete-plan h1 { font-size:18px; }
     .section-moment { padding:9px 11px; margin-bottom:9px; break-inside:avoid; page-break-inside:avoid; -webkit-print-color-adjust:exact; print-color-adjust:exact; color-adjust:exact; }
@@ -207,13 +207,28 @@ foreach (construirePlan($db, $personCibleId) as $section) {
     Plan de prise de <?= htmlspecialchars($personneCible) ?>, dans l'ordre des bacs du pilulier.
   </p>
 
+  <?php /* Onglets masques quand il n'y a qu'un patient : un onglet unique
+           n'offre aucun choix, il ne ferait qu'occuper une ligne. */ ?>
+  <?php if (count($patients) > 1): ?>
+    <div class="tabs onglets-patients" role="tablist">
+      <?php $rangOnglet = 0; foreach ($patients as $unPatient): ?>
+        <?php
+          $classeOnglet = $rangOnglet === 0 ? 'papa' : ($rangOnglet === 1 ? 'maman' : 'tous');
+          $rangOnglet++;
+          $estActif = (int) $unPatient['id'] === $personCibleId;
+        ?>
+        <a class="tab <?= $classeOnglet ?><?= $estActif ? ' active' : '' ?>" href="?person=<?= (int) $unPatient['id'] ?>" role="tab" aria-selected="<?= $estActif ? 'true' : 'false' ?>"><?= htmlspecialchars($unPatient['nom']) ?></a>
+      <?php endforeach; ?>
+    </div>
+  <?php endif; ?>
+
   <div class="barre-actions-medicaments">
     <button type="button" class="btn-imprimer-plan" onclick="window.print()">
       <svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6"/><rect x="4" y="9" width="16" height="8" rx="1"/><path d="M6 17v4h12v-4"/></svg>
       Imprimer / Enregistrer en PDF
     </button>
     <?php if ($peutModifier): ?>
-      <a class="lien-gerer-plan" href="/admin/medicaments.php">
+      <a class="lien-gerer-plan" href="/admin/medicaments.php?person=<?= $personCibleId ?>">
         <svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
         Modifier le plan
       </a>
@@ -227,7 +242,7 @@ foreach (construirePlan($db, $personCibleId) as $section) {
   <?php if (empty($plan)): ?>
     <p class="vide">
       Aucun médicament enregistré.
-      <?php if ($peutModifier): ?><a href="/admin/medicaments.php">Créer le plan</a>.<?php endif; ?>
+      <?php if ($peutModifier): ?><a href="/admin/medicaments.php?person=<?= $personCibleId ?>">Créer le plan</a>.<?php endif; ?>
     </p>
   <?php else: ?>
     <?php foreach ($plan as $indexMoment => $section): ?>

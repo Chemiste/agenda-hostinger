@@ -296,6 +296,13 @@ textarea.motifs { width:100%; min-height:100px; font-family:inherit; font-size:1
 .case-drapeau { display:flex; align-items:center; gap:6px; font-size:13px; font-weight:600; color:var(--text-secondary); white-space:nowrap; cursor:pointer; }
 .case-drapeau input[type=checkbox] { accent-color:var(--accent); }
 
+/* Onglets de choix du patient (medicaments.php et sa page de gestion).
+   Ce sont des LIENS et non une bascule JavaScript comme sur Pathologies :
+   la page de consultation s'imprime, et on ne veut imprimer que le plan
+   affiche - pas les deux l'un apres l'autre. */
+.onglets-patients { margin-bottom:14px; padding-bottom:0; }
+.onglets-patients .tab { text-decoration:none; }
+
 /* --- Plan de medicaments (admin/medicaments.php) --- */
 /* La page familiale (/medicaments.php) groupe par moment, parce que c'est
    l'ordre dans lequel on remplit les bacs du pilulier. Ici c'est l'inverse :
