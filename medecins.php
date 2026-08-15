@@ -13,9 +13,6 @@ require_once __DIR__ . '/lib/db.php';
 require_once __DIR__ . '/lib/medecins.php';
 require_once __DIR__ . '/lib/persons.php';
 
-$config = require __DIR__ . '/config.php';
-// Les patients viennent de la table persons (voir admin/personnes.php).
-
 $db = getDb();
 
 // Les patients de la table persons : une troisieme personne apparait ici
@@ -39,7 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             );
             // Post/Redirect/Get : repart sur un formulaire vide au lieu de
             // rester rempli avec le medecin qu'on vient d'ajouter.
-            header('Location: /medecins.php#formulaireMedecin');
+            header('Location: /medecins.php');
             exit;
         } catch (Exception $e) {
             $erreur = $e->getMessage();
@@ -57,7 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 isset($_POST['route']) ? $_POST['route'] : '',
                 isset($_POST['notes']) ? $_POST['notes'] : ''
             );
-            header('Location: /medecins.php#formulaireMedecin');
+            header('Location: /medecins.php');
             exit;
         } catch (Exception $e) {
             $erreur = $e->getMessage();
@@ -124,7 +121,7 @@ function afficherRangeeMedecin($m) {
         <?php endif; ?>
       </div>
       <div class="actions-medecin">
-        <a href="?modifier=<?= (int) $m['id'] ?>#formulaireMedecin" class="lien-modifier-tache">Modifier</a>
+        <a href="?modifier=<?= (int) $m['id'] ?>" class="lien-modifier-tache">Modifier</a>
         <form method="post" data-confirm="Supprimer ce médecin du carnet ?">
           <input type="hidden" name="action" value="supprimer">
           <input type="hidden" name="id" value="<?= (int) $m['id'] ?>">
@@ -153,8 +150,35 @@ function afficherRangeeMedecin($m) {
   </div>
   <p class="sous-titre" style="margin-bottom:18px;">Un carnet de référence (médecin, spécialité, adresse, téléphone...) à garder même sans rendez-vous prévu. Utilisé aussi pour pré-remplir automatiquement le formulaire de rendez-vous.</p>
 
-  <div class="outil" id="formulaireMedecin">
-    <h2 class="panneau-titre"><?= $medecinEnEdition !== null ? 'Modifier le médecin' : 'Ajouter un médecin' ?></h2>
+  <div class="barre-ajouter">
+    <button type="button" class="principal bouton-ajouter-medicament" data-ouvre-modal="modalMedecin">+ Ajouter un médecin</button>
+  </div>
+
+  <?php /* Une carte par patient, engendree par la boucle : ces deux blocs
+           etaient ecrits en dur pour personne_1 et personne_2, une
+           troisieme personne serait restee invisible. */ ?>
+  <?php foreach ($patients as $patient): ?>
+    <?php $listePatient = $medecinsParPersonne[$patient['id']]; ?>
+    <div class="outil" style="margin-top:16px;">
+      <h2 class="panneau-titre"><?= htmlspecialchars($patient['nom']) ?><?= count($listePatient) > 0 ? ' (' . count($listePatient) . ')' : '' ?></h2>
+      <?php if (empty($listePatient)): ?>
+        <p class="vide">Aucun médecin enregistré.</p>
+      <?php else: ?>
+        <div class="grille-medecins">
+          <?php foreach ($listePatient as $m) { afficherRangeeMedecin($m); } ?>
+        </div>
+      <?php endif; ?>
+    </div>
+  <?php endforeach; ?>
+
+  <?php /* Le formulaire vit dans une modale, comme celui des rendez-vous :
+           on consulte ce carnet bien plus souvent qu'on n'y ajoute, et il
+           occupait le premier ecran a la place de la liste. Il reste un
+           POST classique - la modale n'est qu'un habillage, voir
+           assets/admin-ui.js. */ ?>
+  <div class="modal" id="modalMedecin"<?= ($medecinEnEdition !== null || $erreur) ? ' data-ouvrir-au-chargement' : '' ?>>
+    <div class="modal-corps">
+    <h2><?= $medecinEnEdition !== null ? 'Modifier le médecin' : 'Ajouter un médecin' ?></h2>
 
     <?php if ($erreur): ?>
       <p class="erreur"><?= htmlspecialchars($erreur) ?></p>
@@ -201,31 +225,21 @@ function afficherRangeeMedecin($m) {
         <label>Notes (facultatif)</label>
         <textarea name="notes" rows="2" placeholder="Ex. Consultation uniquement sur rendez-vous"><?= isset($_POST['notes']) ? htmlspecialchars($_POST['notes']) : '' ?></textarea>
       </div>
+      </div>
       <div class="form-boutons">
         <button class="principal" type="submit"><?= $medecinEnEdition !== null ? 'Enregistrer les modifications' : 'Ajouter' ?></button>
         <?php if ($medecinEnEdition !== null): ?>
+          <?php /* Un lien et non une simple fermeture : il faut aussi
+                   retirer "?modifier=" de l'URL, sinon la modale se
+                   rouvrirait au rechargement suivant. */ ?>
           <a class="secondaire" href="/medecins.php">Annuler</a>
+        <?php else: ?>
+          <button type="button" class="secondaire" data-ferme-modal>Fermer</button>
         <?php endif; ?>
       </div>
     </form>
   </div>
 
-  <?php /* Une carte par patient, engendree par la boucle : ces deux blocs
-           etaient ecrits en dur pour personne_1 et personne_2, une
-           troisieme personne serait restee invisible. */ ?>
-  <?php foreach ($patients as $patient): ?>
-    <?php $listePatient = $medecinsParPersonne[$patient['id']]; ?>
-    <div class="outil" style="margin-top:16px;">
-      <h2 class="panneau-titre"><?= htmlspecialchars($patient['nom']) ?><?= count($listePatient) > 0 ? ' (' . count($listePatient) . ')' : '' ?></h2>
-      <?php if (empty($listePatient)): ?>
-        <p class="vide">Aucun médecin enregistré.</p>
-      <?php else: ?>
-        <div class="grille-medecins">
-          <?php foreach ($listePatient as $m) { afficherRangeeMedecin($m); } ?>
-        </div>
-      <?php endif; ?>
-    </div>
-  <?php endforeach; ?>
 
   <script src="/assets/admin-ui.js?v=<?= filemtime(__DIR__ . '/assets/admin-ui.js') ?>"></script>
   <script src="/assets/entete.js?v=<?= filemtime(__DIR__ . '/assets/entete.js') ?>"></script>

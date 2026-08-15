@@ -12,6 +12,88 @@
 // il ne fait rien s'il ne trouve pas de formulaire concerné.
 // ---------------------------------------------------------------
 
+// ---------------------------------------------------------------
+// Formulaires en modale — même présentation que la modale de rendez-vous
+// de l'accueil, mais SANS AJAX : le formulaire reste un POST classique
+// avec son Post/Redirect/Get. La modale n'est qu'un habillage, ce qui
+// évite de réécrire quatre pages en API pour un gain purement visuel.
+//
+// Pourquoi : sur Médecins, Tâches ou Pathologies, on consulte bien plus
+// souvent qu'on n'ajoute. Le formulaire occupait pourtant le premier
+// écran, repoussant la liste — ce qu'on vient réellement voir.
+//
+// Mise en place dans une page : un bouton `data-ouvre-modal="idDeLaModale"`
+// et un conteneur `<div class="modal" id="idDeLaModale">`. Rien d'autre.
+// La modale s'ouvre toute seule si elle porte `data-ouvrir-au-chargement`
+// (mode édition via ?modifier=..., ou réaffichage après une erreur de
+// validation) : sans ça, un message d'erreur resterait invisible.
+// ---------------------------------------------------------------
+(function () {
+  var ouverte = null;
+
+  function overlay() {
+    var el = document.getElementById('overlay');
+    if (!el) {
+      // Cree a la volee : toutes les pages n'en ont pas deja un.
+      el = document.createElement('div');
+      el.className = 'overlay';
+      el.id = 'overlay';
+      document.body.appendChild(el);
+    }
+    return el;
+  }
+
+  function ouvrir(id) {
+    var modal = document.getElementById(id);
+    if (!modal) return;
+    modal.classList.add('ouvert');
+    var corps = modal.querySelector('.modal-corps');
+    if (corps) corps.scrollTop = 0;
+    overlay().classList.add('visible');
+    document.body.style.overflow = 'hidden';
+    ouverte = id;
+    var premier = modal.querySelector('input:not([type=hidden]), select, textarea');
+    if (premier) premier.focus();
+  }
+
+  function fermer() {
+    if (!ouverte) return;
+    var modal = document.getElementById(ouverte);
+    if (modal) modal.classList.remove('ouvert');
+    overlay().classList.remove('visible');
+    document.body.style.overflow = '';
+    ouverte = null;
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    var modales = document.querySelectorAll('.modal[id]');
+    if (!modales.length) return;
+
+    document.querySelectorAll('[data-ouvre-modal]').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.preventDefault();
+        ouvrir(btn.dataset.ouvreModal);
+      });
+    });
+
+    document.querySelectorAll('[data-ferme-modal]').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.preventDefault();
+        fermer();
+      });
+    });
+
+    overlay().addEventListener('click', fermer);
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') fermer();
+    });
+
+    modales.forEach(function (m) {
+      if (m.hasAttribute('data-ouvrir-au-chargement')) ouvrir(m.id);
+    });
+  });
+})();
+
 document.addEventListener('DOMContentLoaded', function () {
   document.querySelectorAll('form[data-confirm]').forEach(function (form) {
     form.addEventListener('submit', function (e) {

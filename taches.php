@@ -36,7 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             );
             // Post/Redirect/Get : repart sur un formulaire vide au lieu de
             // rester rempli avec la tache qu'on vient d'ajouter.
-            header('Location: /taches.php#formulaireTache');
+            header('Location: /taches.php');
             exit;
         } catch (Exception $e) {
             $erreur = $e->getMessage();
@@ -50,7 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 validerPatient($db, isset($_POST['person_id']) ? $_POST['person_id'] : 0),
                 isset($_POST['date_cible']) ? $_POST['date_cible'] : ''
             );
-            header('Location: /taches.php#formulaireTache');
+            header('Location: /taches.php');
             exit;
         } catch (Exception $e) {
             $erreur = $e->getMessage();
@@ -132,44 +132,8 @@ function classePersonneTache($personId, $patients) {
   </div>
   <p class="sous-titre" style="margin-bottom:18px;">Des choses à faire qui ne sont pas (encore) un rendez-vous : "prendre rdv chez...", "annuler le rendez-vous de...".</p>
 
-  <div class="outil" id="formulaireTache">
-    <h2 class="panneau-titre"><?= $tacheEnEdition !== null ? 'Modifier la tâche' : 'Ajouter une tâche' ?></h2>
-
-    <?php if ($erreur): ?>
-      <p class="erreur"><?= htmlspecialchars($erreur) ?></p>
-    <?php endif; ?>
-
-    <form method="post">
-      <input type="hidden" name="action" value="<?= $tacheEnEdition !== null ? 'modifier' : 'ajouter' ?>">
-      <?php if ($tacheEnEdition !== null): ?>
-        <input type="hidden" name="id" value="<?= (int) $idEnEdition ?>">
-      <?php endif; ?>
-      <div class="champ">
-        <label>Quoi</label>
-        <input type="text" name="texte" placeholder="Ex. Prendre rdv chez le dentiste" required value="<?= isset($_POST['texte']) ? htmlspecialchars($_POST['texte']) : '' ?>">
-      </div>
-      <div class="champ-ligne">
-        <div class="champ">
-          <label>Concerne (facultatif)</label>
-          <select name="person_id">
-            <option value="">— Personne —</option>
-            <?php foreach ($patients as $patient): ?>
-              <option value="<?= (int) $patient['id'] ?>"<?= (isset($_POST['person_id']) && (int) $_POST['person_id'] === (int) $patient['id']) ? ' selected' : '' ?>><?= htmlspecialchars($patient['nom']) ?></option>
-            <?php endforeach; ?>
-          </select>
-        </div>
-        <div class="champ">
-          <label>Pour quand (facultatif)</label>
-          <input type="date" name="date_cible" value="<?= isset($_POST['date_cible']) ? htmlspecialchars($_POST['date_cible']) : '' ?>">
-        </div>
-      </div>
-      <div class="form-boutons">
-        <button class="principal" type="submit"><?= $tacheEnEdition !== null ? 'Enregistrer les modifications' : 'Ajouter' ?></button>
-        <?php if ($tacheEnEdition !== null): ?>
-          <a class="secondaire" href="/taches.php">Annuler</a>
-        <?php endif; ?>
-      </div>
-    </form>
+  <div class="barre-ajouter">
+    <button type="button" class="principal bouton-ajouter-medicament" data-ouvre-modal="modalTache">+ Ajouter une tâche</button>
   </div>
 
   <div class="outil" style="margin-top:16px;">
@@ -202,7 +166,7 @@ function classePersonneTache($personId, $patients) {
               </div>
             <?php endif; ?>
           </div>
-          <a href="?modifier=<?= (int) $t['id'] ?>#formulaireTache" class="lien-modifier-tache">Modifier</a>
+          <a href="?modifier=<?= (int) $t['id'] ?>" class="lien-modifier-tache">Modifier</a>
           <form method="post" data-confirm="Supprimer cette tâche ?">
             <input type="hidden" name="action" value="supprimer">
             <input type="hidden" name="id" value="<?= (int) $t['id'] ?>">
@@ -234,7 +198,7 @@ function classePersonneTache($personId, $patients) {
               </div>
             <?php endif; ?>
           </div>
-          <a href="?modifier=<?= (int) $t['id'] ?>#formulaireTache" class="lien-modifier-tache">Modifier</a>
+          <a href="?modifier=<?= (int) $t['id'] ?>" class="lien-modifier-tache">Modifier</a>
           <form method="post" data-confirm="Supprimer cette tâche ?">
             <input type="hidden" name="action" value="supprimer">
             <input type="hidden" name="id" value="<?= (int) $t['id'] ?>">
@@ -244,6 +208,57 @@ function classePersonneTache($personId, $patients) {
       <?php endforeach; ?>
     </details>
   <?php endif; ?>
+
+  <?php /* Le formulaire vit dans une modale, comme celui des rendez-vous :
+           on consulte la liste bien plus souvent qu'on n'ajoute une tache,
+           et le formulaire occupait le premier ecran. Il reste un POST
+           classique - la modale n'est qu'un habillage (admin-ui.js). */ ?>
+  <div class="modal" id="modalTache"<?= ($tacheEnEdition !== null || $erreur) ? ' data-ouvrir-au-chargement' : '' ?>>
+    <div class="modal-corps">
+    <h2><?= $tacheEnEdition !== null ? 'Modifier la tâche' : 'Ajouter une tâche' ?></h2>
+
+    <?php if ($erreur): ?>
+      <p class="erreur"><?= htmlspecialchars($erreur) ?></p>
+    <?php endif; ?>
+
+    <form method="post">
+      <input type="hidden" name="action" value="<?= $tacheEnEdition !== null ? 'modifier' : 'ajouter' ?>">
+      <?php if ($tacheEnEdition !== null): ?>
+        <input type="hidden" name="id" value="<?= (int) $idEnEdition ?>">
+      <?php endif; ?>
+      <div class="champ">
+        <label>Quoi</label>
+        <input type="text" name="texte" placeholder="Ex. Prendre rdv chez le dentiste" required value="<?= isset($_POST['texte']) ? htmlspecialchars($_POST['texte']) : '' ?>">
+      </div>
+      <div class="champ-ligne">
+        <div class="champ">
+          <label>Concerne (facultatif)</label>
+          <select name="person_id">
+            <option value="">— Personne —</option>
+            <?php foreach ($patients as $patient): ?>
+              <option value="<?= (int) $patient['id'] ?>"<?= (isset($_POST['person_id']) && (int) $_POST['person_id'] === (int) $patient['id']) ? ' selected' : '' ?>><?= htmlspecialchars($patient['nom']) ?></option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+        <div class="champ">
+          <label>Pour quand (facultatif)</label>
+          <input type="date" name="date_cible" value="<?= isset($_POST['date_cible']) ? htmlspecialchars($_POST['date_cible']) : '' ?>">
+        </div>
+      </div>
+      </div>
+      <div class="form-boutons">
+        <button class="principal" type="submit"><?= $tacheEnEdition !== null ? 'Enregistrer les modifications' : 'Ajouter' ?></button>
+        <?php if ($tacheEnEdition !== null): ?>
+          <?php /* Un lien : il faut aussi retirer "?modifier=" de l'URL,
+                   sinon la modale se rouvrirait au rechargement. */ ?>
+          <a class="secondaire" href="/taches.php">Annuler</a>
+        <?php else: ?>
+          <button type="button" class="secondaire" data-ferme-modal>Fermer</button>
+        <?php endif; ?>
+      </div>
+    </form>
+  </div>
+
 
   <script src="/assets/admin-ui.js?v=<?= filemtime(__DIR__ . '/assets/admin-ui.js') ?>"></script>
   <script src="/assets/entete.js?v=<?= filemtime(__DIR__ . '/assets/entete.js') ?>"></script>

@@ -45,7 +45,7 @@ if ($peutModifier && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['acti
             // Post/Redirect/Get (comme medicaments.php) : repart sur un
             // formulaire vide plutot que de rester rempli apres l'ajout,
             // et revient a la bonne section (Michel ou Christiane).
-            header('Location: /pathologies.php?p=' . $personIdForm . '#formulairePathologie');
+            header('Location: /pathologies.php?p=' . $personIdForm . '');
             exit;
         } catch (Exception $e) {
             $erreur = $e->getMessage();
@@ -60,7 +60,7 @@ if ($peutModifier && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['acti
                 isset($_POST['traitement']) ? $_POST['traitement'] : ''
             );
             $personIdForm = validerPatient($db, isset($_POST['person_id']) ? $_POST['person_id'] : 0);
-            header('Location: /pathologies.php?p=' . $personIdForm . '#formulairePathologie');
+            header('Location: /pathologies.php?p=' . $personIdForm . '');
             exit;
         } catch (Exception $e) {
             $erreur = $e->getMessage();
@@ -178,41 +178,9 @@ function classePersonnePathologie($rang) {
       </a>
 
       <?php if ($peutModifier): ?>
-      <div class="outil" id="<?= $estAffichee ? 'formulairePathologie' : '' ?>" style="margin-top:14px;">
-        <h2 class="panneau-titre"><?= $enEditionIci ? 'Modifier la pathologie' : 'Ajouter une pathologie' ?></h2>
-
-        <?php if ($erreur && $estAffichee): ?>
-          <p class="erreur"><?= htmlspecialchars($erreur) ?></p>
-        <?php endif; ?>
-
-        <form method="post">
-          <input type="hidden" name="action" value="<?= $enEditionIci ? 'modifier' : 'ajouter' ?>">
-          <input type="hidden" name="person_id" value="<?= $personId ?>">
-          <?php if ($enEditionIci): ?>
-            <input type="hidden" name="id" value="<?= (int) $idEnEdition ?>">
-          <?php endif; ?>
-          <div class="champ">
-            <label>Pathologie</label>
-            <input type="text" name="nom" placeholder="Ex. Dos, Bras..." required value="<?= $estAffichee && isset($_POST['nom']) ? htmlspecialchars($_POST['nom']) : '' ?>">
-          </div>
-          <div class="champ-ligne">
-            <div class="champ">
-              <label>Cause / raison (facultatif)</label>
-              <textarea name="cause" rows="2" placeholder="Ex. Tassement des vertèbres, selon le scanner fait à St Luc"><?= $estAffichee && isset($_POST['cause']) ? htmlspecialchars($_POST['cause']) : '' ?></textarea>
-            </div>
-            <div class="champ">
-              <label>Ce qui est fait pour soigner (facultatif)</label>
-              <textarea name="traitement" rows="2" placeholder="Ex. Kiné 2x/semaine, revu par Dr Dupont en octobre, Dafalgan si besoin"><?= $estAffichee && isset($_POST['traitement']) ? htmlspecialchars($_POST['traitement']) : '' ?></textarea>
-            </div>
-          </div>
-          <div class="form-boutons">
-            <button class="principal" type="submit"><?= $enEditionIci ? 'Enregistrer les modifications' : 'Ajouter' ?></button>
-            <?php if ($enEditionIci): ?>
-              <a class="secondaire" href="/pathologies.php?p=<?= $personId ?>">Annuler</a>
-            <?php endif; ?>
-          </div>
-        </form>
-      </div>
+        <div class="barre-ajouter" style="margin-top:14px;">
+          <button type="button" class="principal bouton-ajouter-medicament" data-ouvre-modal="modalPathologie<?= $personId ?>">+ Ajouter une pathologie</button>
+        </div>
       <?php endif; ?>
 
       <?php if (empty($listePersonne)): ?>
@@ -246,7 +214,7 @@ function classePersonnePathologie($rang) {
                 </div>
                 <?php if ($peutModifier): ?>
                 <div class="actions-medecin">
-                  <a href="?modifier=<?= (int) $path['id'] ?>#formulairePathologie" class="lien-modifier-tache">Modifier</a>
+                  <a href="?modifier=<?= (int) $path['id'] ?>" class="lien-modifier-tache">Modifier</a>
                   <form method="post" data-confirm="Supprimer cette pathologie ?">
                     <input type="hidden" name="action" value="supprimer">
                     <input type="hidden" name="id" value="<?= (int) $path['id'] ?>">
@@ -289,6 +257,63 @@ function classePersonnePathologie($rang) {
     });
   })();
   </script>
+
+  <?php /* Les modales sont posees HORS des sections par personne : une
+           section inactive est en display:none, et une modale
+           position:fixed a l'interieur ne s'afficherait jamais. Une modale
+           par patient, pour garder son person_id et ses valeurs saisies. */ ?>
+  <?php if ($peutModifier): ?>
+    <?php foreach ($patients as $patient): ?>
+      <?php
+        $personId = (int) $patient['id'];
+        $estAffichee = $personIdAffiche === $personId;
+        $enEditionIci = $pathologieEnEdition !== null && (int) $pathologieEnEdition['person_id'] === $personId;
+      ?>
+      <div class="modal" id="modalPathologie<?= $personId ?>"<?= ($enEditionIci || ($erreur && $estAffichee)) ? ' data-ouvrir-au-chargement' : '' ?>>
+        <div class="modal-corps">
+        <h2><?= $enEditionIci ? 'Modifier la pathologie' : 'Ajouter une pathologie' ?></h2>
+
+        <?php if ($erreur && $estAffichee): ?>
+          <p class="erreur"><?= htmlspecialchars($erreur) ?></p>
+        <?php endif; ?>
+
+        <form method="post">
+          <input type="hidden" name="action" value="<?= $enEditionIci ? 'modifier' : 'ajouter' ?>">
+          <input type="hidden" name="person_id" value="<?= $personId ?>">
+          <?php if ($enEditionIci): ?>
+            <input type="hidden" name="id" value="<?= (int) $idEnEdition ?>">
+          <?php endif; ?>
+          <div class="champ">
+            <label>Pathologie</label>
+            <input type="text" name="nom" placeholder="Ex. Dos, Bras..." required value="<?= $estAffichee && isset($_POST['nom']) ? htmlspecialchars($_POST['nom']) : '' ?>">
+          </div>
+          <div class="champ-ligne">
+            <div class="champ">
+              <label>Cause / raison (facultatif)</label>
+              <textarea name="cause" rows="2" placeholder="Ex. Tassement des vertèbres, selon le scanner fait à St Luc"><?= $estAffichee && isset($_POST['cause']) ? htmlspecialchars($_POST['cause']) : '' ?></textarea>
+            </div>
+            <div class="champ">
+              <label>Ce qui est fait pour soigner (facultatif)</label>
+              <textarea name="traitement" rows="2" placeholder="Ex. Kiné 2x/semaine, revu par Dr Dupont en octobre, Dafalgan si besoin"><?= $estAffichee && isset($_POST['traitement']) ? htmlspecialchars($_POST['traitement']) : '' ?></textarea>
+            </div>
+          </div>
+          </div>
+          <div class="form-boutons">
+            <button class="principal" type="submit"><?= $enEditionIci ? 'Enregistrer les modifications' : 'Ajouter' ?></button>
+            <?php if ($enEditionIci): ?>
+              <?php /* Un lien : il faut aussi retirer "?modifier=" de l'URL,
+                       sinon la modale se rouvrirait au rechargement. */ ?>
+              <a class="secondaire" href="/pathologies.php?p=<?= $personId ?>">Annuler</a>
+            <?php else: ?>
+              <button type="button" class="secondaire" data-ferme-modal>Fermer</button>
+            <?php endif; ?>
+          </div>
+        </form>
+      </div>
+
+    <?php endforeach; ?>
+  <?php endif; ?>
+
   <script src="/assets/admin-ui.js?v=<?= filemtime(__DIR__ . '/assets/admin-ui.js') ?>"></script>
   <script src="/assets/entete.js?v=<?= filemtime(__DIR__ . '/assets/entete.js') ?>"></script>
 </body>

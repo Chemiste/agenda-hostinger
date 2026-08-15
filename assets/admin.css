@@ -296,6 +296,21 @@ textarea.motifs { width:100%; min-height:100px; font-family:inherit; font-size:1
 .case-drapeau { display:flex; align-items:center; gap:6px; font-size:13px; font-weight:600; color:var(--text-secondary); white-space:nowrap; cursor:pointer; }
 .case-drapeau input[type=checkbox] { accent-color:var(--accent); }
 
+/* Barre du bouton "+ Ajouter", au-dessus de la liste. Le formulaire n'est
+   plus dans la page mais dans une modale (voir assets/admin-ui.js) : sur
+   Medecins, Taches ou Pathologies on consulte bien plus souvent qu'on
+   n'ajoute, et le formulaire occupait le premier ecran a la place de la
+   liste - ce qu'on vient reellement voir. */
+.barre-ajouter { display:flex; justify-content:flex-end; margin:0 0 4px; }
+
+/* La modale du plan de medicaments porte une bibliotheque de photos et
+   une ligne par moment : il lui faut plus que les 460px par defaut (voir
+   .modal dans style.css). Uniquement sur ecran large - sous 641px la
+   modale occupe deja toute la largeur, en feuille venue du bas. */
+@media (min-width: 641px) {
+  .modal.modal-large { max-width:760px; }
+}
+
 /* Onglets de choix du patient (medicaments.php et sa page de gestion).
    Ce sont des LIENS et non une bascule JavaScript comme sur Pathologies :
    la page de consultation s'imprime, et on ne veut imprimer que le plan

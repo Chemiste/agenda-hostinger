@@ -33,18 +33,49 @@ $peutModifier = personneSessionActuelle() === 'Laurent';
 $db = getDb();
 
 // Le patient dont on affiche le plan, choisi par les onglets ("?person=").
-// Aucun nom n'est plus ecrit en dur nulle part : la liste vient de la
-// table persons, et un identifiant inconnu retombe sur le premier patient.
+//
+// Seuls les patients ayant REELLEMENT un plan a montrer ont un onglet :
+// une page de consultation qui propose un onglet menant a "Aucun
+// medicament enregistre" ne rend service a personne. La creation d'un
+// plan se fait dans /admin/medicaments.php, ou tous les patients restent
+// selectionnables - c'est la qu'on en a besoin.
 //
 // Des liens plutot qu'une bascule en JavaScript, contrairement a
 // Pathologies : cette page s'imprime, et on veut n'imprimer QUE le plan
 // affiche - pas les deux l'un apres l'autre.
 $patients = listerPatients($db);
-$personCibleId = (int) (isset($_GET['person']) ? $_GET['person'] : 0);
-if (!isset($patients[$personCibleId])) {
-    $personCibleId = !empty($patients) ? (int) key($patients) : 0;
+
+// Le plan de chaque patient, moments vides retires (un moment sans
+// medicament n'a rien a faire sur la feuille - il reste modifiable dans
+// la page de gestion).
+$plansParPatient = [];
+foreach ($patients as $unPatient) {
+    $sections = [];
+    foreach (construirePlan($db, $unPatient['id']) as $section) {
+        if (!empty($section['medicaments'])) {
+            $sections[] = $section;
+        }
+    }
+    if (!empty($sections)) {
+        $plansParPatient[(int) $unPatient['id']] = $sections;
+    }
 }
-$personneCible = isset($patients[$personCibleId]) ? $patients[$personCibleId]['nom'] : 'Personne';
+$patientsAvecPlan = array_intersect_key($patients, $plansParPatient);
+
+$personCibleId = (int) (isset($_GET['person']) ? $_GET['person'] : 0);
+if (!isset($patientsAvecPlan[$personCibleId])) {
+    $personCibleId = !empty($patientsAvecPlan) ? (int) key($patientsAvecPlan) : 0;
+}
+$plan = isset($plansParPatient[$personCibleId]) ? $plansParPatient[$personCibleId] : [];
+
+// Personne n'a de plan : on garde quand meme un nom pour le titre, celui
+// du premier patient, plutot qu'un "Personne" sec.
+if (isset($patients[$personCibleId])) {
+    $personneCible = $patients[$personCibleId]['nom'];
+} else {
+    $premier = reset($patients);
+    $personneCible = $premier !== false ? $premier['nom'] : 'Personne';
+}
 
 /**
  * Une « boîte » du plan : sa photo, son nom, sa quantité, et son détail —
@@ -72,17 +103,6 @@ function afficherBoiteMedicament($b, $detailCommun) {
     }
 }
 
-// Le plan complet, deja assemble : les moments dans l'ordre, et pour
-// chacun les medicaments qui s'y prennent avec leur quantite a ce
-// moment-la et leurs eventuelles alternatives (voir lib/medicaments.php).
-$plan = [];
-foreach (construirePlan($db, $personCibleId) as $section) {
-    // Un moment sans aucun medicament n'occupe pas de place ici : il reste
-    // visible dans la page de gestion, ou on peut le renommer ou l'effacer.
-    if (!empty($section['medicaments'])) {
-        $plan[] = $section;
-    }
-}
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -92,6 +112,12 @@ foreach (construirePlan($db, $personCibleId) as $section) {
 <title>Médicaments — <?= htmlspecialchars($personneCible) ?></title>
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
 <link rel="stylesheet" href="/assets/style.css?v=<?= filemtime(__DIR__ . '/assets/style.css') ?>">
+<?php /* admin.css porte .barre-admin et .onglets-patients, utilises ici
+         comme sur les autres pages familiales. Sans lui, le titre
+         "Médicaments" ne se plaçait pas à la même hauteur que celui de
+         Pathologies ou Médecins : le <h1> gardait ses marges par défaut.
+         Aucune règle d'impression dedans, la feuille n'est pas affectée. */ ?>
+<link rel="stylesheet" href="/assets/admin.css?v=<?= filemtime(__DIR__ . '/assets/admin.css') ?>">
 <style>
   .barre-actions-medicaments { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:0 0 18px; }
   .btn-imprimer-plan { display:inline-flex; align-items:center; gap:8px; background:var(--accent); color:#fff; border:none; border-radius:var(--radius-md); padding:12px 20px; font-size:15px; font-weight:600; cursor:pointer; box-shadow:var(--shadow-sm); }
@@ -203,15 +229,15 @@ foreach (construirePlan($db, $personCibleId) as $section) {
   <div class="barre-admin">
     <h1>Médicaments</h1>
   </div>
-  <p class="sous-titre sous-titre-medicaments" style="margin-bottom:16px;">
+  <p class="sous-titre sous-titre-medicaments" style="margin-bottom:18px;">
     Plan de prise de <?= htmlspecialchars($personneCible) ?>, dans l'ordre des bacs du pilulier.
   </p>
 
   <?php /* Onglets masques quand il n'y a qu'un patient : un onglet unique
            n'offre aucun choix, il ne ferait qu'occuper une ligne. */ ?>
-  <?php if (count($patients) > 1): ?>
+  <?php if (count($patientsAvecPlan) > 1): ?>
     <div class="tabs onglets-patients" role="tablist">
-      <?php $rangOnglet = 0; foreach ($patients as $unPatient): ?>
+      <?php $rangOnglet = 0; foreach ($patientsAvecPlan as $unPatient): ?>
         <?php
           $classeOnglet = $rangOnglet === 0 ? 'papa' : ($rangOnglet === 1 ? 'maman' : 'tous');
           $rangOnglet++;
@@ -242,7 +268,7 @@ foreach (construirePlan($db, $personCibleId) as $section) {
   <?php if (empty($plan)): ?>
     <p class="vide">
       Aucun médicament enregistré.
-      <?php if ($peutModifier): ?><a href="/admin/medicaments.php?person=<?= $personCibleId ?>">Créer le plan</a>.<?php endif; ?>
+      <?php if ($peutModifier): ?><a href="/admin/medicaments.php">Créer le plan</a>.<?php endif; ?>
     </p>
   <?php else: ?>
     <?php foreach ($plan as $indexMoment => $section): ?>

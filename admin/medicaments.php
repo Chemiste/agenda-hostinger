@@ -251,7 +251,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $erreur = 'Cette photo est encore utilisée par un médicament : retire-la d\'abord de sa fiche.';
         } else {
             @unlink($DOSSIER_PHOTOS . $nomPhoto);
-            header('Location: ' . $RETOUR . '#formulaireMedicament');
+            header('Location: ' . $RETOUR . '');
             exit;
         }
     }
@@ -407,7 +407,7 @@ function pastillesDesPrises($prises, $libelleDuMoment) {
   <div class="outil">
     <div class="entete-liste-medicaments">
       <h2 class="panneau-titre" style="margin:0;">Les médicaments</h2>
-      <a class="principal bouton-ajouter-medicament" href="#formulaireMedicament">+ Ajouter un médicament</a>
+      <button type="button" class="principal bouton-ajouter-medicament" data-ouvre-modal="modalMedicament">+ Ajouter un médicament</button>
     </div>
 
     <?php if (empty($lignesPrincipales)): ?>
@@ -433,7 +433,7 @@ function pastillesDesPrises($prises, $libelleDuMoment) {
               </div>
               <div class="pastilles-prises"><?= pastillesDesPrises($prisesParMedicament[$idM], $libelleDuMoment) ?></div>
               <div class="actions-medicament-liste">
-                <a href="?person=<?= $personCibleId ?>&amp;modifier=<?= $idM ?>#formulaireMedicament" class="lien-modifier-tache">Modifier</a>
+                <a href="?person=<?= $personCibleId ?>&amp;modifier=<?= $idM ?>" class="lien-modifier-tache">Modifier</a>
                 <form method="post" data-confirm="Supprimer « <?= htmlspecialchars($m['nom']) ?> » de tous les moments du plan ?<?= !empty($alternativesDe[$idM]) ? ' Son alternative restera dans le plan, comme médicament à part entière.' : '' ?>">
                   <input type="hidden" name="action" value="supprimer">
                   <input type="hidden" name="id" value="<?= $idM ?>">
@@ -465,7 +465,7 @@ function pastillesDesPrises($prises, $libelleDuMoment) {
                   </div>
                   <div class="pastilles-prises"><?= pastillesDesPrises($prisesParMedicament[$idA], $libelleDuMoment) ?></div>
                   <div class="actions-medicament-liste">
-                    <a href="?person=<?= $personCibleId ?>&amp;modifier=<?= $idA ?>#formulaireMedicament" class="lien-modifier-tache">Modifier</a>
+                    <a href="?person=<?= $personCibleId ?>&amp;modifier=<?= $idA ?>" class="lien-modifier-tache">Modifier</a>
                     <form method="post" data-confirm="Supprimer l'alternative « <?= htmlspecialchars($alt['nom']) ?> » ?">
                       <input type="hidden" name="action" value="supprimer">
                       <input type="hidden" name="id" value="<?= $idA ?>">
@@ -481,8 +481,66 @@ function pastillesDesPrises($prises, $libelleDuMoment) {
     <?php endif; ?>
   </div>
 
-  <div class="outil" id="formulaireMedicament" style="margin-top:16px;">
-    <h2 class="panneau-titre"><?= $medicamentEnEdition !== null ? 'Modifier le médicament' : 'Ajouter un médicament' ?></h2>
+  <!-- Les moments en bas de page : on les cree une fois pour toutes, alors
+       qu'on ajoute des medicaments regulierement. -->
+  <div class="outil" id="moments" style="margin-top:16px;">
+    <h2 class="panneau-titre">Moments de la journée</h2>
+    <p class="aide" style="margin-top:-4px;">Les sections de la fiche, dans l'ordre des bacs du pilulier. Renommer ou déplacer un moment ne touche pas aux médicaments.</p>
+
+    <?php if ($erreurMoment): ?>
+      <p class="erreur"><?= htmlspecialchars($erreurMoment) ?></p>
+    <?php endif; ?>
+
+    <?php if (!empty($moments)): ?>
+      <?php $nombreMoments = count($moments); ?>
+      <ul class="liste-moments">
+        <?php foreach ($moments as $index => $m): ?>
+          <?php $nbPrises = $prisesParMoment[(int) $m['id']]; ?>
+          <li class="rangee-moment">
+            <form method="post" class="form-renommer-moment">
+              <input type="hidden" name="action" value="renommer_moment">
+              <input type="hidden" name="moment_id" value="<?= (int) $m['id'] ?>">
+              <input type="text" name="libelle" value="<?= htmlspecialchars($m['libelle']) ?>" aria-label="Nom du moment" required>
+              <button type="submit" class="secondaire">Renommer</button>
+            </form>
+            <span class="compteur-moment"><?= $nbPrises ?> médicament<?= $nbPrises > 1 ? 's' : '' ?></span>
+            <div class="boutons-deplacer-section">
+              <form method="post">
+                <input type="hidden" name="action" value="deplacer_moment">
+                <input type="hidden" name="moment_id" value="<?= (int) $m['id'] ?>">
+                <input type="hidden" name="direction" value="haut">
+                <button type="submit" class="bouton-deplacer" title="Monter ce moment" <?= $index === 0 ? 'disabled' : '' ?>>↑</button>
+              </form>
+              <form method="post">
+                <input type="hidden" name="action" value="deplacer_moment">
+                <input type="hidden" name="moment_id" value="<?= (int) $m['id'] ?>">
+                <input type="hidden" name="direction" value="bas">
+                <button type="submit" class="bouton-deplacer" title="Descendre ce moment" <?= $index === $nombreMoments - 1 ? 'disabled' : '' ?>>↓</button>
+              </form>
+              <form method="post" data-confirm="Supprimer le moment « <?= htmlspecialchars($m['libelle']) ?> » ?">
+                <input type="hidden" name="action" value="supprimer_moment">
+                <input type="hidden" name="moment_id" value="<?= (int) $m['id'] ?>">
+                <button type="submit" class="bouton-deplacer bouton-supprimer-moment" title="<?= $nbPrises > 0 ? 'Encore utilisé par ' . $nbPrises . ' médicament(s)' : 'Supprimer ce moment' ?>" <?= $nbPrises > 0 ? 'disabled' : '' ?>>✕</button>
+              </form>
+            </div>
+          </li>
+        <?php endforeach; ?>
+      </ul>
+    <?php endif; ?>
+
+    <form method="post" class="form-ajouter-moment">
+      <input type="hidden" name="action" value="ajouter_moment">
+      <input type="text" name="libelle" placeholder="Nouveau moment (ex. 15h00)" aria-label="Nouveau moment" required>
+      <button type="submit" class="principal">Ajouter le moment</button>
+    </form>
+  </div>
+
+  <?php /* Le formulaire vit dans une modale, comme celui des rendez-vous.
+           Il reste un POST classique : la modale n'est qu'un habillage,
+           voir assets/admin-ui.js. */ ?>
+  <div class="modal modal-large" id="modalMedicament"<?= ($medicamentEnEdition !== null || $erreur) ? ' data-ouvrir-au-chargement' : '' ?>>
+    <div class="modal-corps">
+    <h2><?= $medicamentEnEdition !== null ? 'Modifier le médicament' : 'Ajouter un médicament' ?></h2>
 
     <?php if ($erreur): ?>
       <p class="erreur"><?= htmlspecialchars($erreur) ?></p>
@@ -603,10 +661,15 @@ function pastillesDesPrises($prises, $libelleDuMoment) {
         <input type="hidden" name="image_existante" id="champImageExistante" value="">
       </div>
 
+      </div>
       <div class="form-boutons">
         <button class="principal" type="submit"><?= $medicamentEnEdition !== null ? 'Enregistrer les modifications' : 'Ajouter' ?></button>
         <?php if ($medicamentEnEdition !== null): ?>
+          <?php /* Un lien : il faut aussi retirer "?modifier=" de l'URL,
+                   sinon la modale se rouvrirait au rechargement. */ ?>
           <a class="secondaire" href="<?= $RETOUR ?>">Annuler</a>
+        <?php else: ?>
+          <button type="button" class="secondaire" data-ferme-modal>Fermer</button>
         <?php endif; ?>
       </div>
     </form>
@@ -622,74 +685,10 @@ function pastillesDesPrises($prises, $libelleDuMoment) {
     <?php endif; ?>
   </div>
 
-  <!-- Les moments en bas de page : on les cree une fois pour toutes, alors
-       qu'on ajoute des medicaments regulierement. -->
-  <div class="outil" id="moments" style="margin-top:16px;">
-    <h2 class="panneau-titre">Moments de la journée</h2>
-    <p class="aide" style="margin-top:-4px;">Les sections de la fiche, dans l'ordre des bacs du pilulier. Renommer ou déplacer un moment ne touche pas aux médicaments.</p>
-
-    <?php if ($erreurMoment): ?>
-      <p class="erreur"><?= htmlspecialchars($erreurMoment) ?></p>
-    <?php endif; ?>
-
-    <?php if (!empty($moments)): ?>
-      <?php $nombreMoments = count($moments); ?>
-      <ul class="liste-moments">
-        <?php foreach ($moments as $index => $m): ?>
-          <?php $nbPrises = $prisesParMoment[(int) $m['id']]; ?>
-          <li class="rangee-moment">
-            <form method="post" class="form-renommer-moment">
-              <input type="hidden" name="action" value="renommer_moment">
-              <input type="hidden" name="moment_id" value="<?= (int) $m['id'] ?>">
-              <input type="text" name="libelle" value="<?= htmlspecialchars($m['libelle']) ?>" aria-label="Nom du moment" required>
-              <button type="submit" class="secondaire">Renommer</button>
-            </form>
-            <span class="compteur-moment"><?= $nbPrises ?> médicament<?= $nbPrises > 1 ? 's' : '' ?></span>
-            <div class="boutons-deplacer-section">
-              <form method="post">
-                <input type="hidden" name="action" value="deplacer_moment">
-                <input type="hidden" name="moment_id" value="<?= (int) $m['id'] ?>">
-                <input type="hidden" name="direction" value="haut">
-                <button type="submit" class="bouton-deplacer" title="Monter ce moment" <?= $index === 0 ? 'disabled' : '' ?>>↑</button>
-              </form>
-              <form method="post">
-                <input type="hidden" name="action" value="deplacer_moment">
-                <input type="hidden" name="moment_id" value="<?= (int) $m['id'] ?>">
-                <input type="hidden" name="direction" value="bas">
-                <button type="submit" class="bouton-deplacer" title="Descendre ce moment" <?= $index === $nombreMoments - 1 ? 'disabled' : '' ?>>↓</button>
-              </form>
-              <form method="post" data-confirm="Supprimer le moment « <?= htmlspecialchars($m['libelle']) ?> » ?">
-                <input type="hidden" name="action" value="supprimer_moment">
-                <input type="hidden" name="moment_id" value="<?= (int) $m['id'] ?>">
-                <button type="submit" class="bouton-deplacer bouton-supprimer-moment" title="<?= $nbPrises > 0 ? 'Encore utilisé par ' . $nbPrises . ' médicament(s)' : 'Supprimer ce moment' ?>" <?= $nbPrises > 0 ? 'disabled' : '' ?>>✕</button>
-              </form>
-            </div>
-          </li>
-        <?php endforeach; ?>
-      </ul>
-    <?php endif; ?>
-
-    <form method="post" class="form-ajouter-moment">
-      <input type="hidden" name="action" value="ajouter_moment">
-      <input type="text" name="libelle" placeholder="Nouveau moment (ex. 15h00)" aria-label="Nouveau moment" required>
-      <button type="submit" class="principal">Ajouter le moment</button>
-    </form>
-  </div>
 
   <script src="/assets/admin-ui.js?v=<?= filemtime(__DIR__ . '/../assets/admin-ui.js') ?>"></script>
   <script>
   (function () {
-    // "+ Ajouter un medicament" est une ancre vers le formulaire : on y
-    // pose aussi le curseur, sinon on arrive devant un champ vide sans
-    // savoir qu'on peut deja taper.
-    var lienAjouter = document.querySelector('.bouton-ajouter-medicament');
-    var champNom = document.getElementById('champNomMedicament');
-    if (lienAjouter && champNom) {
-      lienAjouter.addEventListener('click', function () {
-        setTimeout(function () { champNom.focus(); }, 120);
-      });
-    }
-
     var champFichier = document.getElementById('champFichierImage');
     var champExistante = document.getElementById('champImageExistante');
     var vignettes = document.querySelectorAll('.vignette-photo-existante');

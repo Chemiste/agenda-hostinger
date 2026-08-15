@@ -2,6 +2,22 @@
 
 ## Non publié
 
+- **Les formulaires d'ajout passent en modale, comme les rendez-vous.**
+  Sur Médecins, Tâches, Pathologies et le plan de médicaments, le
+  formulaire occupait le premier écran alors qu'on consulte ces pages
+  bien plus souvent qu'on n'y ajoute : la liste — ce qu'on vient voir —
+  était repoussée plus bas. Elle passe en premier, un bouton
+  « + Ajouter » ouvre le formulaire dans la même modale que celle de
+  l'agenda. Tout le site se comporte donc pareil.
+  Ce sont toujours des formulaires POST classiques, avec leur
+  Post/Redirect/Get : la modale n'est qu'un habillage (`admin-ui.js`), ce
+  qui évitait de réécrire quatre pages en API pour un gain visuel. Elle
+  s'ouvre d'elle-même en modification ou après une erreur de validation —
+  sinon le message d'erreur serait resté invisible.
+  Sur Pathologies, les modales sont posées **hors** des sections par
+  personne : une section inactive est en `display:none`, et une modale
+  `position:fixed` à l'intérieur ne s'afficherait jamais.
+
 - **`config.php` ne contient plus aucun nom de personne.** `personne_1`,
   `personne_2` et `membres_famille` disparaissent, ainsi que le bloc
   « Reprendre depuis config.php » et le repli de « Qui êtes-vous ? » sur
