@@ -12,6 +12,7 @@
 
 require_once __DIR__ . '/../lib/auth.php';
 requireAdminLogin();
+require_once __DIR__ . '/../lib/entete_admin.php';
 
 $config = require __DIR__ . '/../config.php';
 $p1 = isset($config['personne_1']) ? $config['personne_1'] : 'Papa';
@@ -28,20 +29,12 @@ $p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
 <link rel="stylesheet" href="/assets/admin.css?v=<?= filemtime(__DIR__ . '/../assets/admin.css') ?>">
 </head>
 <body>
-  <div class="barre-admin">
-    <div>
-      <a href="/index.php">Retour à l'agenda</a>
-      &nbsp;·&nbsp;
-      <a href="/admin/logout.php">Déconnexion admin</a>
-    </div>
-  </div>
-  <div class="fil-admin">
-    <a href="/admin/index.php">Administration</a><span class="sep">/</span><span class="actuel">Importer un fichier .ics</span>
-  </div>
+  <?php afficherEnteteAdmin(
+      'Importer un fichier .ics',
+      "Importe des rendez-vous depuis un fichier .ics exporté d'un autre agenda (Google Calendar, Outlook, etc.)."
+  ); ?>
 
   <div class="outil">
-    <h2 style="margin-top:0;">Importer un fichier .ics</h2>
-    <p class="sous-titre">Importe des rendez-vous depuis un fichier .ics exporté d'un autre agenda (Google Calendar, Outlook, etc.).</p>
     <button class="secondaire" id="btnImportIcs">Choisir un fichier .ics</button>
     <input type="file" id="fichierIcs" accept=".ics,text/calendar" style="display:none;">
   </div>

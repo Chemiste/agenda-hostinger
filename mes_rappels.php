@@ -122,7 +122,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   <form method="post">
     <div class="outil">
-      <h2 class="panneau-titre" style="font-size:15px;"><?= htmlspecialchars($p1) ?></h2>
+      <h2 class="panneau-titre"><?= htmlspecialchars($p1) ?></h2>
       <div class="champ">
         <label>Adresse email de <?= htmlspecialchars($p1) ?></label>
         <input type="email" name="reminder_email_person1" value="<?= htmlspecialchars($valeurs['reminder_email_person1']) ?>" placeholder="<?= htmlspecialchars($p1) ?>@example.com">
@@ -145,7 +145,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 
     <div class="outil" style="margin-top:16px;">
-      <h2 class="panneau-titre" style="font-size:15px;"><?= htmlspecialchars($p2) ?></h2>
+      <h2 class="panneau-titre"><?= htmlspecialchars($p2) ?></h2>
       <div class="champ">
         <label>Adresse email de <?= htmlspecialchars($p2) ?></label>
         <input type="email" name="reminder_email_person2" value="<?= htmlspecialchars($valeurs['reminder_email_person2']) ?>" placeholder="<?= htmlspecialchars($p2) ?>@example.com">

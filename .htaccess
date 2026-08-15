@@ -1,5 +1,11 @@
 # Bloque l'acces direct aux fichiers sensibles depuis un navigateur.
-<FilesMatch "^(config\.php|.*\.json|.*\.sql)$">
+#
+# config*.php couvre config.php mais aussi config_dev.php et
+# config_prod.php, qui contiennent les memes identifiants de base de
+# donnees : seul config.php etait protege ici. En temps normal PHP les
+# execute (et ils n'affichent rien), mais si l'interpreteur venait a etre
+# mal configure, ils seraient servis en texte brut, mot de passe compris.
+<FilesMatch "^(config.*\.php|.*\.json|.*\.sql)$">
   Require all denied
 </FilesMatch>
 

@@ -15,6 +15,7 @@
 require_once __DIR__ . '/../lib/auth.php';
 requireAdminLogin();
 require_once __DIR__ . '/../lib/db.php';
+require_once __DIR__ . '/../lib/entete_admin.php';
 
 // Le telechargement (POST) doit se faire avant tout affichage HTML, pour
 // pouvoir envoyer les en-tetes de fichier proprement.
@@ -45,31 +46,19 @@ $nbRdv = (int) $db->query('SELECT COUNT(*) FROM appointments')->fetchColumn();
 <link rel="stylesheet" href="/assets/admin.css?v=<?= filemtime(__DIR__ . '/../assets/admin.css') ?>">
 </head>
 <body>
-  <div class="barre-admin">
-    <div>
-      <a href="/index.php">Retour à l'agenda</a>
-      &nbsp;·&nbsp;
-      <a href="/admin/logout.php">Déconnexion admin</a>
-    </div>
-  </div>
-  <div class="fil-admin">
-    <a href="/admin/index.php">Administration</a><span class="sep">/</span><span class="actuel">Exporter les données</span>
-  </div>
+  <?php afficherEnteteAdmin(
+      'Exporter les données',
+      'Télécharge un instantané complet des ' . $nbRdv . ' rendez-vous actuellement en base, au format JSON. '
+      . 'À utiliser pour ramener des données réalistes dans une base de développement locale via '
+      . '<code>outils/importer_donnees_dev.php</code> — jamais pour éditer les rendez-vous eux-mêmes.'
+  ); ?>
 
   <div class="outil">
-    <h2 style="margin-top:0;">Exporter les données</h2>
-    <p class="sous-titre">
-      Télécharge un instantané complet des <?= $nbRdv ?> rendez-vous actuellement en base, au format JSON.
-      À utiliser pour ramener des données réalistes dans une base de développement locale via
-      <code>outils/importer_donnees_dev.php</code> — jamais pour éditer les rendez-vous eux-mêmes.
-    </p>
     <form method="post">
       <input type="hidden" name="exporter" value="1">
       <button class="principal" type="submit">Télécharger l'export (<?= $nbRdv ?> rendez-vous)</button>
     </form>
   </div>
-
-  <p style="margin-top:2rem;"><a href="/index.php">Retour à l'agenda</a></p>
 
   <script src="/assets/admin-ui.js?v=<?= filemtime(__DIR__ . '/../assets/admin-ui.js') ?>"></script>
 </body>

@@ -147,7 +147,7 @@ function afficherRangeeMedecin($m) {
   <p class="sous-titre" style="margin-bottom:18px;">Un carnet de référence (médecin, spécialité, adresse, téléphone...) à garder même sans rendez-vous prévu. Utilisé aussi pour pré-remplir automatiquement le formulaire de rendez-vous.</p>
 
   <div class="outil" id="formulaireMedecin">
-    <h2 class="panneau-titre" style="font-size:15px;"><?= $medecinEnEdition !== null ? 'Modifier le médecin' : 'Ajouter un médecin' ?></h2>
+    <h2 class="panneau-titre"><?= $medecinEnEdition !== null ? 'Modifier le médecin' : 'Ajouter un médecin' ?></h2>
 
     <?php if ($erreur): ?>
       <p class="erreur"><?= htmlspecialchars($erreur) ?></p>
@@ -203,7 +203,7 @@ function afficherRangeeMedecin($m) {
   </div>
 
   <div class="outil" style="margin-top:16px;">
-    <h2 class="panneau-titre" style="font-size:15px;"><?= htmlspecialchars($p1) ?><?= count($medecinsParPersonne[$p1]) > 0 ? ' (' . count($medecinsParPersonne[$p1]) . ')' : '' ?></h2>
+    <h2 class="panneau-titre"><?= htmlspecialchars($p1) ?><?= count($medecinsParPersonne[$p1]) > 0 ? ' (' . count($medecinsParPersonne[$p1]) . ')' : '' ?></h2>
     <?php if (empty($medecinsParPersonne[$p1])): ?>
       <p class="vide">Aucun médecin enregistré.</p>
     <?php else: ?>
@@ -214,7 +214,7 @@ function afficherRangeeMedecin($m) {
   </div>
 
   <div class="outil" style="margin-top:16px;">
-    <h2 class="panneau-titre" style="font-size:15px;"><?= htmlspecialchars($p2) ?><?= count($medecinsParPersonne[$p2]) > 0 ? ' (' . count($medecinsParPersonne[$p2]) . ')' : '' ?></h2>
+    <h2 class="panneau-titre"><?= htmlspecialchars($p2) ?><?= count($medecinsParPersonne[$p2]) > 0 ? ' (' . count($medecinsParPersonne[$p2]) . ')' : '' ?></h2>
     <?php if (empty($medecinsParPersonne[$p2])): ?>
       <p class="vide">Aucun médecin enregistré.</p>
     <?php else: ?>

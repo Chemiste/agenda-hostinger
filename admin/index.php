@@ -19,6 +19,7 @@ require_once __DIR__ . '/../lib/auth.php';
 requireAdminLogin();
 require_once __DIR__ . '/../lib/db.php';
 require_once __DIR__ . '/../lib/settings.php';
+require_once __DIR__ . '/../lib/entete_admin.php';
 
 $config = require __DIR__ . '/../config.php';
 $estEnvironnementDev = isset($config['db_name']) && $config['db_name'] === 'agenda_dev';
@@ -61,14 +62,7 @@ $reminderDelai = getSetting($db, 'reminder_hours_before', '24');
 <link rel="stylesheet" href="/assets/admin.css?v=<?= filemtime(__DIR__ . '/../assets/admin.css') ?>">
 </head>
 <body>
-  <div class="barre-admin">
-    <h1>Administration</h1>
-    <div>
-      <a href="/index.php">Retour à l'agenda</a>
-      &nbsp;·&nbsp;
-      <a href="/admin/logout.php">Déconnexion admin</a>
-    </div>
-  </div>
+  <?php afficherEnteteAdmin('Administration', '', true); ?>
 
   <div class="stats-rangee">
     <div class="stat">

@@ -315,6 +315,7 @@ if (php_sapi_name() === 'cli') {
 
 // --- Mode navigateur (réservé à l'administration) ---
 require_once __DIR__ . '/../lib/auth.php';
+require_once __DIR__ . '/../lib/entete_admin.php';
 requireAdminLogin();
 
 $erreur = '';
@@ -336,23 +337,21 @@ try {
 <link rel="stylesheet" href="/assets/admin.css?v=<?= filemtime(__DIR__ . '/../assets/admin.css') ?>">
 </head>
 <body>
-  <div class="barre-admin">
-    <h1>Reprise du plan de médicaments</h1>
-    <div><a href="/admin/index.php">Retour à l'administration</a></div>
-  </div>
+  <?php afficherEnteteAdmin(
+      'Reprise du plan de médicaments',
+      $erreur === ''
+        ? "Lecture seule : rien n'est écrit en base. Table lue : <strong>"
+          . htmlspecialchars($analyse['table_source']) . '</strong> (' . (int) $analyse['lignes_lues'] . ' lignes).'
+        : "Reprise des anciennes données de médicaments vers le nouveau format (migration 0020)."
+  ); ?>
 
   <?php if ($erreur): ?>
     <p class="erreur"><?= htmlspecialchars($erreur) ?></p>
   <?php else: ?>
-    <p class="sous-titre" style="margin-bottom:18px;">
-      Lecture seule : rien n'est écrit en base. Table lue :
-      <strong><?= htmlspecialchars($analyse['table_source']) ?></strong>
-      (<?= (int) $analyse['lignes_lues'] ?> lignes).
-    </p>
 
     <?php if (!empty($analyse['avertissements'])): ?>
       <div class="outil" style="margin-bottom:16px;">
-        <h2 class="panneau-titre" style="font-size:15px;">À vérifier (<?= count($analyse['avertissements']) ?>)</h2>
+        <h2 class="panneau-titre">À vérifier (<?= count($analyse['avertissements']) ?>)</h2>
         <ul>
           <?php foreach ($analyse['avertissements'] as $av): ?>
             <li><?= htmlspecialchars($av) ?></li>
@@ -364,7 +363,7 @@ try {
     <?php endif; ?>
 
     <div class="outil">
-      <h2 class="panneau-titre" style="font-size:15px;">Moments (<?= count($analyse['moments']) ?>)</h2>
+      <h2 class="panneau-titre">Moments (<?= count($analyse['moments']) ?>)</h2>
       <ul>
         <?php foreach ($analyse['moments'] as $m): ?>
           <li><?= htmlspecialchars($m['person']) ?> — <?= htmlspecialchars($m['libelle']) ?> (ordre <?= (int) $m['ordre'] ?>)</li>
@@ -373,7 +372,7 @@ try {
     </div>
 
     <div class="outil" style="margin-top:16px;">
-      <h2 class="panneau-titre" style="font-size:15px;">Médicaments (<?= count($analyse['medicaments']) ?>)</h2>
+      <h2 class="panneau-titre">Médicaments (<?= count($analyse['medicaments']) ?>)</h2>
       <ul>
         <?php foreach ($analyse['medicaments'] as $m): ?>
           <?php

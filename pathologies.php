@@ -173,7 +173,7 @@ function classePersonnePathologie($personne, $p1, $p2) {
 
       <?php if ($peutModifier): ?>
       <div class="outil" id="<?= $personneAffichee === $personne ? 'formulairePathologie' : '' ?>" style="margin-top:14px;">
-        <h2 class="panneau-titre" style="font-size:15px;"><?= $enEditionIci ? 'Modifier la pathologie' : 'Ajouter une pathologie' ?></h2>
+        <h2 class="panneau-titre"><?= $enEditionIci ? 'Modifier la pathologie' : 'Ajouter une pathologie' ?></h2>
 
         <?php if ($erreur && $personneAffichee === $personne): ?>
           <p class="erreur"><?= htmlspecialchars($erreur) ?></p>

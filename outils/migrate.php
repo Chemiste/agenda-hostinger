@@ -9,8 +9,9 @@
  *   php outils/migrate.php
  *
  * Sans accès SSH, ouvrez ce fichier dans le navigateur
- * (https://agenda.hellau.be/outils/migrate.php) : il vous demandera de
- * vous connecter puis de confirmer avant d'appliquer quoi que ce soit.
+ * (https://agenda.hellau.be/outils/migrate.php) : il demande le mot de
+ * passe d'ADMINISTRATION, puis une confirmation avant d'appliquer quoi
+ * que ce soit.
  *
  * Chaque fichier .sql du dossier migrations/ est appliqué une seule fois,
  * dans l'ordre alphabétique (d'où les noms 0001_..., 0002_..., etc).
@@ -129,7 +130,12 @@ if (php_sapi_name() === 'cli') {
 
 // --- Mode navigateur (nécessite d'être connecté) ---
 require_once __DIR__ . '/../lib/auth.php';
-requireLogin();
+// Mot de passe ADMIN et non simple mot de passe familial : appliquer une
+// migration modifie la structure de la base. Ce n'est pas une action que
+// Michel, Christiane ou Hélène ont a pouvoir declencher en tombant sur
+// l'URL.
+requireAdminLogin();
+require_once __DIR__ . '/../lib/entete_admin.php';
 
 $erreur = '';
 $resultats = null;
@@ -154,10 +160,16 @@ $enAttente = array_map('basename', migrationsEnAttente($db));
 <title>Migrations - Agenda médical</title>
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
 <link rel="stylesheet" href="/assets/style.css?v=<?= filemtime(__DIR__ . '/../assets/style.css') ?>">
+<link rel="stylesheet" href="/assets/admin.css?v=<?= filemtime(__DIR__ . '/../assets/admin.css') ?>">
 </head>
 <body>
-  <h1>Migrations de la base de données</h1>
+  <?php afficherEnteteAdmin(
+      'Migrations de la base de données',
+      'Applique les fichiers <code>migrations/*.sql</code> qui n\'ont pas encore été joués sur cette base. '
+      . 'Chacun n\'est appliqué qu\'une seule fois.'
+  ); ?>
 
+  <div class="outil">
   <?php if ($erreur): ?>
     <p class="erreur"><?= htmlspecialchars($erreur) ?></p>
   <?php endif; ?>
@@ -187,7 +199,6 @@ $enAttente = array_map('basename', migrationsEnAttente($db));
       <button class="principal" type="submit">Lancer les migrations</button>
     </form>
   <?php endif; ?>
-
-  <p style="margin-top:2rem;"><a href="/index.php">Retour à l'agenda</a></p>
+  </div>
 </body>
 </html>

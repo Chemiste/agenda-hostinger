@@ -2,6 +2,38 @@
 
 ## Non publié
 
+- **Deux outils sensibles passent derrière le mot de passe d'administration.**
+  `outils/migrate.php` (appliquer une migration de base de données) et
+  `outils/import_calendar.php` (import en masse depuis Google Calendar) ne
+  demandaient que le mot de passe *familial* : n'importe qui pouvant se
+  connecter au site pouvait donc modifier la structure de la base en
+  tombant sur l'URL. Ils exigent désormais `requireAdminLogin()`, comme
+  tout le reste de `admin/`. Le guide d'installation génère maintenant les
+  deux mots de passe en une seule étape, sinon on ne pourrait plus créer
+  les tables sur une installation neuve.
+
+- **Deux fuites potentielles refermées.** Le `.htaccess` racine ne bloquait
+  que `config.php` : `config_dev.php` et `config_prod.php`, qui portent les
+  mêmes identifiants de base, passaient à travers (`config*.php` désormais).
+  Et `.gitignore` n'excluait que `backups/*.json` : les fichiers `.sql`
+  générés dans le même dossier (données de santé réelles) auraient pu
+  partir dans un commit.
+
+- **Toutes les pages d'administration ont enfin le même en-tête.** Trois
+  modèles cohabitaient : une barre sans titre suivie d'un fil d'Ariane
+  (sept pages sur onze n'avaient donc aucun `<h1>` — le titre visible était
+  en fait celui de la première carte), une barre avec titre mais sans fil
+  d'Ariane, et un en-tête inventé pour la seule page des réglages, avec un
+  `<h1>` de 20 px là où tout le site en fait 24. Un `lib/entete_admin.php`
+  produit désormais le même haut de page partout — titre, sous-titre,
+  et à droite « Administration · Retour à l'agenda · Déconnexion admin ».
+  Le fil d'Ariane disparaît : sur une arborescence à un seul niveau il ne
+  disait rien de plus que le titre. Les liens de retour répétés en bas de
+  page disparaissent aussi.
+  Les outils de `outils/` suivent le même modèle ; `migrate.php` et
+  `import_calendar.php` chargent maintenant `admin.css` et posent leur
+  contenu dans une carte, au lieu de ressembler à un autre site.
+
 - **Accueil de l'administration resserré.** Sept intertitres pour neuf
   outils, dont six occupaient seuls toute la largeur : chaque outil coûtait
   une ligne entière et la page s'étirait sur près de deux écrans. Toutes

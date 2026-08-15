@@ -102,7 +102,7 @@ Dès que vous modifiez la table `appointments` (nouvelle colonne, nouvel index, 
    - **À la main** (Gestionnaire de fichiers Hostinger ou un client FTP comme FileZilla) : reprenez la liste des fichiers modifiés depuis le dernier déploiement (`git status`/`git diff --name-only` si tout est commité) et envoyez-les un par un.
 2. Si de nouvelles migrations existent, appliquez-les sur le serveur :
    - **Avec accès SSH** (si votre plan Hostinger le propose) : connectez-vous et lancez `php outils/migrate.php`.
-   - **Sans accès SSH** : ouvrez `https://agenda.hellau.be/outils/migrate.php` dans le navigateur, connectez-vous avec le mot de passe familial, la page liste les migrations en attente, cliquez sur **Lancer les migrations**.
+   - **Sans accès SSH** : ouvrez `https://agenda.hellau.be/outils/migrate.php` dans le navigateur, connectez-vous avec le mot de passe **d'administration**, la page liste les migrations en attente, cliquez sur **Lancer les migrations**.
 3. Rechargez le site et vérifiez que tout fonctionne.
 
 `config.php` reste propre à chaque environnement : ne le copiez jamais de votre machine vers le serveur (les identifiants de base de données et le mot de passe familial sont différents entre local et production).

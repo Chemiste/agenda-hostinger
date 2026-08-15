@@ -107,7 +107,7 @@ function classePersonneTache($personne, $p1, $p2) {
   <p class="sous-titre" style="margin-bottom:18px;">Des choses à faire qui ne sont pas (encore) un rendez-vous : "prendre rdv chez...", "annuler le rendez-vous de...".</p>
 
   <div class="outil" id="formulaireTache">
-    <h2 class="panneau-titre" style="font-size:15px;"><?= $tacheEnEdition !== null ? 'Modifier la tâche' : 'Ajouter une tâche' ?></h2>
+    <h2 class="panneau-titre"><?= $tacheEnEdition !== null ? 'Modifier la tâche' : 'Ajouter une tâche' ?></h2>
 
     <?php if ($erreur): ?>
       <p class="erreur"><?= htmlspecialchars($erreur) ?></p>
@@ -146,7 +146,7 @@ function classePersonneTache($personne, $p1, $p2) {
   </div>
 
   <div class="outil" style="margin-top:16px;">
-    <h2 class="panneau-titre" style="font-size:15px;">À faire<?= count($tachesOuvertes) > 0 ? ' (' . count($tachesOuvertes) . ')' : '' ?></h2>
+    <h2 class="panneau-titre">À faire<?= count($tachesOuvertes) > 0 ? ' (' . count($tachesOuvertes) . ')' : '' ?></h2>
 
     <?php if (empty($tachesOuvertes)): ?>
       <p class="vide">Aucune tâche en attente.</p>
@@ -188,7 +188,7 @@ function classePersonneTache($personne, $p1, $p2) {
 
   <?php if (!empty($tachesTerminees)): ?>
     <details class="outil" style="margin-top:16px;">
-      <summary class="panneau-titre" style="font-size:15px; cursor:pointer;">Terminées (<?= count($tachesTerminees) ?>)</summary>
+      <summary class="panneau-titre" style="cursor:pointer;">Terminées (<?= count($tachesTerminees) ?>)</summary>
       <?php foreach ($tachesTerminees as $t): ?>
         <div class="rangee-tache rangee-tache-faite">
           <form method="post" class="form-case-tache">

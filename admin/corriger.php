@@ -25,6 +25,7 @@ require_once __DIR__ . '/../lib/auth.php';
 requireAdminLogin();
 require_once __DIR__ . '/../lib/db.php';
 require_once __DIR__ . '/../lib/calendar_sync.php';
+require_once __DIR__ . '/../lib/entete_admin.php';
 
 $config = require __DIR__ . '/../config.php';
 $sync = new CalendarSync($config['google_service_account_path'], $config['google_calendar_id']);
@@ -442,16 +443,10 @@ try {
 <link rel="stylesheet" href="/assets/admin.css?v=<?= filemtime(__DIR__ . '/../assets/admin.css') ?>">
 </head>
 <body>
-  <div class="barre-admin">
-    <div>
-      <a href="/index.php">Retour à l'agenda</a>
-      &nbsp;·&nbsp;
-      <a href="/admin/logout.php">Déconnexion admin</a>
-    </div>
-  </div>
-  <div class="fil-admin">
-    <a href="/admin/index.php">Administration</a><span class="sep">/</span><span class="actuel">Corriger des rendez-vous</span>
-  </div>
+  <?php afficherEnteteAdmin(
+      'Corriger des rendez-vous',
+      'Trois outils de nettoyage en lot, sur des rendez-vous déjà enregistrés. Chacun montre ce qu\'il compte changer avant de le faire.'
+  ); ?>
 
   <div class="tabs-outils" role="tablist">
     <button type="button" class="tab-outil<?= $ongletActif === 'tel' ? ' active' : '' ?>" data-cible="panneau-tel" role="tab" aria-selected="<?= $ongletActif === 'tel' ? 'true' : 'false' ?>">

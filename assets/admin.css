@@ -1,10 +1,13 @@
 /*
- * Styles partagés par toutes les pages d'administration (admin/*.php et
- * outils/importer_donnees_dev.php). Auparavant chaque page réécrivait les
- * mêmes règles (.barre-admin, .fil-admin, .outil, .rangee-nett...) dans un
- * <style> local, avec de petites variations qui finissaient par désynchroniser
- * le rendu d'une page à l'autre. Tout est regroupé ici pour que l'admin ait
- * un rendu cohérent, un seul endroit à modifier.
+ * Styles partagés par toutes les pages d'administration (admin/*.php) et
+ * par les outils de outils/. Auparavant chaque page réécrivait les mêmes
+ * règles (.barre-admin, .outil, .rangee-nett...) dans un <style> local,
+ * avec de petites variations qui finissaient par désynchroniser le rendu
+ * d'une page à l'autre. Tout est regroupé ici pour que l'admin ait un
+ * rendu cohérent, un seul endroit à modifier.
+ *
+ * Le HAUT de ces pages, lui, est produit par lib/entete_admin.php : titre,
+ * sous-titre et liens de sortie, identiques partout.
  *
  * Complète assets/style.css (déjà chargé sur ces pages) : les couleurs,
  * rayons, ombres, etc. viennent des variables définies là-bas.
@@ -16,19 +19,25 @@
    style.css) : avant, chaque page ecrasait le titre a 20px en style
    inline et ne laissait que 8px en dessous, ce qui rendait ces pages
    plus "tassees" que l'accueil. */
-.barre-admin { display:flex; align-items:flex-start; justify-content:space-between; margin:18px 0 14px; flex-wrap:wrap; gap:10px; }
+.barre-admin { display:flex; align-items:flex-start; justify-content:space-between; margin:18px 0 6px; flex-wrap:wrap; gap:10px; }
 .barre-admin a { font-size:13px; color:var(--text-muted); }
 .barre-admin h1 { margin:0 0 2px; }
-.fil-admin { font-size:13px; color:var(--text-muted); margin-bottom:18px; }
-.fil-admin a { color:var(--text-muted); text-decoration:none; }
-.fil-admin a:hover { text-decoration:underline; }
-.fil-admin .sep { margin:0 4px; }
-.fil-admin .actuel { color:var(--text); font-weight:600; }
+/* Les liens de sortie, identiques partout (voir lib/entete_admin.php) :
+   remonter a l'accueil de l'administration, revenir au site familial, se
+   deconnecter. Ils sont poses en haut a droite plutot qu'en bas de page,
+   ou il fallait scroller pour les retrouver. */
+.liens-admin { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+.liens-admin .sep { font-size:12px; color:var(--text-muted); }
+.sous-titre-admin { margin:0 0 18px; max-width:74ch; }
 
 /* --- Carte "outil" générique --- */
 .outil { background:var(--surface); border-radius:var(--radius-md); padding:18px; box-shadow:var(--shadow-sm); }
 .outil + .outil { margin-top:16px; }
-.panneau-titre { display:flex; align-items:center; gap:8px; margin:0 0 6px; font-size:17px; }
+/* 15px : c'est un titre de CARTE, pas un titre de page (celui-la est le
+   <h1> de l'en-tete, voir lib/entete_admin.php). La valeur etait a 17px
+   ici et corrigee a 15px en style inline sur une dizaine de pages, ce qui
+   revenait a dire que la vraie valeur etait 15. */
+.panneau-titre { display:flex; align-items:center; gap:8px; margin:0 0 6px; font-size:15px; }
 .panneau-titre svg { flex:none; color:var(--text-secondary); }
 
 /* --- Sections "une personne a la fois" (voir pathologies.php) : au lieu
@@ -149,12 +158,13 @@ textarea.motifs { width:100%; min-height:100px; font-family:inherit; font-size:1
 .rangee-alias .lien-danger { font-size:13px; }
 
 /* --- Page de réglages (rappels par email) --- */
-.entete-page { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:4px; flex-wrap:wrap; }
-.entete-page h1 { font-size:20px; margin:0; }
+/* Etiquette d'etat (admin/reglages.php) : SMTP authentifie ou mail()
+   natif. Posee sous le sous-titre plutot que dans un en-tete a part, pour
+   que toutes les pages d'admin gardent le meme haut de page. */
+.etat-envoi { margin:0 0 16px; }
 .badge-smtp { display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:600; padding:5px 12px; border-radius:999px; white-space:nowrap; }
 .badge-smtp.ok { background:#e6f7f1; color:#0f766e; }
 .badge-smtp.attention { background:#fdf1ea; color:#b45309; }
-.sous-titre-page { margin:2px 0 20px; }
 .champ-case { display:flex; align-items:center; gap:10px; margin-bottom:2px; }
 .champ-case input[type=checkbox] { width:22px; height:22px; accent-color:var(--accent); }
 .champ-case label { font-weight:600; }

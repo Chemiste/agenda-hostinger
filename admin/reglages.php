@@ -23,6 +23,7 @@ requireAdminLogin();
 require_once __DIR__ . '/../lib/db.php';
 require_once __DIR__ . '/../lib/settings.php';
 require_once __DIR__ . '/../lib/mailer.php';
+require_once __DIR__ . '/../lib/entete_admin.php';
 
 $config = require __DIR__ . '/../config.php';
 $configSmtp = construireConfigSmtp($config);
@@ -90,30 +91,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <link rel="stylesheet" href="/assets/admin.css?v=<?= filemtime(__DIR__ . '/../assets/admin.css') ?>">
 <style>
   .outil { margin-bottom:16px; }
-  .outil h2 { margin-top:0; font-size:15px; }
 </style>
 </head>
 <body>
-  <div class="barre-admin">
-    <div>
-      <a href="/index.php">Retour à l'agenda</a>
-      &nbsp;·&nbsp;
-      <a href="/admin/logout.php">Déconnexion admin</a>
-    </div>
-  </div>
-  <div class="fil-admin">
-    <a href="/admin/index.php">Administration</a><span class="sep">/</span><span class="actuel">Réglages</span>
-  </div>
+  <?php afficherEnteteAdmin(
+      'Rappels par email',
+      'Réglages techniques utilisés par le Cron Job qui envoie les rappels (<code>cron/rappels.php</code>).'
+  ); ?>
 
-  <div class="entete-page">
-    <h1>Rappels par email</h1>
+  <?php /* L'etat de l'envoi (SMTP authentifie ou mail() natif) est la
+           premiere chose a verifier quand un rappel n'arrive pas : il est
+           donc affiche en tete, sous forme d'etiquette. Il vivait avant
+           dans un « entete-page » invente pour cette seule page, a cote
+           d'un <h1> de 20px la ou tout le site en fait 24. */ ?>
+  <p class="etat-envoi">
     <?php if ($configSmtp === null): ?>
       <span class="badge-smtp attention">Envoi via mail() natif</span>
     <?php else: ?>
       <span class="badge-smtp ok">SMTP authentifié actif</span>
     <?php endif; ?>
-  </div>
-  <p class="sous-titre sous-titre-page">Réglages techniques utilisés par le Cron Job qui envoie les rappels (<code>cron/rappels.php</code>).</p>
+  </p>
 
   <?php if ($configSmtp === null): ?>
     <p class="aide avertissement">Aucun serveur SMTP renseigné dans <code>config.php</code> : les emails ont plus de risques d'atterrir en indésirables. Voir le guide d'installation, section "Rappels par email", pour configurer un envoi authentifié — nettement plus fiable.</p>

@@ -25,6 +25,7 @@ require_once __DIR__ . '/../lib/auth.php';
 requireAdminLogin();
 require_once __DIR__ . '/../lib/db.php';
 require_once __DIR__ . '/../lib/medicaments.php';
+require_once __DIR__ . '/../lib/entete_admin.php';
 
 $config = require __DIR__ . '/../config.php';
 $personneCible = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
@@ -363,22 +364,17 @@ function pastillesDesPrises($prises, $libelleDuMoment) {
 <link rel="stylesheet" href="/assets/admin.css?v=<?= filemtime(__DIR__ . '/../assets/admin.css') ?>">
 </head>
 <body>
-  <div class="barre-admin">
-    <h1>Médicaments</h1>
-    <div>
-      <a href="/medicaments.php">Voir la fiche</a>
-      &nbsp;·&nbsp;
-      <a href="/admin/index.php">Administration</a>
-    </div>
-  </div>
-  <p class="sous-titre" style="margin-bottom:16px;">
-    Plan de prise de <?= htmlspecialchars($personneCible) ?> — <?= count($tousLesMedicaments) ?> médicament<?= count($tousLesMedicaments) > 1 ? 's' : '' ?>,
-    <?= count($moments) ?> moment<?= count($moments) > 1 ? 's' : '' ?> de la journée.
-  </p>
+  <?php afficherEnteteAdmin(
+      'Médicaments',
+      'Plan de prise de ' . htmlspecialchars($personneCible) . ' — ' . count($tousLesMedicaments)
+      . ' médicament' . (count($tousLesMedicaments) > 1 ? 's' : '') . ', ' . count($moments)
+      . ' moment' . (count($moments) > 1 ? 's' : '') . ' de la journée. '
+      . '<a href="/medicaments.php">Voir la fiche telle que la famille la lit</a>.'
+  ); ?>
 
   <div class="outil">
     <div class="entete-liste-medicaments">
-      <h2 class="panneau-titre" style="font-size:15px; margin:0;">Les médicaments</h2>
+      <h2 class="panneau-titre" style="margin:0;">Les médicaments</h2>
       <a class="principal bouton-ajouter-medicament" href="#formulaireMedicament">+ Ajouter un médicament</a>
     </div>
 
@@ -454,7 +450,7 @@ function pastillesDesPrises($prises, $libelleDuMoment) {
   </div>
 
   <div class="outil" id="formulaireMedicament" style="margin-top:16px;">
-    <h2 class="panneau-titre" style="font-size:15px;"><?= $medicamentEnEdition !== null ? 'Modifier le médicament' : 'Ajouter un médicament' ?></h2>
+    <h2 class="panneau-titre"><?= $medicamentEnEdition !== null ? 'Modifier le médicament' : 'Ajouter un médicament' ?></h2>
 
     <?php if ($erreur): ?>
       <p class="erreur"><?= htmlspecialchars($erreur) ?></p>
@@ -597,7 +593,7 @@ function pastillesDesPrises($prises, $libelleDuMoment) {
   <!-- Les moments en bas de page : on les cree une fois pour toutes, alors
        qu'on ajoute des medicaments regulierement. -->
   <div class="outil" id="moments" style="margin-top:16px;">
-    <h2 class="panneau-titre" style="font-size:15px;">Moments de la journée</h2>
+    <h2 class="panneau-titre">Moments de la journée</h2>
     <p class="aide" style="margin-top:-4px;">Les sections de la fiche, dans l'ordre des bacs du pilulier. Renommer ou déplacer un moment ne touche pas aux médicaments.</p>
 
     <?php if ($erreurMoment): ?>

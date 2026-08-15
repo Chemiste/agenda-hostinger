@@ -11,6 +11,7 @@ require_once __DIR__ . '/../lib/auth.php';
 requireAdminLogin();
 require_once __DIR__ . '/../lib/db.php';
 require_once __DIR__ . '/../lib/activity_log.php';
+require_once __DIR__ . '/../lib/entete_admin.php';
 
 $db = getDb();
 $entrees = listerActivite($db, 300);
@@ -33,24 +34,12 @@ $labelsAction = [
 <link rel="stylesheet" href="/assets/admin.css?v=<?= filemtime(__DIR__ . '/../assets/admin.css') ?>">
 </head>
 <body>
-  <div class="barre-admin">
-    <div>
-      <a href="/index.php">Retour à l'agenda</a>
-      &nbsp;·&nbsp;
-      <a href="/admin/logout.php">Déconnexion admin</a>
-    </div>
-  </div>
-  <div class="fil-admin">
-    <a href="/admin/index.php">Administration</a><span class="sep">/</span><span class="actuel">Journal d'activité</span>
-  </div>
+  <?php afficherEnteteAdmin(
+      "Journal d'activité",
+      "Qui s'est connecté, et qui a ajouté/modifié/supprimé un rendez-vous — les " . count($entrees) . ' dernières actions.'
+  ); ?>
 
   <div class="outil">
-    <h2 class="panneau-titre">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 7v5l3 3"/></svg>
-      Journal d'activité
-    </h2>
-    <p class="sous-titre">Qui s'est connecté, et qui a ajouté/modifié/supprimé un rendez-vous — les <?= count($entrees) ?> dernières actions.</p>
-
     <?php if (empty($entrees)): ?>
       <p class="vide">Aucune activité enregistrée pour l'instant.</p>
     <?php else: ?>

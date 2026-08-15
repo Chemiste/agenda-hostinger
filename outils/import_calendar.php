@@ -17,9 +17,12 @@
  */
 
 require_once __DIR__ . '/../lib/auth.php';
-requireLogin();
+// Mot de passe ADMIN : cet outil ecrit en masse dans l'agenda, comme le
+// reste de /admin. Le mot de passe familial ne suffit pas.
+requireAdminLogin();
 require_once __DIR__ . '/../lib/db.php';
 require_once __DIR__ . '/../lib/calendar_sync.php';
+require_once __DIR__ . '/../lib/entete_admin.php';
 
 $config = require __DIR__ . '/../config.php';
 $sync = new CalendarSync($config['google_service_account_path'], $config['google_calendar_id']);
@@ -166,6 +169,7 @@ if (!$erreur && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])
 <title>Import depuis Google Calendar</title>
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
 <link rel="stylesheet" href="/assets/style.css?v=<?= filemtime(__DIR__ . '/../assets/style.css') ?>">
+<link rel="stylesheet" href="/assets/admin.css?v=<?= filemtime(__DIR__ . '/../assets/admin.css') ?>">
 <style>
   .rangee-evt { display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--border); }
   .rangee-evt input[type=checkbox] { width:20px; height:20px; }
@@ -174,9 +178,12 @@ if (!$erreur && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])
 </style>
 </head>
 <body>
-  <h1>Import ponctuel depuis Google Calendar</h1>
-  <p class="sous-titre">À utiliser une seule fois, puis supprimez ce fichier du serveur.</p>
+  <?php afficherEnteteAdmin(
+      'Import depuis Google Calendar',
+      "Reprend des événements déjà présents dans le calendrier partagé. À utiliser ponctuellement, puis supprimez ce fichier du serveur."
+  ); ?>
 
+  <div class="outil">
   <?php if ($erreur): ?>
     <p class="erreur"><?= htmlspecialchars($erreur) ?></p>
   <?php endif; ?>
@@ -262,7 +269,6 @@ if (!$erreur && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])
     <?php endif; ?>
 
   <?php endif; ?>
-
-  <p style="margin-top:2rem;"><a href="/index.php">Retour à l'agenda</a></p>
+  </div>
 </body>
 </html>

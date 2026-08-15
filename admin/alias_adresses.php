@@ -15,6 +15,7 @@ require_once __DIR__ . '/../lib/auth.php';
 requireAdminLogin();
 require_once __DIR__ . '/../lib/db.php';
 require_once __DIR__ . '/../lib/address_aliases.php';
+require_once __DIR__ . '/../lib/entete_admin.php';
 
 $db = getDb();
 $erreur = '';
@@ -74,27 +75,15 @@ unset($a);
 <link rel="stylesheet" href="/assets/admin.css?v=<?= filemtime(__DIR__ . '/../assets/admin.css') ?>">
 </head>
 <body>
-  <div class="barre-admin">
-    <div>
-      <a href="/index.php">Retour à l'agenda</a>
-      &nbsp;·&nbsp;
-      <a href="/admin/logout.php">Déconnexion admin</a>
-    </div>
-  </div>
-  <div class="fil-admin">
-    <a href="/admin/index.php">Administration</a><span class="sep">/</span><span class="actuel">Alias d'adresses</span>
-  </div>
+  <?php afficherEnteteAdmin(
+      "Alias d'adresses",
+      'Remplace une adresse par un nom plus parlant (ex : « Avenue Hippocrate, 10, 1200 Bruxelles » → « Hôpital St Luc »), '
+      . "uniquement à l'écran et à l'impression. L'adresse réelle enregistrée dans le rendez-vous et envoyée à Google "
+      . "Calendar n'est jamais modifiée, pour que Waze/Maps continuent de fonctionner depuis le calendrier."
+  ); ?>
 
   <div class="outil">
-    <h2 class="panneau-titre">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-      Alias d'adresses
-    </h2>
-    <p class="sous-titre">
-      Remplace une adresse par un nom plus parlant (ex : "Avenue Hippocrate, 10, 1200 Bruxelles" → "Hôpital St Luc"),
-      uniquement à l'écran et à l'impression. L'adresse réelle enregistrée dans le rendez-vous et envoyée à Google
-      Calendar n'est jamais modifiée, pour que Waze/Maps continuent de fonctionner depuis le calendrier.
-    </p>
+    <h2 class="panneau-titre">Ajouter un alias</h2>
 
     <?php if ($erreur): ?>
       <p class="erreur"><?= htmlspecialchars($erreur) ?></p>
@@ -131,7 +120,7 @@ unset($a);
   </div>
 
   <div class="outil" style="margin-top:16px;">
-    <h2 class="panneau-titre" style="font-size:15px;">Alias existants</h2>
+    <h2 class="panneau-titre">Alias existants</h2>
 
     <?php if (empty($aliases)): ?>
       <p class="vide">Aucun alias pour l'instant.</p>

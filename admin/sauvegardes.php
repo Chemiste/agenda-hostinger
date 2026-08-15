@@ -14,6 +14,7 @@ require_once __DIR__ . '/../lib/auth.php';
 requireAdminLogin();
 require_once __DIR__ . '/../lib/db.php';
 require_once __DIR__ . '/../lib/calendar_sync.php';
+require_once __DIR__ . '/../lib/entete_admin.php';
 
 $config = require __DIR__ . '/../config.php';
 $sync = new CalendarSync($config['google_service_account_path'], $config['google_calendar_id']);
@@ -150,21 +151,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 <link rel="stylesheet" href="/assets/admin.css?v=<?= filemtime(__DIR__ . '/../assets/admin.css') ?>">
 </head>
 <body>
-  <div class="barre-admin">
-    <div>
-      <a href="/index.php">Retour à l'agenda</a>
-      &nbsp;·&nbsp;
-      <a href="/admin/logout.php">Déconnexion admin</a>
-    </div>
-  </div>
-  <div class="fil-admin">
-    <a href="/admin/index.php">Administration</a><span class="sep">/</span><span class="actuel">Sauvegardes</span>
-  </div>
+  <?php afficherEnteteAdmin(
+      'Sauvegardes',
+      "Une sauvegarde automatique (voir le guide d'installation pour la configurer via un Cron Job Hostinger) exporte "
+      . "tous les rendez-vous chaque jour. En cas de suppression accidentelle, choisissez une sauvegarde d'avant la "
+      . "suppression : les rendez-vous qui y figurent mais qui ont disparu de l'agenda actuel sont proposés à la restauration."
+  ); ?>
 
   <div class="outil">
-    <h2 style="margin-top:0;">Sauvegardes</h2>
-    <p class="sous-titre">Une sauvegarde automatique (voir le guide d'installation pour la configurer via un Cron Job Hostinger) exporte tous les rendez-vous chaque jour. En cas de suppression accidentelle, choisissez une sauvegarde d'avant la suppression : les rendez-vous qui y figurent mais qui ont disparu de l'agenda actuel sont proposés à la restauration.</p>
-
     <?php if (empty($fichiersBackup)): ?>
       <p class="vide">Aucune sauvegarde trouvée pour l'instant. Vérifiez que le Cron Job de sauvegarde est bien configuré (voir le guide d'installation).</p>
     <?php else: ?>

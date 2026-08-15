@@ -38,16 +38,18 @@ La table `appointments` sera créée à l'étape 5 via le script `outils/migrate
 
 Enregistrez.
 
-## Étape 5 — Définir le mot de passe familial
+## Étape 5 — Définir les deux mots de passe
+
+Le site en utilise **deux** : le mot de passe *familial*, partagé avec tout le monde, et le mot de passe *d'administration*, que vous gardez pour vous. Les deux se génèrent au même endroit, autant le faire d'un coup.
 
 1. Ouvrez `https://agenda.hellau.be/outils/generate_password.php` dans votre navigateur.
-2. Saisissez le mot de passe que vous voulez utiliser en famille, cliquez sur **Générer le hash**.
-3. Copiez la valeur affichée dans `config.php`, champ `family_password_hash`.
+2. Saisissez le mot de passe que vous voulez utiliser en famille, cliquez sur **Générer le hash**, copiez la valeur dans `config.php`, champ `family_password_hash`.
+3. Recommencez avec le mot de passe d'administration (différent, et gardé pour vous) → champ `admin_password_hash`.
 4. **Supprimez le fichier `outils/generate_password.php`** du serveur (via le Gestionnaire de fichiers) — il ne doit pas rester en ligne.
 
 ## Étape 6 — Créer les tables
 
-Ouvrez `https://agenda.hellau.be/outils/migrate.php`, connectez-vous avec le mot de passe familial défini à l'étape précédente, puis cliquez sur **Lancer les migrations**. La table `appointments` est créée.
+Ouvrez `https://agenda.hellau.be/outils/migrate.php`, connectez-vous avec le mot de passe **d'administration** (appliquer une migration modifie la structure de la base : le mot de passe familial ne suffit pas), puis cliquez sur **Lancer les migrations**. La table `appointments` est créée.
 
 ## Étape 7 — Tester
 
@@ -80,7 +82,7 @@ C'est une synchronisation à sens unique (site → Calendar) : modifier un évé
 
 Si vous aviez déjà des rendez-vous dans le calendrier Google créé pour vos parents, vous pouvez les récupérer en une fois dans le site (nécessite d'avoir fait l'étape 8 juste avant, pour que le site puisse lire ce calendrier).
 
-1. Ouvrez `https://agenda.hellau.be/outils/import_calendar.php`, connectez-vous.
+1. Ouvrez `https://agenda.hellau.be/outils/import_calendar.php`, connectez-vous avec le mot de passe **d'administration**.
 2. Choisissez une période (du / au), cliquez sur **Charger les évènements de cette période**.
 3. Une liste s'affiche : décochez ceux à ne pas importer, choisissez la bonne personne (Papa ou Maman) pour chaque ligne — un rendez-vous ne concerne jamais qu'une seule personne, même si le calendrier d'origine ne le précisait pas.
 4. Cliquez sur **Importer la sélection**.
@@ -93,10 +95,9 @@ Chaque rendez-vous importé reste lié à son évènement Google Calendar d'orig
 
 Le site a une zone d'administration (`admin/index.php`), organisée en trois groupes : **Rendez-vous** (import `.ics`, correction de rendez-vous existants), **Sauvegardes** (restauration) et **Notifications** (réglages des rappels). Pour que le reste de la famille n'y ait pas accès même s'il tombe sur l'adresse, cette zone est protégée par un **second mot de passe**, différent du mot de passe familial.
 
-1. Remettez temporairement `outils/generate_password.php` sur le serveur si vous l'aviez déjà supprimé.
-2. Ouvrez `https://agenda.hellau.be/outils/generate_password.php`, saisissez le mot de passe d'administration de votre choix (gardez-le pour vous), cliquez sur **Générer le hash**.
-3. Copiez la valeur générée dans `config.php`, champ `admin_password_hash`.
-4. Supprimez à nouveau `outils/generate_password.php` du serveur si vous n'en avez plus besoin.
+Il est défini à l'étape 5 ci-dessus (`admin_password_hash` dans `config.php`). Pour le changer plus tard : remettez temporairement `outils/generate_password.php` sur le serveur, générez un nouveau hash, mettez à jour `config.php`, puis supprimez à nouveau le fichier.
+
+Deux outils de `outils/` demandent ce même mot de passe, parce qu'ils touchent à la structure ou écrivent en masse : `migrate.php` (migrations de base de données) et `import_calendar.php` (import depuis Google Calendar).
 
 Il n'y a plus de lien visible vers `admin/index.php` dans l'agenda : gardez cette adresse en favori pour y accéder directement. Même en la connaissant, l'accès reste bloqué tant que le mot de passe d'administration n'est pas défini dans `config.php`.
 

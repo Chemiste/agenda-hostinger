@@ -22,6 +22,7 @@
 require_once __DIR__ . '/../lib/auth.php';
 requireAdminLogin();
 require_once __DIR__ . '/../lib/db.php';
+require_once __DIR__ . '/../lib/entete_admin.php';
 
 $config = require __DIR__ . '/../config.php';
 
@@ -95,23 +96,13 @@ if ($estEnvironnementDev && $_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_PO
 <link rel="stylesheet" href="/assets/admin.css?v=<?= filemtime(__DIR__ . '/../assets/admin.css') ?>">
 </head>
 <body>
-  <div class="barre-admin">
-    <div>
-      <a href="/index.php">Retour à l'agenda</a>
-      &nbsp;·&nbsp;
-      <a href="/admin/logout.php">Déconnexion admin</a>
-    </div>
-  </div>
-  <div class="fil-admin">
-    <a href="/admin/index.php">Administration</a><span class="sep">/</span><span class="actuel">Importer un export</span>
-  </div>
+  <?php afficherEnteteAdmin(
+      'Importer un export',
+      "Remplace tous les rendez-vous de la base de développement locale par le contenu d'un export "
+      . 'généré depuis <code>admin/exporter_donnees.php</code> sur le site de production.'
+  ); ?>
 
   <div class="outil">
-    <h2 class="panneau-titre">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
-      Importer les données de production en local
-    </h2>
-
     <?php if (!$estEnvironnementDev): ?>
       <p class="erreur">
         Cet outil est bloqué : la base connectée (<code><?= htmlspecialchars($config['db_name'] ?? '?') ?></code>) n'est pas
@@ -127,11 +118,7 @@ if ($estEnvironnementDev && $_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_PO
       <p class="info"><?= (int) $resultat ?> rendez-vous importés. La base de dev reflète maintenant l'export.</p>
       <p><a href="/admin/index.php">Retour à l'administration</a></p>
     <?php elseif ($estEnvironnementDev): ?>
-      <p class="sous-titre">
-        Remplace tous les rendez-vous de la base de dev actuelle par le contenu d'un export
-        (généré depuis <code>admin/exporter_donnees.php</code> sur le site de production).
-        Les identifiants d'événements Google Calendar ne sont pas conservés.
-      </p>
+      <p class="aide">Ce n'est pas une fusion : les rendez-vous actuels de la base de dev sont perdus, et les identifiants d'événements Google Calendar ne sont pas conservés.</p>
       <form method="post" enctype="multipart/form-data" data-confirm="Remplacer toutes les données de la base de dev par le contenu de ce fichier ? Ce n'est pas une fusion : les rendez-vous actuels de la base de dev seront perdus.">
         <div class="champ">
           <label>Fichier d'export (.json)</label>

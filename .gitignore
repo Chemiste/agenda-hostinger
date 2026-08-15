@@ -13,6 +13,9 @@ generate_password.php.bak
  
 # Sauvegardes automatiques (donnees, generees par backup.php, jamais committees)
 backups/*.json
+# Fichiers SQL generes dans backups/ (ex: outils/reprendre_medicaments.php) :
+# ce sont des donnees de sante reelles, au meme titre que les .json.
+backups/*.sql
 
 # Script de deploiement FTP (deploiement/deployer.php) : contient un mot
 # de passe, propre a chaque environnement.
