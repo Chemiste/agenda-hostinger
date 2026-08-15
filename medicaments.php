@@ -210,6 +210,21 @@ if ($peutModifier && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['acti
         // supprimer un medicament ne doit pas faire disparaitre l'image de
         // sa boite, on peut vouloir la reutiliser plus tard.
         supprimerMedicament($db, $_POST['id']);
+    } elseif ($_POST['action'] === 'supprimer_photo' && isset($_POST['photo'])) {
+        // Suppression manuelle d'une photo de la bibliotheque. Deux
+        // garde-fous : le fichier doit vraiment exister dans le dossier
+        // (pas un chemin envoye a la main), et ne plus etre utilise par
+        // aucun medicament - de personne, le dossier etant partage.
+        $nomPhoto = basename((string) $_POST['photo']);
+        if (!in_array($nomPhoto, listerPhotosDuDossier($DOSSIER_PHOTOS), true)) {
+            $erreur = 'Photo introuvable.';
+        } elseif (in_array($nomPhoto, listerPhotosUtilisees($db), true)) {
+            $erreur = 'Cette photo est encore utilisée par un médicament : retire-la d\'abord de sa fiche.';
+        } else {
+            @unlink($DOSSIER_PHOTOS . $nomPhoto);
+            header('Location: /medicaments.php#formulaireMedicament');
+            exit;
+        }
     } elseif ($_POST['action'] === 'deplacer_moment' && isset($_POST['moment'], $_POST['direction'])) {
         deplacerMoment($db, $personneCible, $_POST['moment'], $_POST['direction']);
     }
@@ -238,6 +253,9 @@ $momentsExistants = listerMomentsExistants($db, $personneCible);
 // rattachees a un medicament : on peut y deposer a l'avance la photo d'une
 // boite et la choisir au moment de creer le medicament.
 $photosExistantes = listerPhotosDuDossier($DOSSIER_PHOTOS);
+// Photos rattachees a au moins un medicament : on n'affiche pas de bouton
+// de suppression sur celles-la (ca casserait la fiche qui s'en sert).
+$photosUtilisees = listerPhotosUtilisees($db);
 // Medicaments proposables comme "principal" d'une alternative (voir le
 // champ du formulaire) : ceux qui n'en sont pas eux-memes une.
 $medicamentsPrincipaux = listerMedicamentsPrincipaux($db, $personneCible, $idEnEdition);
@@ -371,20 +389,38 @@ foreach (grouperAlternatives($tousLesMedicaments) as $m) {
         <?php endif; ?>
         <?php if (!empty($photosExistantes)): ?>
           <div class="selecteur-photos-existantes">
-            <p class="aide-selecteur-photos">Ou réutiliser une photo déjà présente sur le site :</p>
+            <p class="aide-selecteur-photos">Ou réutiliser une photo déjà présente sur le site — survole une vignette pour la voir en grand :</p>
             <div class="grille-photos-existantes">
               <?php foreach ($photosExistantes as $nomPhoto): ?>
                 <?php
                   // Photo deja utilisee par CE medicament (en edition) :
                   // presélectionnée visuellement, pas besoin de recliquer.
                   $dejaUtiliseeIci = $medicamentEnEdition !== null && $medicamentEnEdition['image'] === $nomPhoto;
+                  $estUtilisee = in_array($nomPhoto, $photosUtilisees, true);
                 ?>
-                <button type="button" class="vignette-photo-existante<?= $dejaUtiliseeIci ? ' selectionnee' : '' ?>" data-fichier="<?= htmlspecialchars($nomPhoto) ?>" title="<?= htmlspecialchars($nomPhoto) ?>">
-                  <img src="/medicaments_photos/<?= rawurlencode($nomPhoto) ?>" alt="">
+                <!-- <div> et non <button> : la vignette contient desormais
+                     deux boutons (choisir / supprimer), et un bouton ne
+                     peut pas en contenir un autre. -->
+                <div class="vignette-photo-existante<?= $dejaUtiliseeIci ? ' selectionnee' : '' ?>" data-fichier="<?= htmlspecialchars($nomPhoto) ?>">
+                  <button type="button" class="choisir-photo" title="Utiliser cette photo — <?= htmlspecialchars($nomPhoto) ?>">
+                    <img src="/medicaments_photos/<?= rawurlencode($nomPhoto) ?>" alt="">
+                  </button>
+                  <?php if (!$estUtilisee): ?>
+                    <!-- Croix visible seulement sur les photos qu'aucun
+                         medicament n'utilise : supprimer une photo en
+                         service casserait sa fiche. Le bouton appartient au
+                         formulaire de suppression place plus bas (attribut
+                         "form"), car on ne peut pas imbriquer un formulaire
+                         dans celui du medicament. -->
+                    <button type="submit" form="formSupprimerPhoto" name="photo" value="<?= htmlspecialchars($nomPhoto) ?>" class="supprimer-photo" title="Supprimer définitivement cette photo" aria-label="Supprimer la photo <?= htmlspecialchars($nomPhoto) ?>">×</button>
+                  <?php endif; ?>
                   <!-- Apercu agrandi au survol : une vignette de 56px ne
                        suffit pas a reconnaitre une boite. -->
-                  <span class="apercu-photo"><img src="/medicaments_photos/<?= rawurlencode($nomPhoto) ?>" alt=""></span>
-                </button>
+                  <span class="apercu-photo">
+                    <img src="/medicaments_photos/<?= rawurlencode($nomPhoto) ?>" alt="">
+                    <span class="nom-apercu"><?= htmlspecialchars($nomPhoto) ?><?= $estUtilisee ? ' · utilisée' : '' ?></span>
+                  </span>
+                </div>
               <?php endforeach; ?>
             </div>
           </div>
@@ -397,6 +433,14 @@ foreach (grouperAlternatives($tousLesMedicaments) as $m) {
           <a class="secondaire" href="/medicaments.php">Annuler</a>
         <?php endif; ?>
       </div>
+    </form>
+
+    <!-- Formulaire cible des croix de suppression du selecteur de photos.
+         Il vit hors du formulaire du medicament (on ne peut pas imbriquer
+         deux formulaires) ; les boutons s'y rattachent par leur attribut
+         "form". data-confirm est pris en charge par admin-ui.js. -->
+    <form id="formSupprimerPhoto" method="post" data-confirm="Supprimer définitivement cette photo du site ?" style="display:none;">
+      <input type="hidden" name="action" value="supprimer_photo">
     </form>
   </div>
   <?php endif; ?>
@@ -500,7 +544,12 @@ foreach (grouperAlternatives($tousLesMedicaments) as $m) {
     var vignettes = document.querySelectorAll('.vignette-photo-existante');
     if (champExistante && vignettes.length) {
       vignettes.forEach(function (v) {
-        v.addEventListener('click', function () {
+        // Le clic est ecoute sur le bouton "choisir" a l'interieur, et non
+        // sur toute la vignette : celle-ci contient aussi la croix de
+        // suppression, qui ne doit pas selectionner la photo au passage.
+        var boutonChoisir = v.querySelector('.choisir-photo');
+        if (!boutonChoisir) return;
+        boutonChoisir.addEventListener('click', function () {
           var etaitSelectionnee = v.classList.contains('selectionnee');
           vignettes.forEach(function (autre) { autre.classList.remove('selectionnee'); });
           if (etaitSelectionnee) {

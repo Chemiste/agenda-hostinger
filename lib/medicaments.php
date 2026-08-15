@@ -298,6 +298,17 @@ function listerPhotosDuDossier($dossier) {
     return $photos;
 }
 
+/**
+ * Noms de fichiers photo utilises par au moins un medicament, toutes
+ * personnes confondues : le dossier est partage, une photo ne peut donc
+ * etre effacee que si plus aucune fiche ne s'en sert - y compris celle de
+ * quelqu'un d'autre.
+ */
+function listerPhotosUtilisees($db) {
+    $stmt = $db->query("SELECT DISTINCT image FROM medicaments WHERE image != ''");
+    return array_column($stmt->fetchAll(), 'image');
+}
+
 function listerPhotosExistantes($db, $person) {
     $stmt = $db->prepare(
         "SELECT DISTINCT image FROM medicaments WHERE person = ? AND image != '' ORDER BY image"
