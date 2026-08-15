@@ -3,9 +3,8 @@
  * Fiche imprimable "Pathologies de ..." pour une personne, generee a
  * partir des donnees saisies dans pathologies.php - a emmener a un
  * rendez-vous ou montrer a un nouveau medecin. Meme principe que
- * medicaments_plan.php : impression navigateur (bouton "Imprimer" -> boite
- * de dialogue -> "Enregistrer en PDF"), pas de generation PDF cote
- * serveur.
+ * medicaments.php : impression navigateur (bouton "Imprimer" -> boite de
+ * dialogue -> "Enregistrer en PDF"), pas de generation PDF cote serveur.
  */
 
 require_once __DIR__ . '/lib/auth.php';

@@ -2,6 +2,42 @@
 
 ## Non publié
 
+- **La page Médicaments est coupée en deux : lire d'un côté, saisir de
+  l'autre.** Elle mélangeait le formulaire d'ajout, la liste et la gestion
+  des moments sur un seul écran, et répétait chaque médicament autant de
+  fois qu'il avait de moments de prise — Paracetamol apparaissait quatre
+  fois, photo et boutons compris. Désormais :
+  - `/medicaments.php` ne contient plus que **le plan à lire**, groupé par
+    moment (l'ordre dans lequel se remplissent les bacs du pilulier), avec
+    de grandes photos. Plus aucun formulaire. Elle **remplace aussi la
+    fiche imprimable** : son bouton "Imprimer" masque la navigation et
+    resserre les cartes, il n'y a donc plus deux mises en page à maintenir.
+    `medicaments_plan.php` ne fait que rediriger, pour les favoris.
+  - `/admin/medicaments.php` reçoit **toute la saisie** : une ligne par
+    médicament avec ses moments en pastilles ("Matin · 1 comprimé"), le
+    formulaire, la bibliothèque de photos et les moments de la journée.
+    Un médicament pris trois fois y apparaît une fois. Accessible depuis
+    l'administration, ou par "Modifier le plan" sur la page Médicaments.
+
+- **Médicaments : un médicament ne se saisit plus qu'une seule fois.**
+  Jusqu'ici une ligne valait pour *un médicament à un moment* : un
+  comprimé pris matin, 15h00 et au coucher devait être encodé trois fois
+  — nom, détail, photo et alternative compris. Trois notions séparées
+  désormais (migration `0020`) : les **moments** de la journée, gérés une
+  fois pour toutes en bas de la page Médicaments (ajouter, renommer,
+  déplacer, supprimer) ; les **médicaments**, une fiche unique chacun ; et
+  les **prises**, c'est-à-dire les cases « Quand ? » du formulaire, avec
+  la quantité propre à chaque moment. Conséquences concrètes : renommer
+  "Soir" en "19h00" ne touche plus aux médicaments, changer une photo la
+  change partout, et une alternative ("Dafalgan Forte OU Paracetamol EG")
+  ne se saisit qu'une fois pour tout le médicament au lieu d'une fois par
+  moment. L'ancienne table est conservée sous le nom `medicaments_v1` le
+  temps de vérifier la reprise ; `outils/reprendre_medicaments.php` lit
+  les anciennes données et génère le SQL de réinsertion au nouveau format
+  (script en lecture seule, il n'écrit rien en base).
+  La sauvegarde automatique couvre les nouvelles tables
+  (`medicament_moments`, `medicament_prises`).
+
 - **Impression repensée pour Michel et Christiane** (voir
   `AMELIORATIONS.md`) : tailles de texte nettement remontées, nom de la
   personne mis en avant sur chaque carte, dates écrites en entier
@@ -29,10 +65,11 @@
   dans la carte de son médicament principal, précédée d'un « OU » bien
   visible (trait de part et d'autre du mot sur la fiche imprimée, pour
   qu'on comprenne qu'il s'agit d'un choix et non d'une seconde prise).
-  Elle reprend automatiquement le moment de prise du principal. Si le
-  médicament principal est supprimé, ses alternatives redeviennent des
-  médicaments normaux plutôt que d'être supprimées avec lui.
-  Migration `0019`.
+  Choisir le médicament principal coche automatiquement ses moments de
+  prise. Si le médicament principal est supprimé, ses alternatives
+  redeviennent des médicaments normaux plutôt que d'être supprimées avec
+  lui. Migration `0019`, complétée par `0020` (voir ci-dessus : une
+  alternative ne se saisit désormais qu'une fois pour tout le médicament).
 
 - **Barre de navigation partagée par toutes les pages familiales.**
   Auparavant l'accueil avait sa barre de boutons et les autres pages une

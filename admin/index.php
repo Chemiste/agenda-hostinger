@@ -93,6 +93,19 @@ $reminderDelai = getSetting($db, 'reminder_hours_before', '24');
     </a>
   </div>
 
+  <?php /* La saisie du plan de medicaments vit ici et non plus sur la page
+           familiale : elle n'est le travail que de Laurent, et l'ecran que
+           consultent Michel et Christiane doit rester une simple fiche a
+           lire (voir /medicaments.php). */ ?>
+  <div class="groupe-titre">Santé</div>
+  <a class="carte-accueil carte-large carte-adresse" href="/admin/medicaments.php">
+    <div>
+      <div class="titre">Plan de médicaments</div>
+      <div class="detail">Médicaments, quantités et moments de la journée</div>
+    </div>
+    <span class="fleche">›</span>
+  </a>
+
   <div class="groupe-titre">Journal d'activité</div>
   <a class="carte-accueil carte-large carte-adresse" href="/admin/historique.php">
     <div>

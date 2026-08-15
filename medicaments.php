@@ -1,20 +1,23 @@
 <?php
 /**
- * Gestion du plan de prise de médicaments (voir lib/medicaments.php) :
- * ajouter/modifier/supprimer un médicament, avec une photo facultative,
- * pour générer la fiche imprimable (medicaments_plan.php).
+ * MÉDICAMENTS — page de consultation, pour toute la famille.
  *
- * Limité à Christiane pour l'instant (personne_2) - facile à étendre à
- * Michel plus tard (il suffirait d'ajouter un sélecteur de personne ici
- * et sur medicaments_plan.php, la table le supporte déjà).
+ * Une seule chose ici : le plan de prise, groupé par moment de la journée
+ * (Matin, 15h00, Soir, Au coucher). Ce découpage n'est pas cosmétique —
+ * Michel et Christiane remplissent des piluliers dont les bacs
+ * correspondent exactement à ces moments, donc la page doit se lire dans
+ * le même ordre que le pilulier se remplit.
  *
- * Modification (ajout/edition/suppression/réorganisation) réservée à
- * Laurent - les autres membres de la famille consultent et impriment la
- * fiche mais ne peuvent pas la changer, comme "Importer dans le carnet"
- * sur les rendez-vous. $peutModifier protège aussi bien l'affichage des
- * formulaires/boutons que le traitement des actions POST (une page
- * masquée côté HTML ne suffit pas à empêcher une requête envoyée à la
- * main).
+ * C'est aussi la page qu'on imprime (bouton "Imprimer") : plus de fiche
+ * séparée, la mise en page d'impression est ici (voir @media print), la
+ * navigation et les boutons disparaissent à l'impression.
+ *
+ * Toute la SAISIE (ajouter un médicament, gérer les moments, les photos)
+ * vit dans /admin/medicaments.php : l'écran que consultent les parents ne
+ * doit pas être encombré de formulaires qui ne les concernent pas.
+ *
+ * Limité à Christiane pour l'instant (personne_2) - les tables gèrent déjà
+ * plusieurs personnes, il suffirait d'ajouter un sélecteur.
  */
 
 require_once __DIR__ . '/lib/auth.php';
@@ -28,244 +31,17 @@ $personneCible = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
 $peutModifier = personneSessionActuelle() === 'Laurent';
 
 $db = getDb();
-$erreur = '';
-$idEnEdition = null;
 
-$DOSSIER_PHOTOS = __DIR__ . '/medicaments_photos/';
-
-function traiterUploadImageMedicament() {
-    if (!isset($_FILES['image']) || $_FILES['image']['error'] === UPLOAD_ERR_NO_FILE) {
-        return false;
+// Le plan complet, deja assemble : les moments dans l'ordre, et pour
+// chacun les medicaments qui s'y prennent avec leur quantite a ce
+// moment-la et leurs eventuelles alternatives (voir lib/medicaments.php).
+$plan = [];
+foreach (construirePlan($db, $personneCible) as $section) {
+    // Un moment sans aucun medicament n'occupe pas de place ici : il reste
+    // visible dans la page de gestion, ou on peut le renommer ou l'effacer.
+    if (!empty($section['medicaments'])) {
+        $plan[] = $section;
     }
-    if ($_FILES['image']['error'] !== UPLOAD_ERR_OK) {
-        throw new Exception("Erreur lors de l'envoi de l'image.");
-    }
-    if ($_FILES['image']['size'] > 4 * 1024 * 1024) {
-        throw new Exception('Image trop lourde (4 Mo maximum).');
-    }
-    $infos = getimagesize($_FILES['image']['tmp_name']);
-    if ($infos === false) {
-        throw new Exception("Le fichier envoyé n'est pas une image valide.");
-    }
-    $extensionsAutorisees = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
-    if (!isset($extensionsAutorisees[$infos['mime']])) {
-        throw new Exception("Format d'image non supporté (jpg, png ou webp uniquement).");
-    }
-    $nomFichier = bin2hex(random_bytes(8)) . '.' . $extensionsAutorisees[$infos['mime']];
-    if (!move_uploaded_file($_FILES['image']['tmp_name'], __DIR__ . '/medicaments_photos/' . $nomFichier)) {
-        throw new Exception("Impossible d'enregistrer l'image.");
-    }
-    return $nomFichier;
-}
-
-// Si une photo deja presente sur le site a ete choisie (plutot qu'un
-// nouvel upload), on ne retient que si son nom figure bien dans la liste
-// des photos existantes de cette personne (protege d'un nom de fichier
-// arbitraire envoye a la main dans le formulaire).
-function imageExistanteChoisie($dossierPhotos) {
-    if (empty($_POST['image_existante'])) {
-        return false;
-    }
-    $candidat = basename((string) $_POST['image_existante']);
-    // Compare a la liste reelle du dossier : c'est elle qui fait foi
-    // desormais (le selecteur propose toutes les photos deposees, pas
-    // seulement celles deja rattachees a un medicament).
-    return in_array($candidat, listerPhotosDuDossier($dossierPhotos), true) ? $candidat : false;
-}
-
-if ($peutModifier && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
-    if ($_POST['action'] === 'ajouter') {
-        try {
-            $image = traiterUploadImageMedicament();
-            if ($image === false) {
-                $existante = imageExistanteChoisie($DOSSIER_PHOTOS);
-                if ($existante !== false) {
-                    $image = $existante;
-                }
-            }
-            $imageAEnregistrer = $image !== false ? $image : '';
-
-            // Un medicament pris a plusieurs moments (ex. matin, 15h00 et
-            // au coucher) peut cocher plusieurs cases d'un coup plutot que
-            // de re-saisir trois fois le meme nom/quantite/detail : une
-            // ligne est creee par moment coche (+ un eventuel "nouveau
-            // moment" tape a la main), toutes avec les memes valeurs. Si
-            // la quantite differe pour l'un d'eux, il suffit ensuite de
-            // modifier cette seule ligne.
-            $moments = [];
-            if (isset($_POST['moments']) && is_array($_POST['moments'])) {
-                foreach ($_POST['moments'] as $m) {
-                    $m = trim((string) $m);
-                    if ($m !== '') {
-                        $moments[] = $m;
-                    }
-                }
-            }
-            $nouveauMoment = isset($_POST['nouveau_moment']) ? trim((string) $_POST['nouveau_moment']) : '';
-            if ($nouveauMoment !== '') {
-                $moments[] = $nouveauMoment;
-            }
-            // Alternative ("Dafalgan OU Paracetamol EG") : elle appartient
-            // forcement au meme moment que le medicament auquel elle se
-            // rattache, et a une seule ligne - les cases "moments" et
-            // l'ajout multiple n'ont donc pas de sens ici.
-            $alternativeDe = isset($_POST['alternative_de']) ? (int) $_POST['alternative_de'] : 0;
-            if ($alternativeDe > 0) {
-                $parent = obtenirMedicament($db, $alternativeDe);
-                if ($parent === null || $parent['person'] !== $personneCible || (int) $parent['alternative_de'] > 0) {
-                    throw new Exception('Médicament principal introuvable pour cette alternative.');
-                }
-                ajouterMedicament(
-                    $db,
-                    $personneCible,
-                    $parent['moment'],
-                    isset($_POST['nom']) ? $_POST['nom'] : '',
-                    isset($_POST['quantite']) ? $_POST['quantite'] : '',
-                    isset($_POST['detail']) ? $_POST['detail'] : '',
-                    $imageAEnregistrer,
-                    $alternativeDe
-                );
-                header('Location: /medicaments.php#formulaireMedicament');
-                exit;
-            }
-
-            $moments = array_values(array_unique($moments));
-            if (empty($moments)) {
-                throw new Exception('Choisis ou indique au moins un moment.');
-            }
-
-            foreach ($moments as $moment) {
-                ajouterMedicament(
-                    $db,
-                    $personneCible,
-                    $moment,
-                    isset($_POST['nom']) ? $_POST['nom'] : '',
-                    isset($_POST['quantite']) ? $_POST['quantite'] : '',
-                    isset($_POST['detail']) ? $_POST['detail'] : '',
-                    $imageAEnregistrer
-                );
-            }
-            // Redirige apres un ajout reussi (motif "Post/Redirect/Get") :
-            // sans ca, la page se recharge avec le meme $_POST et le
-            // formulaire restait rempli avec le medicament qu'on venait
-            // d'ajouter au lieu de repartir vide pour le suivant.
-            header('Location: /medicaments.php#formulaireMedicament');
-            exit;
-        } catch (Exception $e) {
-            $erreur = $e->getMessage();
-        }
-    } elseif ($_POST['action'] === 'modifier' && isset($_POST['id'])) {
-        try {
-            $nouvelleImage = !empty($_POST['supprimer_image']) ? '' : false;
-            $uploadee = traiterUploadImageMedicament();
-            if ($uploadee !== false) {
-                $nouvelleImage = $uploadee;
-            } elseif (empty($_POST['supprimer_image'])) {
-                $existante = imageExistanteChoisie($DOSSIER_PHOTOS);
-                if ($existante !== false) {
-                    $nouvelleImage = $existante;
-                }
-            }
-            // Une alternative suit toujours le moment de son medicament
-            // principal : inutile de tenir compte du champ "Moment" du
-            // formulaire, il est masque dans ce cas.
-            $alternativeDe = isset($_POST['alternative_de']) ? (int) $_POST['alternative_de'] : 0;
-            $momentSaisi = isset($_POST['moment']) ? $_POST['moment'] : '';
-            if ($alternativeDe > 0) {
-                $parent = obtenirMedicament($db, $alternativeDe);
-                if ($parent !== null && $parent['person'] === $personneCible && (int) $parent['alternative_de'] === 0) {
-                    $momentSaisi = $parent['moment'];
-                } else {
-                    $alternativeDe = 0;
-                }
-            }
-            $ancienneImage = modifierMedicament(
-                $db,
-                $_POST['id'],
-                $momentSaisi,
-                isset($_POST['nom']) ? $_POST['nom'] : '',
-                isset($_POST['quantite']) ? $_POST['quantite'] : '',
-                isset($_POST['detail']) ? $_POST['detail'] : '',
-                $nouvelleImage,
-                $alternativeDe
-            );
-            // Le fichier photo n'est PLUS efface quand plus aucun
-            // medicament ne s'en sert : le dossier medicaments_photos/ est
-            // devenu une bibliotheque ou l'on depose a l'avance des photos
-            // de boites, et le selecteur les propose toutes. Les effacer
-            // automatiquement ferait disparaitre des photos deposees a la
-            // main. Elles restent simplement disponibles pour un prochain
-            // medicament ($ancienneImage n'est donc plus utilise ici).
-            // Meme motif "Post/Redirect/Get" qu'a l'ajout : repart sur un
-            // formulaire vide (mode "Ajouter") plutot que de rester rempli
-            // avec le medicament qu'on vient de modifier.
-            header('Location: /medicaments.php#formulaireMedicament');
-            exit;
-        } catch (Exception $e) {
-            $erreur = $e->getMessage();
-            $idEnEdition = (int) $_POST['id'];
-        }
-    } elseif ($_POST['action'] === 'supprimer' && isset($_POST['id'])) {
-        // Photo conservee dans le dossier (voir le commentaire ci-dessus) :
-        // supprimer un medicament ne doit pas faire disparaitre l'image de
-        // sa boite, on peut vouloir la reutiliser plus tard.
-        supprimerMedicament($db, $_POST['id']);
-    } elseif ($_POST['action'] === 'supprimer_photo' && isset($_POST['photo'])) {
-        // Suppression manuelle d'une photo de la bibliotheque. Deux
-        // garde-fous : le fichier doit vraiment exister dans le dossier
-        // (pas un chemin envoye a la main), et ne plus etre utilise par
-        // aucun medicament - de personne, le dossier etant partage.
-        $nomPhoto = basename((string) $_POST['photo']);
-        if (!in_array($nomPhoto, listerPhotosDuDossier($DOSSIER_PHOTOS), true)) {
-            $erreur = 'Photo introuvable.';
-        } elseif (in_array($nomPhoto, listerPhotosUtilisees($db), true)) {
-            $erreur = 'Cette photo est encore utilisée par un médicament : retire-la d\'abord de sa fiche.';
-        } else {
-            @unlink($DOSSIER_PHOTOS . $nomPhoto);
-            header('Location: /medicaments.php#formulaireMedicament');
-            exit;
-        }
-    } elseif ($_POST['action'] === 'deplacer_moment' && isset($_POST['moment'], $_POST['direction'])) {
-        deplacerMoment($db, $personneCible, $_POST['moment'], $_POST['direction']);
-    }
-}
-
-$medicamentEnEdition = null;
-if ($peutModifier && $idEnEdition === null && isset($_GET['modifier'])) {
-    $idEnEdition = (int) $_GET['modifier'];
-}
-if ($idEnEdition !== null) {
-    $medicamentEnEdition = obtenirMedicament($db, $idEnEdition);
-    if ($medicamentEnEdition === null) {
-        $idEnEdition = null;
-    } elseif ($erreur === '') {
-        $_POST['moment'] = $medicamentEnEdition['moment'];
-        $_POST['nom'] = $medicamentEnEdition['nom'];
-        $_POST['quantite'] = $medicamentEnEdition['quantite'];
-        $_POST['detail'] = $medicamentEnEdition['detail'];
-        $_POST['alternative_de'] = $medicamentEnEdition['alternative_de'];
-    }
-}
-
-$tousLesMedicaments = listerMedicaments($db, $personneCible);
-$momentsExistants = listerMomentsExistants($db, $personneCible);
-// Toutes les photos du dossier, et non plus seulement celles deja
-// rattachees a un medicament : on peut y deposer a l'avance la photo d'une
-// boite et la choisir au moment de creer le medicament.
-$photosExistantes = listerPhotosDuDossier($DOSSIER_PHOTOS);
-// Photos rattachees a au moins un medicament : on n'affiche pas de bouton
-// de suppression sur celles-la (ca casserait la fiche qui s'en sert).
-$photosUtilisees = listerPhotosUtilisees($db);
-// Medicaments proposables comme "principal" d'une alternative (voir le
-// champ du formulaire) : ceux qui n'en sont pas eux-memes une.
-$medicamentsPrincipaux = listerMedicamentsPrincipaux($db, $personneCible, $idEnEdition);
-
-// Regroupe par moment, dans l'ordre deja fourni par listerMedicaments(),
-// puis rattache chaque alternative a son medicament principal pour
-// qu'elle s'affiche dans sa carte et non comme une entree separee.
-$groupes = [];
-foreach (grouperAlternatives($tousLesMedicaments) as $m) {
-    $groupes[$m['moment']][] = $m;
 }
 ?>
 <!DOCTYPE html>
@@ -273,10 +49,77 @@ foreach (grouperAlternatives($tousLesMedicaments) as $m) {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Médicaments — Agenda médical</title>
+<title>Médicaments — <?= htmlspecialchars($personneCible) ?></title>
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
 <link rel="stylesheet" href="/assets/style.css?v=<?= filemtime(__DIR__ . '/assets/style.css') ?>">
-<link rel="stylesheet" href="/assets/admin.css?v=<?= filemtime(__DIR__ . '/assets/admin.css') ?>">
+<style>
+  .barre-actions-medicaments { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:0 0 18px; }
+  .btn-imprimer-plan { display:inline-flex; align-items:center; gap:8px; background:var(--accent); color:#fff; border:none; border-radius:var(--radius-md); padding:12px 20px; font-size:15px; font-weight:600; cursor:pointer; box-shadow:var(--shadow-sm); }
+  .btn-imprimer-plan:hover { background:var(--accent-hover); }
+  .lien-gerer-plan { display:inline-flex; align-items:center; gap:6px; font-size:13.5px; color:var(--text-secondary); text-decoration:none; border:1px solid var(--border); border-radius:var(--radius-md); padding:11px 16px; }
+  .lien-gerer-plan:hover { border-color:var(--accent); color:var(--accent); }
+
+  /* Titre de la feuille imprimee. A l'ecran il ferait doublon avec le
+     titre "Médicaments" de la page, il n'apparait donc qu'au moment
+     d'imprimer. */
+  .entete-plan { display:none; text-align:center; margin-bottom:22px; }
+  .entete-plan h1 { font-size:21px; margin:0; }
+
+  .section-moment { border:2px solid; border-radius:14px; padding:16px; margin-bottom:16px; }
+  .badge-moment { display:inline-block; color:#fff; font-size:13px; font-weight:700; letter-spacing:0.03em; text-transform:uppercase; padding:5px 14px; border-radius:999px; margin-bottom:12px; }
+  .grille-cartes-moment { display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; }
+  .carte-medicament { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:12px; }
+  .photo-medicament { display:block; width:100%; height:86px; object-fit:contain; margin-bottom:8px; }
+  .icone-medicament-defaut { display:flex; align-items:center; justify-content:center; width:100%; height:86px; margin-bottom:8px; color:var(--border-strong); }
+  .icone-medicament-defaut svg { width:36px; height:36px; }
+  .nom-medicament { font-size:15px; font-weight:700; color:var(--text); line-height:1.25; }
+  .quantite-medicament { font-size:14px; font-weight:700; color:var(--text); margin-top:3px; }
+  .detail-medicament { font-size:12.5px; color:var(--text-secondary); margin-top:3px; }
+
+  /* Separateur "OU" entre un medicament et son alternative, dans la meme
+     carte : un trait de part et d'autre du mot pour qu'on voie tout de
+     suite qu'il s'agit d'un choix, pas d'un second medicament a prendre
+     en plus. */
+  .separateur-ou { display:flex; align-items:center; gap:8px; margin:10px 0 6px; }
+  .separateur-ou::before, .separateur-ou::after { content:""; flex:1; height:1px; background:var(--border-strong); }
+  .separateur-ou span { font-size:12px; font-weight:800; letter-spacing:0.08em; color:var(--text-secondary); }
+  .photo-alternative { height:64px; }
+
+  @media (max-width:900px) {
+    .grille-cartes-moment { grid-template-columns:repeat(2, 1fr); }
+  }
+  @media (max-width:520px) {
+    .grille-cartes-moment { grid-template-columns:1fr; }
+  }
+
+  @media print {
+    /* La feuille prend le pas sur les regles d'impression generales de
+       style.css : marges plus serrees, et tout le mobilier de navigation
+       disparait pour ne laisser que le plan. */
+    @page { margin: 0.85cm; }
+    body { max-width:100%; padding:0; background:#fff; }
+    .barre-actions-medicaments, .barre-admin, .sous-titre-medicaments { display:none !important; }
+    .entete-plan { display:block; margin-bottom:10px; }
+    .entete-plan h1 { font-size:18px; }
+    .section-moment { padding:9px 11px; margin-bottom:9px; break-inside:avoid; page-break-inside:avoid; -webkit-print-color-adjust:exact; print-color-adjust:exact; color-adjust:exact; }
+    .badge-moment { font-size:10.5px; padding:3.5px 11px; margin-bottom:7px; -webkit-print-color-adjust:exact; print-color-adjust:exact; color-adjust:exact; }
+    .grille-cartes-moment { grid-template-columns:repeat(3, 1fr); gap:7px; }
+    .carte-medicament { min-height:90px; padding:7px; break-inside:avoid; page-break-inside:avoid; }
+    .photo-medicament, .icone-medicament-defaut { height:44px; margin-bottom:4px; }
+    .icone-medicament-defaut svg { width:25px; height:25px; }
+    .nom-medicament { font-size:12px; }
+    .quantite-medicament { font-size:11px; }
+    .detail-medicament { font-size:10px; }
+    .separateur-ou { margin:6px 0 4px; }
+    .separateur-ou span { font-size:10px; }
+    .separateur-ou::before, .separateur-ou::after {
+      background:#999;
+      -webkit-print-color-adjust:exact;
+      print-color-adjust:exact;
+    }
+    .photo-alternative { height:36px; }
+  }
+</style>
 </head>
 <body>
   <?php afficherEnteteNavigation('medicaments'); ?>
@@ -284,250 +127,70 @@ foreach (grouperAlternatives($tousLesMedicaments) as $m) {
   <div class="barre-admin">
     <h1>Médicaments</h1>
   </div>
-  <p class="sous-titre" style="margin-bottom:18px;">
-    Plan de prise de <?= htmlspecialchars($personneCible) ?>, à générer soi-même en fiche imprimable.
-    <?php if (!$peutModifier): ?>
-      Seul Laurent peut le modifier — tu peux le consulter et l'imprimer.
-    <?php endif; ?>
+  <p class="sous-titre sous-titre-medicaments" style="margin-bottom:16px;">
+    Plan de prise de <?= htmlspecialchars($personneCible) ?>, dans l'ordre des bacs du pilulier.
   </p>
 
-  <!-- Meme presentation que sur Pathologies : bouton pose directement dans
-       la page (pas dans une carte blanche) et classe .bouton-fiche
-       commune, sinon les deux boutons n'avaient pas la meme hauteur. -->
-  <a class="principal bouton-fiche" href="/medicaments_plan.php">
-    <svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6"/><rect x="4" y="9" width="16" height="8" rx="1"/><path d="M6 17v4h12v-4"/></svg>
-    Voir / imprimer la fiche
-  </a>
-
-  <?php if ($peutModifier): ?>
-  <div class="outil" id="formulaireMedicament" style="margin-top:16px;">
-    <h2 class="panneau-titre" style="font-size:15px;"><?= $medicamentEnEdition !== null ? 'Modifier le médicament' : 'Ajouter un médicament' ?></h2>
-
-    <?php if ($erreur): ?>
-      <p class="erreur"><?= htmlspecialchars($erreur) ?></p>
+  <div class="barre-actions-medicaments">
+    <button type="button" class="btn-imprimer-plan" onclick="window.print()">
+      <svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6"/><rect x="4" y="9" width="16" height="8" rx="1"/><path d="M6 17v4h12v-4"/></svg>
+      Imprimer / Enregistrer en PDF
+    </button>
+    <?php if ($peutModifier): ?>
+      <a class="lien-gerer-plan" href="/admin/medicaments.php">
+        <svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+        Modifier le plan
+      </a>
     <?php endif; ?>
-
-    <form method="post" enctype="multipart/form-data">
-      <input type="hidden" name="action" value="<?= $medicamentEnEdition !== null ? 'modifier' : 'ajouter' ?>">
-      <?php if ($medicamentEnEdition !== null): ?>
-        <input type="hidden" name="id" value="<?= (int) $idEnEdition ?>">
-      <?php endif; ?>
-
-      <?php if (!empty($medicamentsPrincipaux)): ?>
-        <?php $altSelectionnee = isset($_POST['alternative_de']) ? (int) $_POST['alternative_de'] : 0; ?>
-        <!-- "Dafalgan OU Paracetamol EG" : l'alternative est un medicament
-             a part entiere (son nom, sa photo, et sa propre quantite qui
-             peut differer), simplement rattache a un autre. Elle suit le
-             moment de son principal, d'ou le champ Moment masque en JS
-             quand un principal est choisi. -->
-        <div class="champ" id="champAlternative">
-          <label for="selAlternative">Est-ce une alternative à un autre médicament ?</label>
-          <select name="alternative_de" id="selAlternative">
-            <option value="0">Non, c'est un médicament à part entière</option>
-            <?php foreach ($medicamentsPrincipaux as $mp): ?>
-              <option value="<?= (int) $mp['id'] ?>"<?= $altSelectionnee === (int) $mp['id'] ? ' selected' : '' ?>>
-                Alternative à <?= htmlspecialchars($mp['nom']) ?> (<?= htmlspecialchars($mp['moment']) ?>)
-              </option>
-            <?php endforeach; ?>
-          </select>
-          <p class="aide" style="margin-top:6px;">Une alternative s'affiche dans la fiche du médicament choisi, précédée d'un « OU ». Elle reprend son moment de prise, mais garde sa propre quantité.</p>
-        </div>
-      <?php endif; ?>
-
-      <div class="champ-ligne">
-        <!-- Masque en JS quand une alternative est choisie : elle herite du
-             moment de son medicament principal. -->
-        <div class="champ" id="champMoment">
-          <?php if ($medicamentEnEdition !== null): ?>
-            <label>Moment</label>
-            <input type="text" name="moment" list="listeMoments" placeholder="Ex. Matin, 15h00, Au coucher, Si besoin..." required value="<?= isset($_POST['moment']) ? htmlspecialchars($_POST['moment']) : '' ?>">
-            <datalist id="listeMoments">
-              <?php foreach ($momentsExistants as $mom): ?>
-                <option value="<?= htmlspecialchars($mom) ?>"></option>
-              <?php endforeach; ?>
-            </datalist>
-          <?php else: ?>
-            <label>Moment(s)</label>
-            <?php if (!empty($momentsExistants)): ?>
-              <div class="choix-moments">
-                <?php $momentsCoches = isset($_POST['moments']) ? (array) $_POST['moments'] : []; ?>
-                <?php foreach ($momentsExistants as $mom): ?>
-                  <label class="case-moment">
-                    <input type="checkbox" name="moments[]" value="<?= htmlspecialchars($mom) ?>"<?= in_array($mom, $momentsCoches, true) ? ' checked' : '' ?>>
-                    <?= htmlspecialchars($mom) ?>
-                  </label>
-                <?php endforeach; ?>
-              </div>
-            <?php endif; ?>
-            <input type="text" name="nouveau_moment" placeholder="Nouveau moment (ex. 15h00)" value="<?= isset($_POST['nouveau_moment']) ? htmlspecialchars($_POST['nouveau_moment']) : '' ?>" style="<?= !empty($momentsExistants) ? 'margin-top:8px;' : '' ?>">
-            <p class="aide" style="margin-top:6px;">Coche plusieurs moments si ce médicament se prend à plusieurs reprises dans la journée : une ligne est créée pour chacun, avec les mêmes nom/quantité/détail (modifiable ensuite au cas par cas si l'un d'eux diffère).</p>
-          <?php endif; ?>
-        </div>
-        <div class="champ">
-          <label>Médicament</label>
-          <input type="text" name="nom" placeholder="Ex. ASA EG" required value="<?= isset($_POST['nom']) ? htmlspecialchars($_POST['nom']) : '' ?>">
-        </div>
-      </div>
-      <div class="champ-ligne">
-        <div class="champ">
-          <label>Quantité (facultatif)</label>
-          <input type="text" name="quantite" placeholder="Ex. 1 comprimé" value="<?= isset($_POST['quantite']) ? htmlspecialchars($_POST['quantite']) : '' ?>">
-        </div>
-        <div class="champ">
-          <label>Détail (facultatif)</label>
-          <input type="text" name="detail" placeholder="Ex. 100 mg — anti-coagulant" value="<?= isset($_POST['detail']) ? htmlspecialchars($_POST['detail']) : '' ?>">
-        </div>
-      </div>
-      <div class="champ">
-        <label>Photo de la boîte (facultatif)</label>
-        <input type="file" name="image" id="champFichierImage" accept="image/png, image/jpeg, image/webp">
-        <?php if ($medicamentEnEdition !== null && !empty($medicamentEnEdition['image'])): ?>
-          <div class="champ-case" style="margin-top:8px;">
-            <input type="checkbox" name="supprimer_image" id="supprimerImage" value="1">
-            <label for="supprimerImage">Supprimer la photo actuelle</label>
-          </div>
-        <?php endif; ?>
-        <?php if (!empty($photosExistantes)): ?>
-          <div class="selecteur-photos-existantes">
-            <p class="aide-selecteur-photos">Ou réutiliser une photo déjà présente sur le site — survole une vignette pour la voir en grand :</p>
-            <div class="grille-photos-existantes">
-              <?php foreach ($photosExistantes as $nomPhoto): ?>
-                <?php
-                  // Photo deja utilisee par CE medicament (en edition) :
-                  // presélectionnée visuellement, pas besoin de recliquer.
-                  $dejaUtiliseeIci = $medicamentEnEdition !== null && $medicamentEnEdition['image'] === $nomPhoto;
-                  $estUtilisee = in_array($nomPhoto, $photosUtilisees, true);
-                ?>
-                <!-- <div> et non <button> : la vignette contient desormais
-                     deux boutons (choisir / supprimer), et un bouton ne
-                     peut pas en contenir un autre. -->
-                <div class="vignette-photo-existante<?= $dejaUtiliseeIci ? ' selectionnee' : '' ?>" data-fichier="<?= htmlspecialchars($nomPhoto) ?>">
-                  <button type="button" class="choisir-photo" title="Utiliser cette photo — <?= htmlspecialchars($nomPhoto) ?>">
-                    <img src="/medicaments_photos/<?= rawurlencode($nomPhoto) ?>" alt="">
-                  </button>
-                  <?php if (!$estUtilisee): ?>
-                    <!-- Croix visible seulement sur les photos qu'aucun
-                         medicament n'utilise : supprimer une photo en
-                         service casserait sa fiche. Le bouton appartient au
-                         formulaire de suppression place plus bas (attribut
-                         "form"), car on ne peut pas imbriquer un formulaire
-                         dans celui du medicament. -->
-                    <button type="submit" form="formSupprimerPhoto" name="photo" value="<?= htmlspecialchars($nomPhoto) ?>" class="supprimer-photo" title="Supprimer définitivement cette photo" aria-label="Supprimer la photo <?= htmlspecialchars($nomPhoto) ?>">×</button>
-                  <?php endif; ?>
-                  <!-- Apercu agrandi au survol : une vignette de 56px ne
-                       suffit pas a reconnaitre une boite. -->
-                  <span class="apercu-photo">
-                    <img src="/medicaments_photos/<?= rawurlencode($nomPhoto) ?>" alt="">
-                    <span class="nom-apercu"><?= htmlspecialchars($nomPhoto) ?><?= $estUtilisee ? ' · utilisée' : '' ?></span>
-                  </span>
-                </div>
-              <?php endforeach; ?>
-            </div>
-          </div>
-        <?php endif; ?>
-        <input type="hidden" name="image_existante" id="champImageExistante" value="">
-      </div>
-      <div class="form-boutons">
-        <button class="principal" type="submit"><?= $medicamentEnEdition !== null ? 'Enregistrer les modifications' : 'Ajouter' ?></button>
-        <?php if ($medicamentEnEdition !== null): ?>
-          <a class="secondaire" href="/medicaments.php">Annuler</a>
-        <?php endif; ?>
-      </div>
-    </form>
-
-    <!-- Formulaire cible des croix de suppression du selecteur de photos.
-         Il vit hors du formulaire du medicament (on ne peut pas imbriquer
-         deux formulaires) ; les boutons s'y rattachent par leur attribut
-         "form". data-confirm est pris en charge par admin-ui.js. -->
-    <form id="formSupprimerPhoto" method="post" data-confirm="Supprimer définitivement cette photo du site ?" style="display:none;">
-      <input type="hidden" name="action" value="supprimer_photo">
-    </form>
   </div>
-  <?php endif; ?>
 
-  <?php if (empty($groupes)): ?>
-    <div class="outil" style="margin-top:16px;">
-      <p class="vide">Aucun médicament enregistré.</p>
-    </div>
+  <div class="entete-plan">
+    <h1>Traitement de <?= htmlspecialchars($personneCible) ?> — Plan de prise quotidien</h1>
+  </div>
+
+  <?php if (empty($plan)): ?>
+    <p class="vide">
+      Aucun médicament enregistré.
+      <?php if ($peutModifier): ?><a href="/admin/medicaments.php">Créer le plan</a>.<?php endif; ?>
+    </p>
   <?php else: ?>
-    <?php $nombreSections = count($groupes); $indexSection = 0; ?>
-    <?php foreach ($groupes as $moment => $medicaments): ?>
-      <?php $indexSection++; ?>
-      <div class="outil" style="margin-top:16px;">
-        <div class="entete-section-medicaments">
-          <h2 class="panneau-titre" style="font-size:15px; margin:0;"><?= htmlspecialchars($moment) ?> (<?= count($medicaments) ?>)</h2>
-          <?php if ($peutModifier && $nombreSections > 1): ?>
-            <div class="boutons-deplacer-section">
-              <form method="post">
-                <input type="hidden" name="action" value="deplacer_moment">
-                <input type="hidden" name="moment" value="<?= htmlspecialchars($moment) ?>">
-                <input type="hidden" name="direction" value="haut">
-                <button type="submit" class="bouton-deplacer" title="Monter cette section" <?= $indexSection === 1 ? 'disabled' : '' ?>>↑</button>
-              </form>
-              <form method="post">
-                <input type="hidden" name="action" value="deplacer_moment">
-                <input type="hidden" name="moment" value="<?= htmlspecialchars($moment) ?>">
-                <input type="hidden" name="direction" value="bas">
-                <button type="submit" class="bouton-deplacer" title="Descendre cette section" <?= $indexSection === $nombreSections ? 'disabled' : '' ?>>↓</button>
-              </form>
-            </div>
-          <?php endif; ?>
-        </div>
-        <div class="grille-medecins">
-          <?php foreach ($medicaments as $m): ?>
-            <div class="rangee-medecin">
+    <?php foreach ($plan as $indexMoment => $section): ?>
+      <?php $couleurs = paletteMoment($indexMoment); ?>
+      <div class="section-moment" style="border-color:<?= $couleurs['bordure'] ?>; background:<?= $couleurs['fond'] ?>;">
+        <span class="badge-moment" style="background:<?= $couleurs['bordure'] ?>;"><?= htmlspecialchars(mb_strtoupper($section['moment']['libelle'])) ?></span>
+        <div class="grille-cartes-moment">
+          <?php foreach ($section['medicaments'] as $m): ?>
+            <div class="carte-medicament">
               <?php if (!empty($m['image'])): ?>
-                <img class="photo-medicament-carte" src="/medicaments_photos/<?= rawurlencode($m['image']) ?>" alt="" style="width:100%; max-height:90px; object-fit:contain; margin-bottom:6px;">
+                <img class="photo-medicament" src="/medicaments_photos/<?= rawurlencode($m['image']) ?>" alt="">
+              <?php else: ?>
+                <div class="icone-medicament-defaut">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="7" rx="3.5"/><path d="M8 11v7"/><circle cx="17" cy="6" r="3"/></svg>
+                </div>
               <?php endif; ?>
-              <div class="detail-medecin">
-                <div class="nom-medecin"><?= htmlspecialchars($m['nom']) ?></div>
-                <?php if ($m['quantite'] !== ''): ?>
-                  <div class="specialite-medecin"><?= htmlspecialchars($m['quantite']) ?></div>
-                <?php endif; ?>
-                <?php if ($m['detail'] !== ''): ?>
-                  <div class="coord-medecin"><?= htmlspecialchars($m['detail']) ?></div>
-                <?php endif; ?>
-              </div>
-              <?php if ($peutModifier): ?>
-              <div class="actions-medecin">
-                <a href="?modifier=<?= (int) $m['id'] ?>#formulaireMedicament" class="lien-modifier-tache">Modifier</a>
-                <form method="post" data-confirm="Supprimer ce médicament du plan ?<?= !empty($m['alternatives']) ? ' Ses alternatives resteront dans le plan, comme médicaments à part entière.' : '' ?>">
-                  <input type="hidden" name="action" value="supprimer">
-                  <input type="hidden" name="id" value="<?= (int) $m['id'] ?>">
-                  <button type="submit" class="lien-danger">Supprimer</button>
-                </form>
-              </div>
+              <div class="nom-medicament"><?= htmlspecialchars($m['nom']) ?></div>
+              <?php if ($m['quantite'] !== ''): ?>
+                <div class="quantite-medicament"><?= htmlspecialchars($m['quantite']) ?></div>
+              <?php endif; ?>
+              <?php if ($m['detail'] !== ''): ?>
+                <div class="detail-medicament"><?= htmlspecialchars($m['detail']) ?></div>
               <?php endif; ?>
 
               <?php foreach ($m['alternatives'] as $alt): ?>
-                <!-- Alternative rattachee ("... OU ..."), affichee dans la
-                     carte de son medicament principal plutot que comme une
-                     entree separee du plan. -->
-                <div class="alternative-medicament">
-                  <div class="etiquette-ou">ou</div>
-                  <?php if (!empty($alt['image'])): ?>
-                    <img class="photo-medicament-carte" src="/medicaments_photos/<?= rawurlencode($alt['image']) ?>" alt="" style="width:100%; max-height:70px; object-fit:contain; margin-bottom:6px;">
-                  <?php endif; ?>
-                  <div class="detail-medecin">
-                    <div class="nom-medecin"><?= htmlspecialchars($alt['nom']) ?></div>
-                    <?php if ($alt['quantite'] !== ''): ?>
-                      <div class="specialite-medecin"><?= htmlspecialchars($alt['quantite']) ?></div>
-                    <?php endif; ?>
-                    <?php if ($alt['detail'] !== ''): ?>
-                      <div class="coord-medecin"><?= htmlspecialchars($alt['detail']) ?></div>
-                    <?php endif; ?>
-                  </div>
-                  <?php if ($peutModifier): ?>
-                  <div class="actions-medecin">
-                    <a href="?modifier=<?= (int) $alt['id'] ?>#formulaireMedicament" class="lien-modifier-tache">Modifier</a>
-                    <form method="post" data-confirm="Supprimer cette alternative du plan ?">
-                      <input type="hidden" name="action" value="supprimer">
-                      <input type="hidden" name="id" value="<?= (int) $alt['id'] ?>">
-                      <button type="submit" class="lien-danger">Supprimer</button>
-                    </form>
-                  </div>
-                  <?php endif; ?>
-                </div>
+                <!-- "OU" bien visible : sur la feuille posee pres des
+                     medicaments, il faut comprendre d'un coup d'oeil qu'on
+                     prend l'un OU l'autre, pas les deux. -->
+                <div class="separateur-ou"><span>OU</span></div>
+                <?php if (!empty($alt['image'])): ?>
+                  <img class="photo-medicament photo-alternative" src="/medicaments_photos/<?= rawurlencode($alt['image']) ?>" alt="">
+                <?php endif; ?>
+                <div class="nom-medicament"><?= htmlspecialchars($alt['nom']) ?></div>
+                <?php if ($alt['quantite'] !== ''): ?>
+                  <div class="quantite-medicament"><?= htmlspecialchars($alt['quantite']) ?></div>
+                <?php endif; ?>
+                <?php if ($alt['detail'] !== ''): ?>
+                  <div class="detail-medicament"><?= htmlspecialchars($alt['detail']) ?></div>
+                <?php endif; ?>
               <?php endforeach; ?>
             </div>
           <?php endforeach; ?>
@@ -536,63 +199,6 @@ foreach (grouperAlternatives($tousLesMedicaments) as $m) {
     <?php endforeach; ?>
   <?php endif; ?>
 
-  <script src="/assets/admin-ui.js?v=<?= filemtime(__DIR__ . '/assets/admin-ui.js') ?>"></script>
-  <script>
-  (function () {
-    var champFichier = document.getElementById('champFichierImage');
-    var champExistante = document.getElementById('champImageExistante');
-    var vignettes = document.querySelectorAll('.vignette-photo-existante');
-    if (champExistante && vignettes.length) {
-      vignettes.forEach(function (v) {
-        // Le clic est ecoute sur le bouton "choisir" a l'interieur, et non
-        // sur toute la vignette : celle-ci contient aussi la croix de
-        // suppression, qui ne doit pas selectionner la photo au passage.
-        var boutonChoisir = v.querySelector('.choisir-photo');
-        if (!boutonChoisir) return;
-        boutonChoisir.addEventListener('click', function () {
-          var etaitSelectionnee = v.classList.contains('selectionnee');
-          vignettes.forEach(function (autre) { autre.classList.remove('selectionnee'); });
-          if (etaitSelectionnee) {
-            champExistante.value = '';
-          } else {
-            v.classList.add('selectionnee');
-            champExistante.value = v.getAttribute('data-fichier');
-            if (champFichier) champFichier.value = '';
-          }
-        });
-      });
-    }
-    if (champFichier && champExistante) {
-      champFichier.addEventListener('change', function () {
-        if (champFichier.value) {
-          champExistante.value = '';
-          vignettes.forEach(function (v) { v.classList.remove('selectionnee'); });
-        }
-      });
-    }
-
-    // Une alternative reprend le moment de son medicament principal : le
-    // champ "Moment(s)" n'aurait alors aucun effet, on le masque plutot
-    // que de laisser croire qu'on peut y choisir autre chose. Les cases a
-    // cocher sont aussi decochees pour ne rien envoyer d'incoherent.
-    var selAlternative = document.getElementById('selAlternative');
-    var champMoment = document.getElementById('champMoment');
-    if (selAlternative && champMoment) {
-      var majMoment = function () {
-        var estAlternative = selAlternative.value !== '0';
-        champMoment.style.display = estAlternative ? 'none' : '';
-        if (estAlternative) {
-          champMoment.querySelectorAll('input[type=checkbox]').forEach(function (c) { c.checked = false; });
-          champMoment.querySelectorAll('input[type=text]').forEach(function (t) { t.value = ''; t.required = false; });
-        } else {
-          champMoment.querySelectorAll('input[name=moment]').forEach(function (t) { t.required = true; });
-        }
-      };
-      selAlternative.addEventListener('change', majMoment);
-      majMoment();
-    }
-  })();
-  </script>
   <script src="/assets/entete.js?v=<?= filemtime(__DIR__ . '/assets/entete.js') ?>"></script>
 </body>
 </html>

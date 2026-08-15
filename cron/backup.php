@@ -72,9 +72,11 @@ try {
 // donnees saisies a la main, longues a reconstituer, et elles n'avaient
 // aucun filet jusqu'ici.
 $tables = [
-    'appointments' => 'appointments',
-    'medicaments'  => 'medicaments',
-    'pathologies'  => 'pathologies',
+    'appointments'       => 'appointments',
+    'medicaments'        => 'medicaments',
+    'medicament_moments' => 'medicament_moments',
+    'medicament_prises'  => 'medicament_prises',
+    'pathologies'        => 'pathologies',
 ];
 
 $horodatage = date('Y-m-d-Hi');
