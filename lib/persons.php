@@ -142,7 +142,24 @@ function validerPatient($db, $id) {
  * @return array ['crees' => [...noms], 'modifies' => [...noms]]
  */
 function reprendrePersonnesDeConfig($db, $config) {
-    // [nom => ['patient' => bool, 'membre' => bool]]
+    return appliquerReprisePersonnes($db, personnesAttenduesDeConfig($config), false);
+}
+
+/**
+ * Y a-t-il quelque chose à reprendre depuis config.php ?
+ *
+ * Sert à n'afficher le bloc de reprise que quand il servirait vraiment
+ * (voir admin/personnes.php) : une fois la reprise faite, il n'a plus
+ * aucune raison d'occuper l'écran — mais il doit réapparaître tout seul
+ * sur une installation neuve, ou si quelqu'un est ajouté dans config.php.
+ */
+function resteAReprendreDeConfig($db, $config) {
+    $resume = appliquerReprisePersonnes($db, personnesAttenduesDeConfig($config), true);
+    return !empty($resume['crees']) || !empty($resume['modifies']);
+}
+
+/** [nom => ['patient' => bool, 'membre' => bool]] d'après config.php. */
+function personnesAttenduesDeConfig($config) {
     $attendus = [];
 
     foreach (['personne_1', 'personne_2'] as $cle) {
@@ -173,18 +190,34 @@ function reprendrePersonnesDeConfig($db, $config) {
         $attendus[$nom]['membre'] = true;
     }
 
+    return $attendus;
+}
+
+/**
+ * Applique (ou simule) la reprise.
+ *
+ * @param bool $simulation true = ne rien écrire, seulement dire ce qui
+ *        serait fait. Sert à décider si le bloc de reprise a lieu d'être
+ *        affiché — sinon il faudrait dupliquer la logique de comparaison
+ *        à deux endroits, avec le risque qu'elles divergent.
+ */
+function appliquerReprisePersonnes($db, $attendus, $simulation) {
     $resume = ['crees' => [], 'modifies' => []];
     foreach ($attendus as $nom => $drapeaux) {
         $existante = personParNom($db, $nom);
         if ($existante === null) {
-            ajouterPerson($db, $nom, $drapeaux['patient'], $drapeaux['membre']);
+            if (!$simulation) {
+                ajouterPerson($db, $nom, $drapeaux['patient'], $drapeaux['membre']);
+            }
             $resume['crees'][] = $nom;
             continue;
         }
         $patient = $existante['est_patient'] || $drapeaux['patient'];
         $membre = $existante['peut_se_connecter'] || $drapeaux['membre'];
         if ($patient !== $existante['est_patient'] || $membre !== $existante['peut_se_connecter']) {
-            modifierPerson($db, $existante['id'], $existante['nom'], $patient, $membre);
+            if (!$simulation) {
+                modifierPerson($db, $existante['id'], $existante['nom'], $patient, $membre);
+            }
             $resume['modifies'][] = $existante['nom'];
         }
     }

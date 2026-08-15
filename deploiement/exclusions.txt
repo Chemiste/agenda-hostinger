@@ -32,3 +32,18 @@ CHANGELOG.md
 Guide_dev_local_et_versions.md
 Guide_installation_hostinger.md
 .gitignore
+
+# Outils a usage unique, volontairement retires de la production une fois
+# leur travail fait (voir le guide d'installation). Sans ces lignes, le
+# deploiement les remettrait en ligne au prochain passage : il televerse
+# aussi les fichiers ABSENTS du serveur, pas seulement ceux qui different.
+# Ils restent dans le depot et se remettent a la main (Gestionnaire de
+# fichiers hPanel) le jour ou l'on en a de nouveau besoin - par exemple
+# generate_password.php pour changer un mot de passe.
+outils/generate_password.php
+outils/import_calendar.php
+outils/importer_plan_medicaments_christiane.php
+
+# Fichiers verrous laisses par LibreOffice quand un .sql ou un .csv du
+# depot est ouvert (ex: .~lock.reprise-medicaments-....sql#).
+.~lock.*#

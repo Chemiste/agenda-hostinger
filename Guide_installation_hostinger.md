@@ -174,20 +174,24 @@ Sur cette page, chaque personne (identifiée par son prénom, ex. "Michel" / "Ch
 
 Exemple concret : si Michel coche la case pour recevoir aussi les rendez-vous de Christiane, mais que Christiane ne coche pas la case équivalente, alors Michel reçoit un rappel pour tous les rendez-vous (les siens et ceux de Christiane), tandis que Christiane ne reçoit un rappel que pour les siens. Chacun règle ça independamment, à tout moment, sans avoir besoin de vous (Chem) ni du mot de passe admin.
 
-## Remplacer "Papa" et "Maman" par d'autres noms
+## Gérer les personnes (renommer, ajouter, retirer)
 
-1. Dans `config.php`, modifiez les deux lignes :
-   ```php
-   'personne_1' => 'Papa',
-   'personne_2' => 'Maman',
-   ```
-   par les noms de votre choix (prénoms réels, par exemple).
-2. **Les rendez-vous déjà enregistrés gardent les anciens noms en base** (ils ne se renomment pas tout seuls). Pour les mettre à jour, exécutez dans phpMyAdmin (ou via `mysql`) :
-   ```sql
-   UPDATE appointments SET person = 'NouveauNom1' WHERE person = 'Papa';
-   UPDATE appointments SET person = 'NouveauNom2' WHERE person = 'Maman';
-   ```
-   (adaptez avec vos vrais anciens/nouveaux noms). Sans ça, ces anciens rendez-vous n'apparaîtront plus dans les onglets Papa/Maman renommés (ils resteront visibles dans "Tous").
+Tout se passe dans **Administration → Personnes** (`/admin/personnes.php`). Aucune modification de `config.php`, aucun redéploiement.
+
+Chaque personne porte deux cases :
+
+- **Patient** — on suit sa santé : elle a un onglet dans l'agenda, un plan de médicaments, des pathologies, un carnet de médecins.
+- **Se connecte** — elle apparaît dans « Qui êtes-vous ? » à l'ouverture du site.
+
+Michel et Christiane ont les deux, Hélène et Laurent seulement la seconde.
+
+**Renommer est sans danger** : le nom n'est stocké qu'à un seul endroit et toutes les données pointent dessus par un identifiant. Le changement se voit immédiatement partout, y compris sur les rendez-vous passés, sans que personne ait à se reconnecter.
+
+> Ce n'était pas le cas avant la version qui a introduit la table `persons` : le nom était recopié dans six tables, et le modifier dans `config.php` faisait disparaître les médicaments et les pathologies de la personne — sans message d'erreur.
+
+**Pour retirer quelqu'un**, préférez **Désactiver** à **Supprimer** dès qu'il a des données : il disparaît des listes et des onglets, mais les rendez-vous passés et le journal d'activité gardent un nom lisible. La suppression définitive n'est proposée que si plus rien n'y est rattaché.
+
+Les clés `personne_1`, `personne_2` et `membres_famille` de `config.php` ne servent plus qu'à amorcer une installation neuve, tant que la table est vide.
 3. Rechargez la page : onglets, formulaire, badges et description Google Calendar utilisent maintenant les nouveaux noms partout, sans avoir touché au code.
 
 ## Mettre à jour le site plus tard

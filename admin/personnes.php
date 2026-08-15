@@ -76,6 +76,9 @@ if ($idEnEdition === null && isset($_GET['modifier'])) {
 }
 
 $personnes = listerPersons($db);
+// Y a-t-il encore quelque chose a reprendre depuis config.php ? Sert a
+// n'afficher le bloc de reprise que quand il servirait (voir plus bas).
+$resteAReprendre = resteAReprendreDeConfig($db, $config);
 $donneesParPersonne = [];
 foreach ($personnes as $p) {
     $donneesParPersonne[$p['id']] = compterDonneesPerson($db, $p['id']);
@@ -127,43 +130,62 @@ $index = 0;
     <?php if (empty($personnes)): ?>
       <p class="vide">Aucune personne enregistrée. Ajoute au moins toi-même, plus bas.</p>
     <?php else: ?>
-      <ul class="liste-personnes">
+      <?php /* Un vrai tableau avec des en-tetes : les deux droits se lisent
+               en colonne, on compare d'un coup d'oeil qui est patient et qui
+               se connecte. Un « oui » ou « non » ecrit en toutes lettres a
+               cote du symbole - la coche seule reposerait sur la forme, et
+               l'absence de coche se confond avec une case vide. */ ?>
+      <table class="tableau-personnes">
+        <thead>
+          <tr>
+            <th scope="col">Personne</th>
+            <th scope="col" class="col-droit">Patient</th>
+            <th scope="col" class="col-droit">Se connecte</th>
+            <th scope="col">Données rattachées</th>
+            <th scope="col" class="col-ordre">Ordre</th>
+            <th scope="col" class="col-actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
         <?php foreach ($personnes as $p): ?>
           <?php
             $index++;
             $enEdition = $idEnEdition === $p['id'];
             $donnees = $donneesParPersonne[$p['id']];
           ?>
-          <li class="rangee-personne<?= $p['actif'] ? '' : ' inactive' ?>">
-            <?php if ($enEdition): ?>
-              <form method="post" class="form-personne">
-                <input type="hidden" name="action" value="modifier">
-                <input type="hidden" name="id" value="<?= $p['id'] ?>">
-                <input type="text" name="nom" value="<?= htmlspecialchars($p['nom']) ?>" aria-label="Nom" required autofocus>
-                <label class="case-drapeau">
-                  <input type="checkbox" name="est_patient" value="1"<?= $p['est_patient'] ? ' checked' : '' ?>> Patient
-                </label>
-                <label class="case-drapeau">
-                  <input type="checkbox" name="peut_se_connecter" value="1"<?= $p['peut_se_connecter'] ? ' checked' : '' ?>> Se connecte
-                </label>
-                <button type="submit" class="principal">Enregistrer</button>
-                <a class="secondaire" href="/admin/personnes.php">Annuler</a>
-              </form>
-            <?php else: ?>
-              <div class="identite-personne">
+          <?php if ($enEdition): ?>
+            <tr class="ligne-edition-personne">
+              <td colspan="6">
+                <form method="post" class="form-personne">
+                  <input type="hidden" name="action" value="modifier">
+                  <input type="hidden" name="id" value="<?= $p['id'] ?>">
+                  <input type="text" name="nom" value="<?= htmlspecialchars($p['nom']) ?>" aria-label="Nom" required autofocus>
+                  <label class="case-drapeau">
+                    <input type="checkbox" name="est_patient" value="1"<?= $p['est_patient'] ? ' checked' : '' ?>> Patient
+                  </label>
+                  <label class="case-drapeau">
+                    <input type="checkbox" name="peut_se_connecter" value="1"<?= $p['peut_se_connecter'] ? ' checked' : '' ?>> Se connecte
+                  </label>
+                  <button type="submit" class="principal">Enregistrer</button>
+                  <a class="secondaire" href="/admin/personnes.php">Annuler</a>
+                </form>
+              </td>
+            </tr>
+          <?php else: ?>
+            <tr class="<?= $p['actif'] ? '' : 'personne-inactive' ?>">
+              <td>
                 <span class="nom-personne"><?= htmlspecialchars($p['nom']) ?></span>
                 <?php if (!$p['actif']): ?>
                   <span class="etiquette-personne etiquette-inactive">Désactivée</span>
                 <?php endif; ?>
-                <?php if ($p['est_patient']): ?>
-                  <span class="etiquette-personne">Patient</span>
-                <?php endif; ?>
-                <?php if ($p['peut_se_connecter']): ?>
-                  <span class="etiquette-personne">Se connecte</span>
-                <?php endif; ?>
-              </div>
-
-              <span class="donnees-personne">
+              </td>
+              <td class="col-droit">
+                <span class="marque-droit <?= $p['est_patient'] ? 'oui' : 'non' ?>"><?= $p['est_patient'] ? '✔ oui' : '✕ non' ?></span>
+              </td>
+              <td class="col-droit">
+                <span class="marque-droit <?= $p['peut_se_connecter'] ? 'oui' : 'non' ?>"><?= $p['peut_se_connecter'] ? '✔ oui' : '✕ non' ?></span>
+              </td>
+              <td class="donnees-personne">
                 <?php if (empty($donnees)): ?>
                   aucune donnée
                 <?php else: ?>
@@ -173,55 +195,58 @@ $index = 0;
                     echo htmlspecialchars(implode(' · ', $morceaux));
                   ?>
                 <?php endif; ?>
-              </span>
-
-              <div class="boutons-deplacer-section">
-                <form method="post">
-                  <input type="hidden" name="action" value="deplacer">
-                  <input type="hidden" name="id" value="<?= $p['id'] ?>">
-                  <input type="hidden" name="direction" value="haut">
-                  <button type="submit" class="bouton-deplacer" title="Monter" <?= $index === 1 ? 'disabled' : '' ?>>↑</button>
-                </form>
-                <form method="post">
-                  <input type="hidden" name="action" value="deplacer">
-                  <input type="hidden" name="id" value="<?= $p['id'] ?>">
-                  <input type="hidden" name="direction" value="bas">
-                  <button type="submit" class="bouton-deplacer" title="Descendre" <?= $index === $nombre ? 'disabled' : '' ?>>↓</button>
-                </form>
-              </div>
-
-              <div class="actions-personne">
-                <a href="?modifier=<?= $p['id'] ?>" class="lien-modifier-tache">Modifier</a>
-                <?php if ($p['actif']): ?>
-                  <?php /* Desactiver plutot que supprimer : les rendez-vous
-                           passes et le journal d'activite gardent un nom
-                           lisible. Supprimer la ligne les rendrait
-                           orphelins - exactement ce que cette table est
-                           venue eviter. */ ?>
-                  <form method="post" data-confirm="Désactiver <?= htmlspecialchars($p['nom']) ?> ? Elle disparaît des listes et des onglets, mais son historique reste lisible.">
-                    <input type="hidden" name="action" value="desactiver">
-                    <input type="hidden" name="id" value="<?= $p['id'] ?>">
-                    <button type="submit" class="lien-danger">Désactiver</button>
-                  </form>
-                <?php else: ?>
+              </td>
+              <td class="col-ordre">
+                <div class="boutons-deplacer-section">
                   <form method="post">
-                    <input type="hidden" name="action" value="reactiver">
+                    <input type="hidden" name="action" value="deplacer">
                     <input type="hidden" name="id" value="<?= $p['id'] ?>">
-                    <button type="submit" class="lien-modifier-tache" style="border:none;background:none;font:inherit;font-size:13px;font-weight:600;padding:0;cursor:pointer;">Réactiver</button>
+                    <input type="hidden" name="direction" value="haut">
+                    <button type="submit" class="bouton-deplacer" title="Monter" <?= $index === 1 ? 'disabled' : '' ?>>↑</button>
                   </form>
-                  <?php if (empty($donnees)): ?>
-                    <form method="post" data-confirm="Supprimer définitivement <?= htmlspecialchars($p['nom']) ?> ? Aucune donnée n'y est rattachée.">
-                      <input type="hidden" name="action" value="supprimer">
+                  <form method="post">
+                    <input type="hidden" name="action" value="deplacer">
+                    <input type="hidden" name="id" value="<?= $p['id'] ?>">
+                    <input type="hidden" name="direction" value="bas">
+                    <button type="submit" class="bouton-deplacer" title="Descendre" <?= $index === $nombre ? 'disabled' : '' ?>>↓</button>
+                  </form>
+                </div>
+              </td>
+              <td class="col-actions">
+                <div class="actions-personne">
+                  <a href="?modifier=<?= $p['id'] ?>" class="lien-modifier-tache">Modifier</a>
+                  <?php if ($p['actif']): ?>
+                    <?php /* Desactiver plutot que supprimer : les rendez-vous
+                             passes et le journal d'activite gardent un nom
+                             lisible. Supprimer la ligne les rendrait
+                             orphelins - exactement ce que cette table est
+                             venue eviter. */ ?>
+                    <form method="post" data-confirm="Désactiver <?= htmlspecialchars($p['nom']) ?> ? Elle disparaît des listes et des onglets, mais son historique reste lisible.">
+                      <input type="hidden" name="action" value="desactiver">
                       <input type="hidden" name="id" value="<?= $p['id'] ?>">
-                      <button type="submit" class="lien-danger">Supprimer</button>
+                      <button type="submit" class="lien-danger">Désactiver</button>
                     </form>
+                  <?php else: ?>
+                    <form method="post">
+                      <input type="hidden" name="action" value="reactiver">
+                      <input type="hidden" name="id" value="<?= $p['id'] ?>">
+                      <button type="submit" class="lien-bouton">Réactiver</button>
+                    </form>
+                    <?php if (empty($donnees)): ?>
+                      <form method="post" data-confirm="Supprimer définitivement <?= htmlspecialchars($p['nom']) ?> ? Aucune donnée n'y est rattachée.">
+                        <input type="hidden" name="action" value="supprimer">
+                        <input type="hidden" name="id" value="<?= $p['id'] ?>">
+                        <button type="submit" class="lien-danger">Supprimer</button>
+                      </form>
+                    <?php endif; ?>
                   <?php endif; ?>
-                <?php endif; ?>
-              </div>
-            <?php endif; ?>
-          </li>
+                </div>
+              </td>
+            </tr>
+          <?php endif; ?>
         <?php endforeach; ?>
-      </ul>
+        </tbody>
+      </table>
     <?php endif; ?>
 
     <form method="post" class="form-personne form-ajouter-personne">
@@ -233,12 +258,15 @@ $index = 0;
     </form>
   </div>
 
-  <?php /* La migration deduit les personnes des donnees reelles, mais elle
+  <?php if ($resteAReprendre): ?>
+  <?php /* Ce bloc ne s'affiche que s'il reste vraiment quelque chose a
+           reprendre : une fois la reprise faite il n'a plus rien a dire, et
+           il occupait l'ecran pour rien. Il reapparait tout seul sur une
+           installation neuve, ou si quelqu'un est ajoute dans config.php.
+
+           La migration deduit les personnes des donnees reelles, mais elle
            lit activity_log pour reperer les membres de la famille - or ce
-           journal dit qui S'EST connecte, pas qui PEUT se connecter.
-           Quelqu'un qui n'a jamais ouvert le site n'y figure pas. Et un
-           fichier .sql ne peut pas lire config.php, ou vit la vraie liste.
-           D'ou cette reprise manuelle, relancable sans risque. */ ?>
+           journal dit qui S'EST connecte, pas qui PEUT se connecter. */ ?>
   <div class="outil" style="margin-top:16px;">
     <h2 class="panneau-titre">Reprendre depuis config.php</h2>
     <p class="aide">
@@ -254,6 +282,7 @@ $index = 0;
       <button type="submit" class="secondaire">Reprendre depuis config.php</button>
     </form>
   </div>
+  <?php endif; ?>
 
   <script src="/assets/admin-ui.js?v=<?= filemtime(__DIR__ . '/../assets/admin-ui.js') ?>"></script>
 </body>

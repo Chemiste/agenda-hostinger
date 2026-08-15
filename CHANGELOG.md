@@ -2,6 +2,19 @@
 
 ## Non publié
 
+- **Page Personnes en tableau.** Les deux droits se lisent en colonne, avec
+  un en-tête : on compare d'un coup d'œil qui est patient et qui se
+  connecte. Chaque case affiche le symbole **et** le mot (`✔ oui` /
+  `✕ non`) — une coche seule reposerait sur la forme, et son absence se
+  confondrait avec une cellule vide.
+  Le bloc « Reprendre depuis config.php » ne s'affiche plus que s'il reste
+  vraiment quelque chose à reprendre : invisible une fois la reprise
+  faite, il réapparaît de lui-même sur une installation neuve ou si
+  quelqu'un est ajouté dans `config.php`.
+  Documentation mise à jour : `config.example.php` et le guide expliquent
+  que `personne_1` / `personne_2` / `membres_famille` ne servent plus qu'à
+  amorcer une installation neuve.
+
 - **Rappels, sauvegardes et outils suivent.** Les réglages de rappel
   s'appelaient `reminder_email_person1` et `person2` : deux personnes, pas
   une de plus, et le lien entre « person1 » et Michel n'existait que dans

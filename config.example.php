@@ -55,22 +55,29 @@ return [
     'smtp_utilisateur' => '',           // ex : 'agenda@votre-domaine.be' (adresse complete de la boite)
     'smtp_mot_de_passe' => '',          // mot de passe de cette boite mail (pas votre mot de passe hPanel)
 
-    // --- Noms affiches sur le site (onglets, formulaire, badges) ---
-    // Changez juste ces 2 valeurs pour remplacer "Papa" / "Maman" par des
-    // prenoms ou tout autre nom. Voir le guide pour la marche a suivre
-    // complete (il faut aussi mettre a jour les rendez-vous deja
-    // enregistres avec les anciens noms). Un rendez-vous ne concerne
-    // toujours qu'une seule de ces deux personnes.
+    // --- LES PERSONNES SE GERENT DANS LE SITE, PLUS ICI ---------------
+    //
+    // Depuis la migration 0021, les personnes vivent dans la table
+    // "persons" et se gerent depuis /admin/personnes.php : ajouter
+    // quelqu'un, le renommer ou le desactiver ne demande plus de toucher
+    // a ce fichier ni de redeployer. Renommer y est sans danger, toutes
+    // ses donnees suivent (ce n'etait PAS le cas avant : changer un nom
+    // ici faisait disparaitre ses medicaments et ses pathologies de
+    // l'ecran, en silence).
+    //
+    // Les trois cles ci-dessous ne servent plus qu'a AMORCER une
+    // installation neuve, tant que la table est vide : l'ecran
+    // "Qui etes-vous ?" retombe dessus, et le bouton "Reprendre depuis
+    // config.php" de /admin/personnes.php les recopie en base. Une fois
+    // les personnes creees, elles ne sont plus lues.
+    //
+    //   personne_1, personne_2 : les PATIENTS (on suit leurs rendez-vous,
+    //                            leurs medicaments, leurs pathologies).
+    //   membres_famille        : qui peut se connecter. Facultatif - sans
+    //                            elle, la liste par defaut ci-dessous
+    //                            s'applique.
     'personne_1' => 'Papa',
     'personne_2' => 'Maman',
-
-    // --- Membres de la famille pouvant se connecter (facultatif) ---
-    // Juste apres la connexion avec le mot de passe familial (partage),
-    // on demande "qui etes-vous ?" parmi cette liste, pour savoir qui a
-    // ajoute/modifie/supprime un rendez-vous (voir historique.php et
-    // admin/historique.php). Si cette cle est absente, la liste par
-    // defaut ci-dessous est utilisee automatiquement - pas obligatoire de
-    // la decommenter.
     // 'membres_famille' => ['Michel', 'Christiane', 'Helene', 'Laurent'],
 
     // --- Synchronisation Google Calendar (facultatif) ---
