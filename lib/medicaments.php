@@ -77,7 +77,14 @@ function prochainOrdre($db, $person, $moment) {
     return (int) $stmt->fetchColumn();
 }
 
-function ajouterMedicament($db, $person, $moment, $nom, $quantite, $detail, $image) {
+/**
+ * $alternativeDe : id du medicament dont celui-ci est une alternative
+ * ("Dafalgan OU Paracetamol EG"), ou 0 pour un medicament normal. Une
+ * alternative reste une ligne complete - elle a sa propre quantite, qui
+ * peut differer de celle du principal - mais s'affiche dans la carte de
+ * son principal plutot que comme une entree separee.
+ */
+function ajouterMedicament($db, $person, $moment, $nom, $quantite, $detail, $image, $alternativeDe = 0) {
     $person = trim((string) $person);
     $moment = trim((string) $moment);
     $nom = trim((string) $nom);
@@ -93,8 +100,8 @@ function ajouterMedicament($db, $person, $moment, $nom, $quantite, $detail, $ima
     $ordreMoment = ordreMomentPour($db, $person, $moment);
     $ordre = prochainOrdre($db, $person, $moment);
     $stmt = $db->prepare(
-        'INSERT INTO medicaments (person, moment, ordre_moment, ordre, nom, quantite, detail, image) ' .
-        'VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+        'INSERT INTO medicaments (person, moment, ordre_moment, ordre, nom, quantite, detail, image, alternative_de) ' .
+        'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
     );
     $stmt->execute([
         $person,
@@ -105,6 +112,7 @@ function ajouterMedicament($db, $person, $moment, $nom, $quantite, $detail, $ima
         trim((string) $quantite),
         trim((string) $detail),
         (string) $image,
+        (int) $alternativeDe,
     ]);
     return (int) $db->lastInsertId();
 }
@@ -116,7 +124,7 @@ function ajouterMedicament($db, $person, $moment, $nom, $quantite, $detail, $ima
  * l'appelant supprime le fichier devenu inutile sur le disque - cette
  * fonction ne touche jamais au systeme de fichiers elle-meme.
  */
-function modifierMedicament($db, $id, $moment, $nom, $quantite, $detail, $nouvelleImage) {
+function modifierMedicament($db, $id, $moment, $nom, $quantite, $detail, $nouvelleImage, $alternativeDe = 0) {
     $moment = trim((string) $moment);
     $nom = trim((string) $nom);
     if ($moment === '') {
@@ -152,8 +160,22 @@ function modifierMedicament($db, $id, $moment, $nom, $quantite, $detail, $nouvel
         $ordre = (int) $actuel['ordre'];
     }
 
+    // Un medicament ne peut pas etre sa propre alternative, ni
+    // l'alternative d'une alternative (pas de chaine) : on retombe alors
+    // sur "medicament normal" plutot que de creer une structure bancale.
+    $alternativeDe = (int) $alternativeDe;
+    if ($alternativeDe === (int) $id) {
+        $alternativeDe = 0;
+    }
+    if ($alternativeDe > 0) {
+        $parent = obtenirMedicament($db, $alternativeDe);
+        if ($parent === null || (int) $parent['alternative_de'] > 0) {
+            $alternativeDe = 0;
+        }
+    }
+
     $stmt = $db->prepare(
-        'UPDATE medicaments SET moment = ?, ordre_moment = ?, ordre = ?, nom = ?, quantite = ?, detail = ?, image = ? ' .
+        'UPDATE medicaments SET moment = ?, ordre_moment = ?, ordre = ?, nom = ?, quantite = ?, detail = ?, image = ?, alternative_de = ? ' .
         'WHERE id = ?'
     );
     $stmt->execute([
@@ -164,6 +186,7 @@ function modifierMedicament($db, $id, $moment, $nom, $quantite, $detail, $nouvel
         trim((string) $quantite),
         trim((string) $detail),
         $image,
+        $alternativeDe,
         (int) $id,
     ]);
 
@@ -174,9 +197,70 @@ function modifierMedicament($db, $id, $moment, $nom, $quantite, $detail, $nouvel
 // aussi le fichier sur le disque), ou '' s'il n'y en avait pas.
 function supprimerMedicament($db, $id) {
     $m = obtenirMedicament($db, $id);
+    // Ses alternatives redeviennent des medicaments normaux plutot que
+    // d'etre supprimees avec lui : ce sont de vrais medicaments, avec leur
+    // photo et leur quantite, on ne les perd pas parce que celui auquel
+    // elles etaient rattachees disparait.
+    $promo = $db->prepare('UPDATE medicaments SET alternative_de = 0 WHERE alternative_de = ?');
+    $promo->execute([(int) $id]);
+
     $stmt = $db->prepare('DELETE FROM medicaments WHERE id = ?');
     $stmt->execute([(int) $id]);
     return $m !== null ? $m['image'] : '';
+}
+
+/**
+ * Regroupe les alternatives sous leur medicament principal : retourne la
+ * liste des medicaments normaux, chacun avec une cle 'alternatives'.
+ * L'ordre de la liste fournie est conserve (donc le tri alphabetique de
+ * listerMedicaments), et les alternatives n'y apparaissent plus comme des
+ * entrees separees - elles s'affichent dans la carte de leur principal.
+ */
+function grouperAlternatives($medicaments) {
+    $parAlternativeDe = [];
+    $idsPresents = [];
+    foreach ($medicaments as $m) {
+        $idsPresents[(int) $m['id']] = true;
+    }
+
+    $principaux = [];
+    foreach ($medicaments as $m) {
+        $parent = (int) $m['alternative_de'];
+        // Parent absent de la liste (supprime entre-temps, ou d'un autre
+        // moment) : on traite l'alternative comme un medicament normal
+        // plutot que de la faire disparaitre du plan.
+        if ($parent > 0 && isset($idsPresents[$parent])) {
+            $parAlternativeDe[$parent][] = $m;
+        } else {
+            $principaux[] = $m;
+        }
+    }
+
+    foreach ($principaux as &$p) {
+        $id = (int) $p['id'];
+        $p['alternatives'] = isset($parAlternativeDe[$id]) ? $parAlternativeDe[$id] : [];
+    }
+    unset($p);
+
+    return $principaux;
+}
+
+/**
+ * Medicaments pouvant servir de "principal" a une alternative : ceux qui
+ * ne sont pas eux-memes une alternative (pas de chaine), en excluant
+ * eventuellement celui qu'on est en train de modifier.
+ */
+function listerMedicamentsPrincipaux($db, $person, $idExclu = null) {
+    $sql = 'SELECT id, nom, moment FROM medicaments WHERE person = ? AND alternative_de = 0';
+    $params = [$person];
+    if ($idExclu !== null) {
+        $sql .= ' AND id != ?';
+        $params[] = (int) $idExclu;
+    }
+    $sql .= ' ORDER BY ordre_moment ASC, nom ASC';
+    $stmt = $db->prepare($sql);
+    $stmt->execute($params);
+    return $stmt->fetchAll();
 }
 
 // Noms de fichiers photo deja utilises pour cette personne, pour proposer

@@ -215,6 +215,26 @@ textarea.motifs { width:100%; min-height:100px; font-family:inherit; font-size:1
 .nom-medecin { font-size:14px; color:var(--text); font-weight:600; }
 .specialite-medecin { font-size:12px; color:var(--text-secondary); font-weight:600; margin-top:1px; }
 .coord-medecin { font-size:13px; color:var(--text-secondary); margin-top:2px; }
+
+/* Alternative a un medicament ("Dafalgan OU Paracetamol EG"), affichee
+   dans la carte de son medicament principal : legerement en retrait et
+   sur fond gris pour qu'on voie que c'est un choix, pas une seconde prise
+   a ajouter. */
+.alternative-medicament {
+  margin-top:10px;
+  padding:8px 10px;
+  background:var(--page-bg);
+  border-radius:var(--radius-sm);
+  border:1px dashed var(--border-strong);
+}
+.etiquette-ou {
+  font-size:11px;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:0.08em;
+  color:var(--text-muted);
+  margin-bottom:4px;
+}
 .notes-medecin { font-size:12px; color:var(--text-muted); margin-top:4px; font-style:italic; }
 .actions-medecin { display:flex; align-items:center; gap:16px; margin-top:2px; }
 .actions-medecin form { margin:0; display:flex; }

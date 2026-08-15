@@ -19,8 +19,10 @@ $personneCible = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
 $db = getDb();
 $medicaments = listerMedicaments($db, $personneCible);
 
+// Les alternatives ("... OU ...") ne sont pas des entrees separees du
+// plan : elles s'affichent dans la carte de leur medicament principal.
 $groupes = [];
-foreach ($medicaments as $m) {
+foreach (grouperAlternatives($medicaments) as $m) {
     $groupes[$m['moment']][] = $m;
 }
 ?>
@@ -54,6 +56,15 @@ foreach ($medicaments as $m) {
   .quantite-medicament { font-size:12px; font-weight:700; color:var(--text); margin-top:2px; }
   .detail-medicament { font-size:11px; color:var(--text-secondary); margin-top:2px; }
 
+  /* Separateur "OU" entre un medicament et son alternative, dans la meme
+     carte : un trait de part et d'autre du mot pour qu'on voie tout de
+     suite qu'il s'agit d'un choix, pas d'un second medicament a prendre
+     en plus. */
+  .separateur-ou { display:flex; align-items:center; gap:8px; margin:8px 0 6px; }
+  .separateur-ou::before, .separateur-ou::after { content:""; flex:1; height:1px; background:var(--border-strong); }
+  .separateur-ou span { font-size:11px; font-weight:800; letter-spacing:0.08em; color:var(--text-secondary); }
+  .photo-alternative { height:48px; }
+
   @media (max-width:640px) {
     .grille-cartes-moment { grid-template-columns:repeat(2, 1fr); }
   }
@@ -73,6 +84,14 @@ foreach ($medicaments as $m) {
     .nom-medicament { font-size:12px; }
     .quantite-medicament { font-size:11px; }
     .detail-medicament { font-size:10px; }
+    .separateur-ou { margin:6px 0 4px; }
+    .separateur-ou span { font-size:10px; }
+    .separateur-ou::before, .separateur-ou::after {
+      background:#999;
+      -webkit-print-color-adjust:exact;
+      print-color-adjust:exact;
+    }
+    .photo-alternative { height:36px; }
   }
 </style>
 </head>
@@ -116,6 +135,23 @@ foreach ($medicaments as $m) {
               <?php if ($m['detail'] !== ''): ?>
                 <div class="detail-medicament"><?= htmlspecialchars($m['detail']) ?></div>
               <?php endif; ?>
+
+              <?php foreach ($m['alternatives'] as $alt): ?>
+                <!-- "OU" bien visible : sur la feuille posee pres des
+                     medicaments, il faut comprendre d'un coup d'oeil qu'on
+                     prend l'un OU l'autre, pas les deux. -->
+                <div class="separateur-ou"><span>OU</span></div>
+                <?php if (!empty($alt['image'])): ?>
+                  <img class="photo-medicament photo-alternative" src="/medicaments_photos/<?= rawurlencode($alt['image']) ?>" alt="">
+                <?php endif; ?>
+                <div class="nom-medicament"><?= htmlspecialchars($alt['nom']) ?></div>
+                <?php if ($alt['quantite'] !== ''): ?>
+                  <div class="quantite-medicament"><?= htmlspecialchars($alt['quantite']) ?></div>
+                <?php endif; ?>
+                <?php if ($alt['detail'] !== ''): ?>
+                  <div class="detail-medicament"><?= htmlspecialchars($alt['detail']) ?></div>
+                <?php endif; ?>
+              <?php endforeach; ?>
             </div>
           <?php endforeach; ?>
         </div>

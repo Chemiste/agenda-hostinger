@@ -102,6 +102,30 @@ if ($peutModifier && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['acti
             if ($nouveauMoment !== '') {
                 $moments[] = $nouveauMoment;
             }
+            // Alternative ("Dafalgan OU Paracetamol EG") : elle appartient
+            // forcement au meme moment que le medicament auquel elle se
+            // rattache, et a une seule ligne - les cases "moments" et
+            // l'ajout multiple n'ont donc pas de sens ici.
+            $alternativeDe = isset($_POST['alternative_de']) ? (int) $_POST['alternative_de'] : 0;
+            if ($alternativeDe > 0) {
+                $parent = obtenirMedicament($db, $alternativeDe);
+                if ($parent === null || $parent['person'] !== $personneCible || (int) $parent['alternative_de'] > 0) {
+                    throw new Exception('Médicament principal introuvable pour cette alternative.');
+                }
+                ajouterMedicament(
+                    $db,
+                    $personneCible,
+                    $parent['moment'],
+                    isset($_POST['nom']) ? $_POST['nom'] : '',
+                    isset($_POST['quantite']) ? $_POST['quantite'] : '',
+                    isset($_POST['detail']) ? $_POST['detail'] : '',
+                    $imageAEnregistrer,
+                    $alternativeDe
+                );
+                header('Location: /medicaments.php#formulaireMedicament');
+                exit;
+            }
+
             $moments = array_values(array_unique($moments));
             if (empty($moments)) {
                 throw new Exception('Choisis ou indique au moins un moment.');
@@ -139,14 +163,28 @@ if ($peutModifier && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['acti
                     $nouvelleImage = $existante;
                 }
             }
+            // Une alternative suit toujours le moment de son medicament
+            // principal : inutile de tenir compte du champ "Moment" du
+            // formulaire, il est masque dans ce cas.
+            $alternativeDe = isset($_POST['alternative_de']) ? (int) $_POST['alternative_de'] : 0;
+            $momentSaisi = isset($_POST['moment']) ? $_POST['moment'] : '';
+            if ($alternativeDe > 0) {
+                $parent = obtenirMedicament($db, $alternativeDe);
+                if ($parent !== null && $parent['person'] === $personneCible && (int) $parent['alternative_de'] === 0) {
+                    $momentSaisi = $parent['moment'];
+                } else {
+                    $alternativeDe = 0;
+                }
+            }
             $ancienneImage = modifierMedicament(
                 $db,
                 $_POST['id'],
-                isset($_POST['moment']) ? $_POST['moment'] : '',
+                $momentSaisi,
                 isset($_POST['nom']) ? $_POST['nom'] : '',
                 isset($_POST['quantite']) ? $_POST['quantite'] : '',
                 isset($_POST['detail']) ? $_POST['detail'] : '',
-                $nouvelleImage
+                $nouvelleImage,
+                $alternativeDe
             );
             // Une photo peut etre partagee entre plusieurs medicaments (ex.
             // reutilisee via le selecteur) : ne jamais effacer le fichier
@@ -186,16 +224,22 @@ if ($idEnEdition !== null) {
         $_POST['nom'] = $medicamentEnEdition['nom'];
         $_POST['quantite'] = $medicamentEnEdition['quantite'];
         $_POST['detail'] = $medicamentEnEdition['detail'];
+        $_POST['alternative_de'] = $medicamentEnEdition['alternative_de'];
     }
 }
 
 $tousLesMedicaments = listerMedicaments($db, $personneCible);
 $momentsExistants = listerMomentsExistants($db, $personneCible);
 $photosExistantes = listerPhotosExistantes($db, $personneCible);
+// Medicaments proposables comme "principal" d'une alternative (voir le
+// champ du formulaire) : ceux qui n'en sont pas eux-memes une.
+$medicamentsPrincipaux = listerMedicamentsPrincipaux($db, $personneCible, $idEnEdition);
 
-// Regroupe par moment, dans l'ordre deja fourni par listerMedicaments().
+// Regroupe par moment, dans l'ordre deja fourni par listerMedicaments(),
+// puis rattache chaque alternative a son medicament principal pour
+// qu'elle s'affiche dans sa carte et non comme une entree separee.
 $groupes = [];
-foreach ($tousLesMedicaments as $m) {
+foreach (grouperAlternatives($tousLesMedicaments) as $m) {
     $groupes[$m['moment']][] = $m;
 }
 ?>
@@ -243,8 +287,32 @@ foreach ($tousLesMedicaments as $m) {
       <?php if ($medicamentEnEdition !== null): ?>
         <input type="hidden" name="id" value="<?= (int) $idEnEdition ?>">
       <?php endif; ?>
+
+      <?php if (!empty($medicamentsPrincipaux)): ?>
+        <?php $altSelectionnee = isset($_POST['alternative_de']) ? (int) $_POST['alternative_de'] : 0; ?>
+        <!-- "Dafalgan OU Paracetamol EG" : l'alternative est un medicament
+             a part entiere (son nom, sa photo, et sa propre quantite qui
+             peut differer), simplement rattache a un autre. Elle suit le
+             moment de son principal, d'ou le champ Moment masque en JS
+             quand un principal est choisi. -->
+        <div class="champ" id="champAlternative">
+          <label for="selAlternative">Est-ce une alternative à un autre médicament ?</label>
+          <select name="alternative_de" id="selAlternative">
+            <option value="0">Non, c'est un médicament à part entière</option>
+            <?php foreach ($medicamentsPrincipaux as $mp): ?>
+              <option value="<?= (int) $mp['id'] ?>"<?= $altSelectionnee === (int) $mp['id'] ? ' selected' : '' ?>>
+                Alternative à <?= htmlspecialchars($mp['nom']) ?> (<?= htmlspecialchars($mp['moment']) ?>)
+              </option>
+            <?php endforeach; ?>
+          </select>
+          <p class="aide" style="margin-top:6px;">Une alternative s'affiche dans la fiche du médicament choisi, précédée d'un « OU ». Elle reprend son moment de prise, mais garde sa propre quantité.</p>
+        </div>
+      <?php endif; ?>
+
       <div class="champ-ligne">
-        <div class="champ">
+        <!-- Masque en JS quand une alternative est choisie : elle herite du
+             moment de son medicament principal. -->
+        <div class="champ" id="champMoment">
           <?php if ($medicamentEnEdition !== null): ?>
             <label>Moment</label>
             <input type="text" name="moment" list="listeMoments" placeholder="Ex. Matin, 15h00, Au coucher, Si besoin..." required value="<?= isset($_POST['moment']) ? htmlspecialchars($_POST['moment']) : '' ?>">
@@ -369,13 +437,44 @@ foreach ($tousLesMedicaments as $m) {
               <?php if ($peutModifier): ?>
               <div class="actions-medecin">
                 <a href="?modifier=<?= (int) $m['id'] ?>#formulaireMedicament" class="lien-modifier-tache">Modifier</a>
-                <form method="post" data-confirm="Supprimer ce médicament du plan ?">
+                <form method="post" data-confirm="Supprimer ce médicament du plan ?<?= !empty($m['alternatives']) ? ' Ses alternatives resteront dans le plan, comme médicaments à part entière.' : '' ?>">
                   <input type="hidden" name="action" value="supprimer">
                   <input type="hidden" name="id" value="<?= (int) $m['id'] ?>">
                   <button type="submit" class="lien-danger">Supprimer</button>
                 </form>
               </div>
               <?php endif; ?>
+
+              <?php foreach ($m['alternatives'] as $alt): ?>
+                <!-- Alternative rattachee ("... OU ..."), affichee dans la
+                     carte de son medicament principal plutot que comme une
+                     entree separee du plan. -->
+                <div class="alternative-medicament">
+                  <div class="etiquette-ou">ou</div>
+                  <?php if (!empty($alt['image'])): ?>
+                    <img src="/medicaments_photos/<?= rawurlencode($alt['image']) ?>" alt="" style="width:100%; max-height:70px; object-fit:contain; margin-bottom:6px;">
+                  <?php endif; ?>
+                  <div class="detail-medecin">
+                    <div class="nom-medecin"><?= htmlspecialchars($alt['nom']) ?></div>
+                    <?php if ($alt['quantite'] !== ''): ?>
+                      <div class="specialite-medecin"><?= htmlspecialchars($alt['quantite']) ?></div>
+                    <?php endif; ?>
+                    <?php if ($alt['detail'] !== ''): ?>
+                      <div class="coord-medecin"><?= htmlspecialchars($alt['detail']) ?></div>
+                    <?php endif; ?>
+                  </div>
+                  <?php if ($peutModifier): ?>
+                  <div class="actions-medecin">
+                    <a href="?modifier=<?= (int) $alt['id'] ?>#formulaireMedicament" class="lien-modifier-tache">Modifier</a>
+                    <form method="post" data-confirm="Supprimer cette alternative du plan ?">
+                      <input type="hidden" name="action" value="supprimer">
+                      <input type="hidden" name="id" value="<?= (int) $alt['id'] ?>">
+                      <button type="submit" class="lien-danger">Supprimer</button>
+                    </form>
+                  </div>
+                  <?php endif; ?>
+                </div>
+              <?php endforeach; ?>
             </div>
           <?php endforeach; ?>
         </div>
@@ -411,6 +510,27 @@ foreach ($tousLesMedicaments as $m) {
           vignettes.forEach(function (v) { v.classList.remove('selectionnee'); });
         }
       });
+    }
+
+    // Une alternative reprend le moment de son medicament principal : le
+    // champ "Moment(s)" n'aurait alors aucun effet, on le masque plutot
+    // que de laisser croire qu'on peut y choisir autre chose. Les cases a
+    // cocher sont aussi decochees pour ne rien envoyer d'incoherent.
+    var selAlternative = document.getElementById('selAlternative');
+    var champMoment = document.getElementById('champMoment');
+    if (selAlternative && champMoment) {
+      var majMoment = function () {
+        var estAlternative = selAlternative.value !== '0';
+        champMoment.style.display = estAlternative ? 'none' : '';
+        if (estAlternative) {
+          champMoment.querySelectorAll('input[type=checkbox]').forEach(function (c) { c.checked = false; });
+          champMoment.querySelectorAll('input[type=text]').forEach(function (t) { t.value = ''; t.required = false; });
+        } else {
+          champMoment.querySelectorAll('input[name=moment]').forEach(function (t) { t.required = true; });
+        }
+      };
+      selAlternative.addEventListener('change', majMoment);
+      majMoment();
     }
   })();
   </script>

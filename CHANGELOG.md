@@ -12,6 +12,19 @@
   son titre seul en bas d'une page), un rendez-vous seul sur sa ligne
   occupe toute la largeur, et la feuille porte sa date d'impression.
 
+- **Médicaments : "tel médicament OU tel autre".** Un médicament peut
+  désormais être déclaré alternative d'un autre ("Dafalgan Forte OU
+  Paracetamol EG"). L'alternative reste une ligne complète — son nom, sa
+  photo et **sa propre quantité**, qui peut différer de celle du principal
+  — mais ne s'affiche plus comme une entrée séparée du plan : elle apparaît
+  dans la carte de son médicament principal, précédée d'un « OU » bien
+  visible (trait de part et d'autre du mot sur la fiche imprimée, pour
+  qu'on comprenne qu'il s'agit d'un choix et non d'une seconde prise).
+  Elle reprend automatiquement le moment de prise du principal. Si le
+  médicament principal est supprimé, ses alternatives redeviennent des
+  médicaments normaux plutôt que d'être supprimées avec lui.
+  Migration `0019`.
+
 - **Barre de navigation partagée par toutes les pages familiales.**
   Auparavant l'accueil avait sa barre de boutons et les autres pages une
   barre grise "Retour à l'agenda" : aller de Médicaments à Pathologies
