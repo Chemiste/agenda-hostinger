@@ -25,14 +25,21 @@ require_once __DIR__ . '/../lib/auth.php';
 requireAdminLogin();
 require_once __DIR__ . '/../lib/db.php';
 require_once __DIR__ . '/../lib/calendar_sync.php';
+require_once __DIR__ . '/../lib/persons.php';
 require_once __DIR__ . '/../lib/entete_admin.php';
 
 $config = require __DIR__ . '/../config.php';
 $sync = new CalendarSync($config['google_service_account_path'], $config['google_calendar_id']);
 $db = getDb();
 
-$p1 = isset($config['personne_1']) ? $config['personne_1'] : 'Papa';
-$p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
+// Cet outil travaille sur du TEXTE laisse par d'anciens imports ("pour
+// Michel Nom-de-famille" colle dans le champ medecin) : il lui faut donc
+// des prenoms, pas des identifiants. Ils viennent de la table persons, et
+// la liste n'est plus limitee a deux.
+$prenomsPatients = [];
+foreach (listerPatients($db) as $unPatient) {
+    $prenomsPatients[] = $unPatient['nom'];
+}
 
 $erreur = '';
 $motifsTexte = isset($_POST['motifs']) ? $_POST['motifs'] : '';
@@ -209,12 +216,23 @@ function detecterNomComplet($texte, $prenom) {
     return null;
 }
 
-function chercherNomsComplets($db, $p1, $p2) {
+/** Cherche "pour <Prenom> Nom-de-famille" pour chacun des prenoms connus. */
+function detecterNomCompletParmi($texte, $prenoms) {
+    foreach ($prenoms as $prenom) {
+        $detect = detecterNomComplet($texte, $prenom);
+        if ($detect) {
+            return $detect;
+        }
+    }
+    return null;
+}
+
+function chercherNomsComplets($db, $prenoms) {
     $stmt = $db->query('SELECT id, appt_date AS date, appt_time AS time, person, doctor, department, location, phone, notes, calendar_event_id FROM appointments ORDER BY appt_date, appt_time');
     $tous = $stmt->fetchAll();
     $trouves = [];
     foreach ($tous as $r) {
-        $detect = detecterNomComplet($r['doctor'], $p1) ?: detecterNomComplet($r['doctor'], $p2);
+        $detect = detecterNomCompletParmi($r['doctor'], $prenoms);
         if ($detect) {
             $r['detect'] = $detect;
             $trouves[] = $r;
@@ -377,7 +395,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'rechercher_noms') {
-    $resultatsNoms = chercherNomsComplets($db, $p1, $p2);
+    $resultatsNoms = chercherNomsComplets($db, $prenomsPatients);
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'appliquer_noms') {
@@ -392,7 +410,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $r = $stmt->fetch();
         if (!$r) continue;
 
-        $detect = detecterNomComplet($r['doctor'], $p1) ?: detecterNomComplet($r['doctor'], $p2);
+        $detect = detecterNomCompletParmi($r['doctor'], $prenomsPatients);
         if (!$detect) continue;
 
         $doctor = str_ireplace($detect['motif'], $detect['remplacement'], $r['doctor']);
@@ -546,7 +564,7 @@ try {
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
       Noms complets
     </h2>
-    <p class="sous-titre">Détecte "pour <?= htmlspecialchars($p1) ?> Nom-de-famille" ou "pour <?= htmlspecialchars($p2) ?> Nom-de-famille" dans "Médecin / consultation" (nom de famille collé par certains imports) et le raccourcit en "pour <?= htmlspecialchars($p1) ?>" / "pour <?= htmlspecialchars($p2) ?>" — la personne est de toute façon déjà indiquée par le badge coloré.</p>
+    <p class="sous-titre">Détecte « pour <?= htmlspecialchars(implode(' / ', $prenomsPatients)) ?> Nom-de-famille » dans « Médecin / consultation » (nom de famille collé par certains imports) et retire le nom de famille — la personne est de toute façon déjà indiquée par le badge coloré.</p>
 
     <?php if ($resultatApplicationNoms !== null): ?>
       <p class="info"><?= (int) $resultatApplicationNoms['modifies'] ?> rendez-vous corrigé(s).</p>

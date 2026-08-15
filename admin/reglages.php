@@ -5,8 +5,13 @@
  * Page protegee par le mot de passe admin (voir requireAdminLogin()) qui
  * permet de configurer les rappels par email sans avoir a toucher
  * config.php ni redeployer le site : activer/desactiver, delai avant le
- * rendez-vous, adresse email de Chem (destinataire fixe de tous les
+ * rendez-vous, adresse email de Laurent (destinataire fixe de tous les
  * rappels), adresse d'expedition.
+ *
+ * La cle de reglage s'appelle encore reminder_email_chem, du surnom de
+ * Laurent : la renommer ferait perdre l'adresse deja enregistree. Elle
+ * disparaitra quand les rappels passeront a un reglage par personne (voir
+ * migrations/0021_ajouter_persons.sql).
  *
  * Les adresses email de Papa/Maman et leurs preferences ("je veux aussi
  * etre prevenu des rendez-vous de l'autre") ne sont PAS ici : chacun les
@@ -139,7 +144,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
 
         <div class="champ">
-          <label>Ton adresse email (Chem)</label>
+          <label>Ton adresse email (Laurent)</label>
           <input type="email" name="reminder_email_chem" value="<?= htmlspecialchars($valeurs['reminder_email_chem']) ?>" placeholder="toi@example.com">
           <p class="aide">Tu reçois un rappel pour tous les rendez-vous, quels que soient les réglages de tes parents.</p>
         </div>

@@ -11,12 +11,17 @@ requireIdentite();
 require_once __DIR__ . '/lib/entete.php';
 require_once __DIR__ . '/lib/db.php';
 require_once __DIR__ . '/lib/taches.php';
+require_once __DIR__ . '/lib/persons.php';
 
 $config = require __DIR__ . '/config.php';
-$p1 = isset($config['personne_1']) ? $config['personne_1'] : 'Papa';
-$p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
+// Les patients viennent de la table persons : ajouter une personne ne
+// demande plus de toucher au code (voir admin/personnes.php).
 
 $db = getDb();
+
+// Les patients de la table persons : une troisieme personne apparait ici
+// sans toucher au code, et renommer quelqu'un ne detache pas ses donnees.
+$patients = listerPatients($db);
 $erreur = '';
 $idEnEdition = null;
 
@@ -26,7 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             ajouterTache(
                 $db,
                 isset($_POST['texte']) ? $_POST['texte'] : '',
-                isset($_POST['personne']) ? $_POST['personne'] : '',
+                validerPatient($db, isset($_POST['person_id']) ? $_POST['person_id'] : 0),
                 isset($_POST['date_cible']) ? $_POST['date_cible'] : ''
             );
             // Post/Redirect/Get : repart sur un formulaire vide au lieu de
@@ -42,7 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $db,
                 $_POST['id'],
                 isset($_POST['texte']) ? $_POST['texte'] : '',
-                isset($_POST['personne']) ? $_POST['personne'] : '',
+                validerPatient($db, isset($_POST['person_id']) ? $_POST['person_id'] : 0),
                 isset($_POST['date_cible']) ? $_POST['date_cible'] : ''
             );
             header('Location: /taches.php#formulaireTache');
@@ -73,7 +78,7 @@ if ($idEnEdition !== null) {
         // Reaffiche ce qui vient d'etre tape en cas d'erreur de validation,
         // sinon les valeurs actuellement enregistrees pour cette tache.
         $_POST['texte'] = $tacheEnEdition['texte'];
-        $_POST['personne'] = $tacheEnEdition['personne'];
+        $_POST['person_id'] = (int) $tacheEnEdition['person_id'];
         $_POST['date_cible'] = $tacheEnEdition['date_cible'];
     }
 }
@@ -82,9 +87,30 @@ $tachesOuvertes = listerTachesOuvertes($db);
 $tachesTerminees = listerTachesTerminees($db, 50);
 $aujourdhui = date('Y-m-d');
 
-function classePersonneTache($personne, $p1, $p2) {
-    if ($personne === $p1) return 'badge-papa';
-    if ($personne === $p2) return 'badge-maman';
+/**
+ * Le nom a afficher pour une tache. Il vient de la table persons et non de
+ * la colonne texte : contrairement au journal d'activite (une trace figee),
+ * une tache est une donnee vivante — renommer quelqu'un doit se voir ici.
+ * On retombe sur la colonne texte si l'identifiant ne correspond plus a
+ * personne, pour ne pas afficher une tache sans destinataire.
+ */
+function nomPersonneTache($db, $t) {
+    $id = (int) $t['person_id'];
+    if ($id > 0) {
+        $p = obtenirPerson($db, $id);
+        if ($p !== null) {
+            return $p['nom'];
+        }
+    }
+    return (string) $t['personne'];
+}
+
+function classePersonneTache($personId, $patients) {
+    // La couleur suit le RANG du patient, plus son nom : une 3e personne
+    // retombe sur la couleur neutre sans rien casser.
+    $rang = array_search((int) $personId, array_keys($patients), true);
+    if ($rang === 0) return 'badge-papa';
+    if ($rang === 1) return 'badge-maman';
     return '';
 }
 ?>
@@ -125,10 +151,11 @@ function classePersonneTache($personne, $p1, $p2) {
       <div class="champ-ligne">
         <div class="champ">
           <label>Concerne (facultatif)</label>
-          <select name="personne">
+          <select name="person_id">
             <option value="">— Personne —</option>
-            <option value="<?= htmlspecialchars($p1) ?>"<?= (isset($_POST['personne']) && $_POST['personne'] === $p1) ? ' selected' : '' ?>><?= htmlspecialchars($p1) ?></option>
-            <option value="<?= htmlspecialchars($p2) ?>"<?= (isset($_POST['personne']) && $_POST['personne'] === $p2) ? ' selected' : '' ?>><?= htmlspecialchars($p2) ?></option>
+            <?php foreach ($patients as $patient): ?>
+              <option value="<?= (int) $patient['id'] ?>"<?= (isset($_POST['person_id']) && (int) $_POST['person_id'] === (int) $patient['id']) ? ' selected' : '' ?>><?= htmlspecialchars($patient['nom']) ?></option>
+            <?php endforeach; ?>
           </select>
         </div>
         <div class="champ">
@@ -167,7 +194,7 @@ function classePersonneTache($personne, $p1, $p2) {
             <?php if ($t['personne'] !== '' || $t['date_cible'] !== null): ?>
               <div class="meta-tache">
                 <?php if ($t['personne'] !== ''): ?>
-                  <span class="badge-personne <?= classePersonneTache($t['personne'], $p1, $p2) ?>"><?= htmlspecialchars($t['personne']) ?></span>
+                  <span class="badge-personne <?= classePersonneTache($t['person_id'], $patients) ?>"><?= htmlspecialchars(nomPersonneTache($db, $t)) ?></span>
                 <?php endif; ?>
                 <?php if ($t['date_cible'] !== null): ?>
                   <span class="badge-date-tache<?= $enRetard ? ' en-retard' : '' ?>"><?= $enRetard ? 'En retard — ' : 'Pour le ' ?><?= htmlspecialchars(date('d/m/Y', strtotime($t['date_cible']))) ?></span>
@@ -203,7 +230,7 @@ function classePersonneTache($personne, $p1, $p2) {
             <div class="texte-tache"><?= htmlspecialchars($t['texte']) ?></div>
             <?php if ($t['personne'] !== ''): ?>
               <div class="meta-tache">
-                <span class="badge-personne <?= classePersonneTache($t['personne'], $p1, $p2) ?>"><?= htmlspecialchars($t['personne']) ?></span>
+                <span class="badge-personne <?= classePersonneTache($t['person_id'], $patients) ?>"><?= htmlspecialchars(nomPersonneTache($db, $t)) ?></span>
               </div>
             <?php endif; ?>
           </div>

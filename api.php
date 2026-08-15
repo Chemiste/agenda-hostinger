@@ -19,6 +19,7 @@ require_once __DIR__ . '/lib/activity_log.php';
 require_once __DIR__ . '/lib/taches.php';
 require_once __DIR__ . '/lib/medecins.php';
 require_once __DIR__ . '/lib/pathologies.php';
+require_once __DIR__ . '/lib/persons.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -32,11 +33,12 @@ $config = require __DIR__ . '/config.php';
 $sync = new CalendarSync($config['google_service_account_path'], $config['google_calendar_id']);
 $db = getDb();
 
-// Un rendez-vous ne concerne jamais qu'une seule personne (pas de "les deux").
-$PERSONNES_VALIDES = [
-    isset($config['personne_1']) ? $config['personne_1'] : 'Papa',
-    isset($config['personne_2']) ? $config['personne_2'] : 'Maman',
-];
+// Un rendez-vous ne concerne jamais qu'une seule personne (pas de "les
+// deux"). La liste vient de la table persons : ajouter un patient ne
+// demande plus de toucher au code (voir admin/personnes.php). La
+// validation se fait sur l'identifiant, pas sur le nom - voir
+// validateAppt().
+$PATIENTS = listerPatients($db);
 
 $action = isset($_GET['action']) ? $_GET['action'] : (isset($_POST['action']) ? $_POST['action'] : '');
 $raw = file_get_contents('php://input');
@@ -77,11 +79,13 @@ try {
             // rendez-vous (voir assets/app.js) : la liste affichee est
             // filtree cote JS selon la personne cochee. Lecture seule -
             // la gestion complete reste sur pathologies.php.
+            // Indexe par identifiant de patient : c'est ce que le
+            // formulaire de rendez-vous manipule desormais.
             $parPersonne = [];
-            foreach ($PERSONNES_VALIDES as $personne) {
-                $parPersonne[$personne] = array_map(function ($p) {
+            foreach ($PATIENTS as $unPatient) {
+                $parPersonne[(string) $unPatient['id']] = array_map(function ($p) {
                     return ['id' => (string) $p['id'], 'nom' => $p['nom']];
-                }, listerPathologies($db, $personne));
+                }, listerPathologies($db, $unPatient['id']));
             }
             echo json_encode($parPersonne);
             break;
@@ -95,9 +99,15 @@ try {
                 echo json_encode(['error' => 'Action réservée à Laurent.']);
                 break;
             }
+            $patientRdvId = validerPatient($db, isset($input['person_id']) ? $input['person_id'] : 0);
+            if ($patientRdvId === 0) {
+                http_response_code(400);
+                echo json_encode(['error' => 'Personne inconnue.']);
+                break;
+            }
             $statut = fusionnerMedecinDepuisRdv(
                 $db,
-                isset($input['person']) ? $input['person'] : '',
+                $patientRdvId,
                 isset($input['doctor']) ? $input['doctor'] : '',
                 isset($input['department']) ? $input['department'] : '',
                 isset($input['location']) ? $input['location'] : '',
@@ -128,19 +138,46 @@ try {
     echo json_encode(['error' => $e->getMessage()]);
 }
 
-function validateAppt($appt) {
-    global $PERSONNES_VALIDES;
-    if (empty($appt['date']) || empty($appt['time']) || empty($appt['person'])) {
+/**
+ * Valide le rendez-vous et retourne l'identifiant du patient concerne.
+ *
+ * Accepte "person_id" (ce qu'envoie desormais assets/app.js) ou, a defaut,
+ * l'ancien "person" en clair — les sauvegardes JSON et l'import .ics en
+ * contiennent encore. Le nom n'est plus qu'une porte d'entree : c'est
+ * l'identifiant qui est enregistre.
+ */
+function validateAppt($db, $appt) {
+    if (empty($appt['date']) || empty($appt['time'])) {
         throw new Exception("Merci de remplir la date, l'heure et la personne concernée.");
     }
-    if (!in_array($appt['person'], $PERSONNES_VALIDES, true)) {
+
+    $personId = isset($appt['person_id']) ? validerPatient($db, $appt['person_id']) : 0;
+    if ($personId === 0 && !empty($appt['person'])) {
+        $parNom = personParNom($db, $appt['person']);
+        if ($parNom !== null && $parNom['est_patient']) {
+            $personId = $parNom['id'];
+        }
+    }
+    if ($personId === 0) {
         throw new Exception('Personne invalide.');
     }
+    return $personId;
 }
 
 function listAppointments($db) {
-    $stmt = $db->query('SELECT id, appt_date AS date, appt_time AS time, duration_minutes AS duration, person, doctor, department, location, phone, route, accompagnant, notes, questions, pathologie_id FROM appointments ORDER BY appt_date, appt_time');
+    $stmt = $db->query('SELECT id, appt_date AS date, appt_time AS time, duration_minutes AS duration, person, person_id, doctor, department, location, phone, route, accompagnant, notes, questions, pathologie_id FROM appointments ORDER BY appt_date, appt_time');
     $rows = $stmt->fetchAll();
+
+    // "person" devient le nom ACTUEL, lu dans la table persons : renommer
+    // quelqu'un se voit immediatement dans l'agenda. La colonne texte du
+    // rendez-vous n'est plus qu'un vestige, conserve jusqu'a la migration
+    // 0022 pour les sauvegardes.
+    foreach ($rows as $i => $r) {
+        $rows[$i]['person_id'] = (int) $r['person_id'];
+        if ($rows[$i]['person_id'] > 0) {
+            $rows[$i]['person'] = nomPerson($db, $rows[$i]['person_id']);
+        }
+    }
 
     // "location_affichage" : version simplifiee de l'adresse pour
     // l'affichage/l'impression uniquement (ex: "Avenue Hippocrate, 10,
@@ -177,13 +214,15 @@ function dureeAppt($appt) {
 }
 
 function addAppointment($db, $sync, $appt) {
-    validateAppt($appt);
-    $stmt = $db->prepare('INSERT INTO appointments (appt_date, appt_time, duration_minutes, person, doctor, department, location, phone, route, accompagnant, notes, questions, pathologie_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+    $personId = validateAppt($db, $appt);
+    $appt['person'] = nomPerson($db, $personId);
+    $stmt = $db->prepare('INSERT INTO appointments (appt_date, appt_time, duration_minutes, person, person_id, doctor, department, location, phone, route, accompagnant, notes, questions, pathologie_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
     $stmt->execute([
         $appt['date'],
         $appt['time'],
         dureeAppt($appt),
         $appt['person'],
+        $personId,
         isset($appt['doctor']) ? $appt['doctor'] : '',
         isset($appt['department']) ? $appt['department'] : '',
         isset($appt['location']) ? $appt['location'] : '',
@@ -221,7 +260,8 @@ function bulkAdd($db, $sync, $appts) {
 }
 
 function updateAppointmentAction($db, $sync, $appt) {
-    validateAppt($appt);
+    $personId = validateAppt($db, $appt);
+    $appt['person'] = nomPerson($db, $personId);
     if (empty($appt['id'])) {
         throw new Exception('Identifiant manquant.');
     }
@@ -238,7 +278,7 @@ function updateAppointmentAction($db, $sync, $appt) {
     $dateHeureChangee = ($row['appt_date'] !== $appt['date']) || (substr($row['appt_time'], 0, 5) !== $appt['time']);
 
     $upd = $db->prepare(
-        'UPDATE appointments SET appt_date = ?, appt_time = ?, duration_minutes = ?, person = ?, doctor = ?, department = ?, location = ?, phone = ?, route = ?, accompagnant = ?, notes = ?, questions = ?, pathologie_id = ?'
+        'UPDATE appointments SET appt_date = ?, appt_time = ?, duration_minutes = ?, person = ?, person_id = ?, doctor = ?, department = ?, location = ?, phone = ?, route = ?, accompagnant = ?, notes = ?, questions = ?, pathologie_id = ?'
         . ($dateHeureChangee ? ', reminder_sent_at = NULL' : '')
         . ' WHERE id = ?'
     );
@@ -247,6 +287,7 @@ function updateAppointmentAction($db, $sync, $appt) {
         $appt['time'],
         dureeAppt($appt),
         $appt['person'],
+        $personId,
         isset($appt['doctor']) ? $appt['doctor'] : '',
         isset($appt['department']) ? $appt['department'] : '',
         isset($appt['location']) ? $appt['location'] : '',

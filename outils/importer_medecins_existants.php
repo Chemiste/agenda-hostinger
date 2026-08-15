@@ -23,6 +23,7 @@ require_once __DIR__ . '/../lib/auth.php';
 requireAdminLogin();
 require_once __DIR__ . '/../lib/db.php';
 require_once __DIR__ . '/../lib/medecins.php';
+require_once __DIR__ . '/../lib/persons.php';
 
 header('Content-Type: text/plain; charset=utf-8');
 
@@ -71,7 +72,14 @@ foreach ($parMedecin as $m) {
         continue;
     }
     try {
-        ajouterMedecin($db, $m['person'], $m['doctor'], $m['department'], $m['location'], $m['phone'], $m['route'], '');
+        // Les anciens rendez-vous portent un nom : on le convertit en
+        // identifiant (table persons, migration 0021).
+        $patient = personParNom($db, $m['person']);
+        if ($patient === null) {
+            echo "ECHEC  : {$m['person']} - {$m['doctor']} (personne inconnue dans la table persons)\n";
+            continue;
+        }
+        ajouterMedecin($db, $patient['id'], $m['doctor'], $m['department'], $m['location'], $m['phone'], $m['route'], '');
         echo "AJOUTE : {$m['person']} - {$m['doctor']}\n";
         $crees++;
     } catch (Exception $e) {

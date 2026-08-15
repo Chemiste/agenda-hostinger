@@ -160,8 +160,9 @@ function afficherPreviewIcs() {
           '<div class="ics-date">' + e.date + ' à ' + e.time + (e.toutelaJournee ? ' (toute la journée, heure à vérifier)' : '') + '</div>' +
         '</div>' +
         '<select class="ics-personne" data-idx="' + i + '">' +
-          '<option value="' + escapeHtml(window.PERSONNE_1) + '">' + escapeHtml(window.PERSONNE_1) + '</option>' +
-          '<option value="' + escapeHtml(window.PERSONNE_2) + '">' + escapeHtml(window.PERSONNE_2) + '</option>' +
+          (window.PATIENTS || []).map(function (p) {
+            return '<option value="' + p.id + '">' + escapeHtml(p.nom) + '</option>';
+          }).join('') +
         '</select>' +
       '</div>';
     }).join('');
@@ -184,7 +185,7 @@ document.getElementById('btnImporterSelection').addEventListener('click', functi
     aImporter.push({
       date: e.date,
       time: e.time,
-      person: select.value,
+      person_id: select.value,
       doctor: e.summary,
       location: e.location || '',
       notes: e.description || ''

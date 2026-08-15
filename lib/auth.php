@@ -68,21 +68,65 @@ function logout() {
  * mot de passe donne acces au site, ce choix (qui_est_ce.php) permet de
  * savoir QUI a fait quoi pour le journal d'activite (voir historique.php
  * et admin/historique.php, lib/activity_log.php).
+ *
+ * La session memorise desormais un IDENTIFIANT (table persons, voir
+ * migrations/0021_ajouter_persons.sql). Le nom en est deduit a la lecture :
+ * renommer quelqu'un dans l'administration se voit donc immediatement,
+ * sans le forcer a se reconnecter.
+ */
+
+/** L'identifiant de la personne connectee, ou null. */
+function personIdSessionActuel() {
+    return isset($_SESSION['person_id']) ? (int) $_SESSION['person_id'] : null;
+}
+
+/**
+ * Le NOM de la personne connectee, ou null.
+ *
+ * Deduit de l'identifiant quand il est connu. Le repli sur
+ * $_SESSION['personne_courante'] couvre deux cas : les sessions ouvertes
+ * avant cette mise a jour (elles n'ont pas encore d'identifiant, voir
+ * requireIdentite qui le rattrape), et une installation ou la migration
+ * 0021 n'a pas encore ete appliquee.
  */
 function personneSessionActuelle() {
+    $id = personIdSessionActuel();
+    if ($id !== null && $id > 0) {
+        require_once __DIR__ . '/db.php';
+        require_once __DIR__ . '/persons.php';
+        try {
+            $p = obtenirPerson(getDb(), $id);
+            if ($p !== null) {
+                return $p['nom'];
+            }
+        } catch (Exception $e) {
+            // Base indisponible ou table absente : on retombe sur le nom
+            // memorise plutot que de casser toutes les pages.
+        }
+    }
     return isset($_SESSION['personne_courante']) ? $_SESSION['personne_courante'] : null;
 }
 
-function definirPersonneSession($nom) {
+/**
+ * @param int|null $personId Identifiant dans la table persons, ou null si
+ *        la migration 0021 n'est pas encore appliquee sur cet
+ *        environnement (on ne memorise alors que le nom, comme avant).
+ */
+function definirPersonneSession($nom, $personId = null) {
     $_SESSION['personne_courante'] = $nom;
+    if ($personId !== null && (int) $personId > 0) {
+        $_SESSION['person_id'] = (int) $personId;
+    } else {
+        unset($_SESSION['person_id']);
+    }
 }
 
 /**
  * Comme requireLogin(), mais exige en plus que la personne ait indique
  * qui elle est (une fois par session) avant d'acceder a la page. Utilise
  * par les pages familiales (index.php, mes_rappels.php, historique.php) -
- * pas par l'admin, qui reste une identite unique (Chem) protegee par son
- * propre mot de passe.
+ * pas par l'admin, qui reste une identite unique (Laurent) protegee par
+ * son propre mot de passe.
  */
 function requireIdentite() {
     requireLogin();
@@ -90,7 +134,35 @@ function requireIdentite() {
         header('Location: /qui_est_ce.php');
         exit;
     }
+    rattraperIdentiteSession();
     enregistrerVisiteSiNecessaire();
+}
+
+/**
+ * Complete une session ouverte AVANT la mise en place de la table persons :
+ * elle ne connait qu'un nom. On retrouve l'identifiant correspondant et on
+ * le memorise, plutot que de renvoyer tout le monde sur "Qui etes-vous ?"
+ * le jour du deploiement.
+ */
+function rattraperIdentiteSession() {
+    if (personIdSessionActuel() !== null) {
+        return;
+    }
+    $nom = isset($_SESSION['personne_courante']) ? $_SESSION['personne_courante'] : '';
+    if ($nom === '') {
+        return;
+    }
+    require_once __DIR__ . '/db.php';
+    require_once __DIR__ . '/persons.php';
+    try {
+        $p = personParNom(getDb(), $nom);
+        if ($p !== null) {
+            $_SESSION['person_id'] = $p['id'];
+        }
+    } catch (Exception $e) {
+        // Table pas encore creee sur cet environnement : on continue avec
+        // le nom seul, comme avant.
+    }
 }
 
 /**

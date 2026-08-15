@@ -22,6 +22,7 @@
 require_once __DIR__ . '/../lib/auth.php';
 requireAdminLogin();
 require_once __DIR__ . '/../lib/db.php';
+require_once __DIR__ . '/../lib/persons.php';
 require_once __DIR__ . '/../lib/entete_admin.php';
 
 $config = require __DIR__ . '/../config.php';
@@ -48,8 +49,8 @@ if ($estEnvironnementDev && $_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_PO
 
                 $stmt = $db->prepare(
                     'INSERT INTO appointments
-                        (id, appt_date, appt_time, duration_minutes, person, doctor, department, location, phone, route, accompagnant, notes, questions, pathologie_id, reminder_sent_at, calendar_event_id, created_at)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+                        (id, appt_date, appt_time, duration_minutes, person, person_id, doctor, department, location, phone, route, accompagnant, notes, questions, pathologie_id, reminder_sent_at, calendar_event_id, created_at)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
                 );
 
                 foreach ($lignes as $l) {
@@ -60,6 +61,9 @@ if ($estEnvironnementDev && $_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_PO
                         $l['appt_time'],
                         $duree,
                         $l['person'],
+                        // L'export peut venir d'avant la migration 0021 :
+                        // on retrouve l'identifiant a partir du nom.
+                        (int) ($l['person_id'] ?? (($p = personParNom($db, $l['person'] ?? '')) !== null ? $p['id'] : 0)),
                         $l['doctor'] ?? '',
                         $l['department'] ?? '',
                         $l['location'] ?? '',

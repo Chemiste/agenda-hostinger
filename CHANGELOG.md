@@ -2,6 +2,82 @@
 
 ## Non publié
 
+- **Rappels, sauvegardes et outils suivent.** Les réglages de rappel
+  s'appelaient `reminder_email_person1` et `person2` : deux personnes, pas
+  une de plus, et le lien entre « person1 » et Michel n'existait que dans
+  l'ordre de `config.php`. Ils sont désormais indexés par identifiant, et
+  `mes_rappels.php` engendre une carte par patient. Une troisième personne
+  aurait auparavant été ignorée **en silence** par l'envoi des rappels.
+  La lecture retombe sur les anciennes clés tant que rien n'a été
+  réenregistré : personne n'a à ressaisir son adresse.
+  Les sauvegardes incluent maintenant la table `persons` — sans elle, un
+  `person_id` restauré ne désignerait plus rien. La restauration d'une
+  sauvegarde antérieure retrouve l'identifiant à partir du nom ; s'il
+  n'existe plus, le rendez-vous est restauré sans personne rattachée
+  plutôt que rattaché au hasard. Même conversion pour l'import `.ics`,
+  l'import Google Calendar et l'import de données de développement.
+  `personne_1` / `personne_2` ne sont plus lus que par la reprise de
+  `admin/personnes.php`.
+
+- **L'agenda travaille sur l'identifiant.** `api.php`, `index.php` et
+  `assets/app.js` échangent désormais un `person_id` : les onglets, les
+  boutons radio du formulaire, le filtre et les couleurs viennent de la
+  base. Le nom affiché sur une carte de rendez-vous est lu dans la table
+  au moment de la requête — renommer quelqu'un se voit immédiatement sur
+  tous ses rendez-vous, y compris les passés. `personne_1` et `personne_2`
+  ne sont plus lus nulle part dans le code applicatif.
+  `validateAppt()` accepte encore un nom en clair à défaut d'identifiant :
+  les sauvegardes JSON et les imports `.ics` en contiennent, ils doivent
+  continuer à passer.
+
+- **Les pages santé travaillent sur l'identifiant.** Médicaments,
+  pathologies, médecins et tâches lisent et écrivent `person_id` ; les
+  listes de patients viennent de la base au lieu de `personne_1` /
+  `personne_2`. Conséquence visible : une troisième personne déclarée
+  patiente apparaît d'elle-même dans les onglets de Pathologies, dans les
+  menus déroulants de Médecins et de Tâches, et reçoit sa propre carte
+  dans le carnet de médecins — ces blocs étaient écrits en dur pour deux
+  personnes. Les couleurs de badge suivent désormais le **rang** du
+  patient et non son nom, donc une troisième retombe sur une couleur
+  neutre au lieu de casser l'affichage.
+  Les écritures renseignent encore la colonne texte à côté de
+  l'identifiant : les sauvegardes JSON s'en servent jusqu'à la migration
+  `0022`. C'est `person_id` qui fait foi.
+
+- **La session mémorise un identifiant de personne, plus un nom.** Le nom
+  affiché est déduit de la table à chaque lecture : renommer quelqu'un
+  depuis l'administration se voit immédiatement, sans le forcer à se
+  reconnecter. Les sessions déjà ouvertes au moment du déploiement sont
+  rattrapées automatiquement — on retrouve leur identifiant à partir du
+  nom mémorisé, plutôt que de renvoyer tout le monde sur « Qui êtes-vous ? ».
+  Le journal d'activité enregistre désormais l'identifiant **en plus** du
+  nom : le nom y reste une copie figée, comme le résumé du rendez-vous,
+  pour que le journal reste lisible même si la personne est renommée ou
+  retirée plus tard.
+
+- **Une table `persons`, et un identifiant à la place des noms recopiés.**
+  Le nom d'une personne était dupliqué dans six tables et la liste de
+  référence vivait dans `config.php`. Renommer quelqu'un dans `config.php`
+  ne touchait pas les lignes existantes : ses médicaments, ses pathologies
+  et ses médecins disparaissaient de l'écran **en silence**, sans message
+  d'erreur. Et ajouter une troisième personne était impossible sans
+  modifier le code, `personne_1` et `personne_2` étant lus en dur dans une
+  quinzaine de fichiers.
+  Une seule table avec deux drapeaux — `est_patient` (on suit sa santé) et
+  `peut_se_connecter` (elle apparaît dans « Qui est-ce ? »). Michel et
+  Christiane ont les deux, Hélène et Laurent seulement le second ; deux
+  tables séparées les auraient dédoublés, c'est-à-dire le problème de
+  départ sous une autre forme. Tout se gère depuis `admin/personnes.php`,
+  sans redéploiement. « Chem » est fusionné dans « Laurent » : le site
+  s'adresse à Michel et Christiane, c'est ce prénom-là qu'ils doivent lire.
+  Migration `0021`, qui **n'ajoute que des colonnes** — les colonnes texte
+  restent en place et le site continue de fonctionner avec elles jusqu'à
+  la bascule complète du code. Elles seront supprimées par une migration
+  ultérieure, une fois la bascule vérifiée en production.
+  Une personne qui a des données ne se supprime pas : elle se **désactive**,
+  pour que les rendez-vous passés et le journal d'activité gardent un nom
+  lisible.
+
 - **L'ordre des médicaments remplit les lignes au lieu de suivre l'alphabet.**
   Une carte à alternative occupe deux colonnes sur trois : il suffisait
   qu'il ne reste qu'une colonne libre en fin de ligne pour qu'elle parte à

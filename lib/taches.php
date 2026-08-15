@@ -22,16 +22,21 @@ function listerTachesTerminees($db, $limite = 50) {
     )->fetchAll();
 }
 
-function ajouterTache($db, $texte, $personne, $dateCible) {
+function ajouterTache($db, $texte, $personId, $dateCible) {
     $texte = trim((string) $texte);
     if ($texte === '') {
         throw new Exception('Le texte de la tâche ne peut pas être vide.');
     }
     $dateCible = trim((string) $dateCible);
-    $stmt = $db->prepare('INSERT INTO taches (texte, personne, date_cible) VALUES (?, ?, ?)');
+    require_once __DIR__ . '/persons.php';
+    $personId = (int) $personId;
+    // Le nom est encore ecrit a cote de l'identifiant : la colonne texte
+    // existe jusqu'a la migration 0022. C'est person_id qui fait foi.
+    $stmt = $db->prepare('INSERT INTO taches (texte, personne, person_id, date_cible) VALUES (?, ?, ?, ?)');
     $stmt->execute([
         $texte,
-        $personne !== null ? $personne : '',
+        $personId > 0 ? nomPerson($db, $personId) : '',
+        $personId,
         $dateCible !== '' ? $dateCible : null,
     ]);
 }
@@ -43,16 +48,19 @@ function obtenirTache($db, $id) {
     return $tache !== false ? $tache : null;
 }
 
-function modifierTache($db, $id, $texte, $personne, $dateCible) {
+function modifierTache($db, $id, $texte, $personId, $dateCible) {
     $texte = trim((string) $texte);
     if ($texte === '') {
         throw new Exception('Le texte de la tâche ne peut pas être vide.');
     }
     $dateCible = trim((string) $dateCible);
-    $stmt = $db->prepare('UPDATE taches SET texte = ?, personne = ?, date_cible = ? WHERE id = ?');
+    require_once __DIR__ . '/persons.php';
+    $personId = (int) $personId;
+    $stmt = $db->prepare('UPDATE taches SET texte = ?, personne = ?, person_id = ?, date_cible = ? WHERE id = ?');
     $stmt->execute([
         $texte,
-        $personne !== null ? $personne : '',
+        $personId > 0 ? nomPerson($db, $personId) : '',
+        $personId,
         $dateCible !== '' ? $dateCible : null,
         (int) $id,
     ]);

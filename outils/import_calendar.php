@@ -22,16 +22,22 @@ require_once __DIR__ . '/../lib/auth.php';
 requireAdminLogin();
 require_once __DIR__ . '/../lib/db.php';
 require_once __DIR__ . '/../lib/calendar_sync.php';
+require_once __DIR__ . '/../lib/persons.php';
 require_once __DIR__ . '/../lib/entete_admin.php';
 
 $config = require __DIR__ . '/../config.php';
 $sync = new CalendarSync($config['google_service_account_path'], $config['google_calendar_id']);
 $db = getDb();
 
-$p1 = isset($config['personne_1']) ? $config['personne_1'] : 'Papa';
-$p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
-// Un rendez-vous ne concerne jamais qu'une seule personne (pas de "les deux").
-$PERSONNES_VALIDES = [$p1, $p2];
+// Un rendez-vous ne concerne jamais qu'une seule personne (pas de "les
+// deux"). La liste des patients vient de la table persons.
+$PATIENTS = listerPatients($db);
+$PERSONNES_VALIDES = [];
+foreach ($PATIENTS as $unPatient) {
+    $PERSONNES_VALIDES[] = $unPatient['nom'];
+}
+// Repli quand le titre Google n'a pas de prefixe "[Prenom]".
+$p1 = !empty($PERSONNES_VALIDES) ? $PERSONNES_VALIDES[0] : '';
 
 $erreur = '';
 $evenements = [];
@@ -115,12 +121,16 @@ function importerLigne($db, $item) {
     $doctor = trim($item['summary']);
     $location = isset($item['location']) ? $item['location'] : '';
     $duree = (!empty($item['duration']) && (int) $item['duration'] > 0) ? (int) $item['duration'] : 30;
-    $stmt = $db->prepare('INSERT INTO appointments (appt_date, appt_time, duration_minutes, person, doctor, location, notes, calendar_event_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
+    // Le prefixe "[Michel]" du titre Google donne un NOM : on le convertit
+    // en identifiant (table persons, migration 0021).
+    $patientImport = personParNom($db, $item['person']);
+    $stmt = $db->prepare('INSERT INTO appointments (appt_date, appt_time, duration_minutes, person, person_id, doctor, location, notes, calendar_event_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
     $stmt->execute([
         $item['date'],
         $item['time'],
         $duree,
         $item['person'],
+        $patientImport !== null ? $patientImport['id'] : 0,
         $doctor,
         $location,
         isset($item['description']) ? $item['description'] : '',

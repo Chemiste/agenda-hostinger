@@ -11,19 +11,20 @@ require_once __DIR__ . '/lib/auth.php';
 requireIdentite();
 require_once __DIR__ . '/lib/db.php';
 require_once __DIR__ . '/lib/pathologies.php';
-
-$config = require __DIR__ . '/config.php';
-$p1 = isset($config['personne_1']) ? $config['personne_1'] : 'Papa';
-$p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
-$personnesValides = [$p1, $p2];
-
-$personneCible = isset($_GET['person']) ? $_GET['person'] : '';
-if (!in_array($personneCible, $personnesValides, true)) {
-    $personneCible = $p1;
-}
+require_once __DIR__ . '/lib/persons.php';
 
 $db = getDb();
-$pathologies = listerPathologies($db, $personneCible);
+$patients = listerPatients($db);
+
+// "?person=" porte desormais un identifiant. Un identifiant inconnu
+// retombe sur le premier patient plutot que d'afficher une fiche vide.
+$personCibleId = (int) (isset($_GET['person']) ? $_GET['person'] : 0);
+if (!isset($patients[$personCibleId])) {
+    $personCibleId = !empty($patients) ? (int) key($patients) : 0;
+}
+$personneCible = isset($patients[$personCibleId]) ? $patients[$personCibleId]['nom'] : 'Personne';
+
+$pathologies = listerPathologies($db, $personCibleId);
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -74,9 +75,9 @@ $pathologies = listerPathologies($db, $personneCible);
       Imprimer / Enregistrer en PDF
     </button>
     <div class="liens-secondaires">
-      <?php foreach ($personnesValides as $autrePersonne): ?>
-        <?php if ($autrePersonne !== $personneCible): ?>
-          <a href="/pathologies_plan.php?person=<?= urlencode($autrePersonne) ?>">Voir la fiche de <?= htmlspecialchars($autrePersonne) ?></a>
+      <?php foreach ($patients as $autre): ?>
+        <?php if ((int) $autre['id'] !== $personCibleId): ?>
+          <a href="/pathologies_plan.php?person=<?= (int) $autre['id'] ?>">Voir la fiche de <?= htmlspecialchars($autre['nom']) ?></a>
         <?php endif; ?>
       <?php endforeach; ?>
       <a href="/pathologies.php">Modifier la liste</a>

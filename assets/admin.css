@@ -246,6 +246,29 @@ textarea.motifs { width:100%; min-height:100px; font-family:inherit; font-size:1
 .actions-medecin a.lien-modifier-tache:hover,
 .actions-medecin .lien-danger:hover { text-decoration:underline; }
 
+/* --- Les personnes (admin/personnes.php) ---
+   Patients et membres de la famille dans une seule liste, avec leurs deux
+   drapeaux en etiquettes : les separer en deux tables aurait dedouble
+   Michel et Christiane, qui sont les deux a la fois. */
+.liste-personnes { list-style:none; margin:12px 0 0; padding:0; display:flex; flex-direction:column; gap:8px; }
+.rangee-personne { display:flex; align-items:center; gap:10px; flex-wrap:wrap; border:1px solid var(--border); border-radius:10px; padding:9px 11px; background:var(--surface); }
+.rangee-personne.inactive { opacity:0.65; background:var(--page-bg); }
+.identite-personne { display:flex; align-items:center; gap:7px; flex-wrap:wrap; flex:1 1 220px; min-width:0; }
+.nom-personne { font-size:15px; font-weight:700; color:var(--text); }
+.etiquette-personne { font-size:11.5px; font-weight:600; color:#1c5c39; background:#eaf6ef; border:1px solid #c9e5d5; border-radius:999px; padding:2px 9px; white-space:nowrap; }
+.etiquette-personne.etiquette-inactive { color:var(--text-muted); background:var(--page-bg); border-color:var(--border); }
+.donnees-personne { font-size:12.5px; color:var(--text-muted); flex:none; }
+.actions-personne { display:flex; align-items:center; gap:12px; flex:none; }
+.actions-personne form { margin:0; }
+.actions-personne .lien-danger { font:inherit; font-size:13px; font-weight:600; line-height:1; padding:0; margin:0; border:none; background:none; -webkit-appearance:none; appearance:none; cursor:pointer; }
+.actions-personne a.lien-modifier-tache { font-size:13px; }
+.form-personne { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:0; flex:1 1 100%; }
+.form-personne input[type=text] { flex:1 1 180px; margin:0; }
+.form-personne .principal, .form-personne .secondaire { flex:none; padding:8px 14px; font-size:13.5px; }
+.form-ajouter-personne { margin-top:12px; }
+.case-drapeau { display:flex; align-items:center; gap:6px; font-size:13px; font-weight:600; color:var(--text-secondary); white-space:nowrap; cursor:pointer; }
+.case-drapeau input[type=checkbox] { accent-color:var(--accent); }
+
 /* --- Plan de medicaments (admin/medicaments.php) --- */
 /* La page familiale (/medicaments.php) groupe par moment, parce que c'est
    l'ordre dans lequel on remplit les bacs du pilulier. Ici c'est l'inverse :

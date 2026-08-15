@@ -11,12 +11,16 @@ requireIdentite();
 require_once __DIR__ . '/lib/entete.php';
 require_once __DIR__ . '/lib/db.php';
 require_once __DIR__ . '/lib/medecins.php';
+require_once __DIR__ . '/lib/persons.php';
 
 $config = require __DIR__ . '/config.php';
-$p1 = isset($config['personne_1']) ? $config['personne_1'] : 'Papa';
-$p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
+// Les patients viennent de la table persons (voir admin/personnes.php).
 
 $db = getDb();
+
+// Les patients de la table persons : une troisieme personne apparait ici
+// sans toucher au code, et renommer quelqu'un ne detache pas ses donnees.
+$patients = listerPatients($db);
 $erreur = '';
 $idEnEdition = null;
 
@@ -25,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         try {
             ajouterMedecin(
                 $db,
-                isset($_POST['person']) ? $_POST['person'] : '',
+                validerPatient($db, isset($_POST['person_id']) ? $_POST['person_id'] : 0),
                 isset($_POST['doctor']) ? $_POST['doctor'] : '',
                 isset($_POST['department']) ? $_POST['department'] : '',
                 isset($_POST['location']) ? $_POST['location'] : '',
@@ -45,7 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             modifierMedecin(
                 $db,
                 $_POST['id'],
-                isset($_POST['person']) ? $_POST['person'] : '',
+                validerPatient($db, isset($_POST['person_id']) ? $_POST['person_id'] : 0),
                 isset($_POST['doctor']) ? $_POST['doctor'] : '',
                 isset($_POST['department']) ? $_POST['department'] : '',
                 isset($_POST['location']) ? $_POST['location'] : '',
@@ -76,7 +80,7 @@ if ($idEnEdition !== null) {
     if ($medecinEnEdition === null) {
         $idEnEdition = null;
     } elseif ($erreur === '') {
-        $_POST['person'] = $medecinEnEdition['person'];
+        $_POST['person_id'] = (int) $medecinEnEdition['person_id'];
         $_POST['doctor'] = $medecinEnEdition['doctor'];
         $_POST['department'] = $medecinEnEdition['department'];
         $_POST['location'] = $medecinEnEdition['location'];
@@ -87,10 +91,13 @@ if ($idEnEdition !== null) {
 }
 
 $tousLesMedecins = listerMedecins($db);
-$medecinsParPersonne = [$p1 => [], $p2 => []];
+$medecinsParPersonne = [];
+foreach ($patients as $patient) {
+    $medecinsParPersonne[$patient['id']] = [];
+}
 foreach ($tousLesMedecins as $m) {
-    if (isset($medecinsParPersonne[$m['person']])) {
-        $medecinsParPersonne[$m['person']][] = $m;
+    if (isset($medecinsParPersonne[(int) $m['person_id']])) {
+        $medecinsParPersonne[(int) $m['person_id']][] = $m;
     }
 }
 
@@ -161,9 +168,10 @@ function afficherRangeeMedecin($m) {
       <div class="champ-ligne">
         <div class="champ">
           <label>Personne</label>
-          <select name="person" required>
-            <option value="<?= htmlspecialchars($p1) ?>"<?= (isset($_POST['person']) && $_POST['person'] === $p1) ? ' selected' : '' ?>><?= htmlspecialchars($p1) ?></option>
-            <option value="<?= htmlspecialchars($p2) ?>"<?= (isset($_POST['person']) && $_POST['person'] === $p2) ? ' selected' : '' ?>><?= htmlspecialchars($p2) ?></option>
+          <select name="person_id" required>
+            <?php foreach ($patients as $patient): ?>
+              <option value="<?= (int) $patient['id'] ?>"<?= (isset($_POST['person_id']) && (int) $_POST['person_id'] === (int) $patient['id']) ? ' selected' : '' ?>><?= htmlspecialchars($patient['nom']) ?></option>
+            <?php endforeach; ?>
           </select>
         </div>
         <div class="champ">
@@ -202,27 +210,22 @@ function afficherRangeeMedecin($m) {
     </form>
   </div>
 
-  <div class="outil" style="margin-top:16px;">
-    <h2 class="panneau-titre"><?= htmlspecialchars($p1) ?><?= count($medecinsParPersonne[$p1]) > 0 ? ' (' . count($medecinsParPersonne[$p1]) . ')' : '' ?></h2>
-    <?php if (empty($medecinsParPersonne[$p1])): ?>
-      <p class="vide">Aucun médecin enregistré.</p>
-    <?php else: ?>
-      <div class="grille-medecins">
-        <?php foreach ($medecinsParPersonne[$p1] as $m) { afficherRangeeMedecin($m); } ?>
-      </div>
-    <?php endif; ?>
-  </div>
-
-  <div class="outil" style="margin-top:16px;">
-    <h2 class="panneau-titre"><?= htmlspecialchars($p2) ?><?= count($medecinsParPersonne[$p2]) > 0 ? ' (' . count($medecinsParPersonne[$p2]) . ')' : '' ?></h2>
-    <?php if (empty($medecinsParPersonne[$p2])): ?>
-      <p class="vide">Aucun médecin enregistré.</p>
-    <?php else: ?>
-      <div class="grille-medecins">
-        <?php foreach ($medecinsParPersonne[$p2] as $m) { afficherRangeeMedecin($m); } ?>
-      </div>
-    <?php endif; ?>
-  </div>
+  <?php /* Une carte par patient, engendree par la boucle : ces deux blocs
+           etaient ecrits en dur pour personne_1 et personne_2, une
+           troisieme personne serait restee invisible. */ ?>
+  <?php foreach ($patients as $patient): ?>
+    <?php $listePatient = $medecinsParPersonne[$patient['id']]; ?>
+    <div class="outil" style="margin-top:16px;">
+      <h2 class="panneau-titre"><?= htmlspecialchars($patient['nom']) ?><?= count($listePatient) > 0 ? ' (' . count($listePatient) . ')' : '' ?></h2>
+      <?php if (empty($listePatient)): ?>
+        <p class="vide">Aucun médecin enregistré.</p>
+      <?php else: ?>
+        <div class="grille-medecins">
+          <?php foreach ($listePatient as $m) { afficherRangeeMedecin($m); } ?>
+        </div>
+      <?php endif; ?>
+    </div>
+  <?php endforeach; ?>
 
   <script src="/assets/admin-ui.js?v=<?= filemtime(__DIR__ . '/assets/admin-ui.js') ?>"></script>
   <script src="/assets/entete.js?v=<?= filemtime(__DIR__ . '/assets/entete.js') ?>"></script>

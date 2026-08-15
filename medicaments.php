@@ -16,8 +16,9 @@
  * vit dans /admin/medicaments.php : l'écran que consultent les parents ne
  * doit pas être encombré de formulaires qui ne les concernent pas.
  *
- * Limité à Christiane pour l'instant (personne_2) - les tables gèrent déjà
- * plusieurs personnes, il suffirait d'ajouter un sélecteur.
+ * Limité à un seul patient pour l'instant (le seul qui ait un plan) - les
+ * tables gèrent déjà plusieurs personnes depuis la migration 0021, il
+ * suffirait d'ajouter un sélecteur en haut de page.
  */
 
 require_once __DIR__ . '/lib/auth.php';
@@ -25,16 +26,26 @@ requireIdentite();
 require_once __DIR__ . '/lib/entete.php';
 require_once __DIR__ . '/lib/db.php';
 require_once __DIR__ . '/lib/medicaments.php';
+require_once __DIR__ . '/lib/persons.php';
 
 $config = require __DIR__ . '/config.php';
-$personneCible = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
 $peutModifier = personneSessionActuelle() === 'Laurent';
 
 $db = getDb();
 
-// Le plan complet, deja assemble : les moments dans l'ordre, et pour
-// chacun les medicaments qui s'y prennent avec leur quantite a ce
-// moment-la et leurs eventuelles alternatives (voir lib/medicaments.php).
+// Le patient dont on affiche le plan. Son identifiant vient desormais de
+// la table persons (voir lib/persons.php) et non plus d'un nom ecrit dans
+// config.php : le renommer ne fait plus disparaitre ses medicaments.
+// La cle personne_2 ne sert plus qu'a retrouver QUI, une derniere fois -
+// a defaut, on prend le premier patient de la liste.
+$patients = listerPatients($db);
+$patient = personParNom($db, isset($config['personne_2']) ? $config['personne_2'] : '');
+if ($patient === null || !$patient['est_patient'] || !$patient['actif']) {
+    $patient = !empty($patients) ? reset($patients) : null;
+}
+$personCibleId = $patient !== null ? $patient['id'] : 0;
+$personneCible = $patient !== null ? $patient['nom'] : 'Personne';
+
 /**
  * Une « boîte » du plan : sa photo, son nom, sa quantité, et son détail —
  * sauf si ce détail est déjà écrit une seule fois pour toute la carte
@@ -61,8 +72,11 @@ function afficherBoiteMedicament($b, $detailCommun) {
     }
 }
 
+// Le plan complet, deja assemble : les moments dans l'ordre, et pour
+// chacun les medicaments qui s'y prennent avec leur quantite a ce
+// moment-la et leurs eventuelles alternatives (voir lib/medicaments.php).
 $plan = [];
-foreach (construirePlan($db, $personneCible) as $section) {
+foreach (construirePlan($db, $personCibleId) as $section) {
     // Un moment sans aucun medicament n'occupe pas de place ici : il reste
     // visible dans la page de gestion, ou on peut le renommer ou l'effacer.
     if (!empty($section['medicaments'])) {

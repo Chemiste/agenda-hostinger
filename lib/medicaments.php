@@ -35,15 +35,17 @@ function paletteMoment($index) {
     return $palette[$index % count($palette)];
 }
 
+require_once __DIR__ . '/persons.php';
+
 // ------------------------------------------------------------------
 // Les moments de la journée
 // ------------------------------------------------------------------
 
-function listerMoments($db, $person) {
+function listerMoments($db, $personId) {
     $stmt = $db->prepare(
-        'SELECT * FROM medicament_moments WHERE person = ? ORDER BY ordre ASC, id ASC'
+        'SELECT * FROM medicament_moments WHERE person_id = ? ORDER BY ordre ASC, id ASC'
     );
-    $stmt->execute([$person]);
+    $stmt->execute([(int) $personId]);
     return $stmt->fetchAll();
 }
 
@@ -54,25 +56,29 @@ function obtenirMoment($db, $id) {
     return $m !== false ? $m : null;
 }
 
-function ajouterMoment($db, $person, $libelle) {
+function ajouterMoment($db, $personId, $libelle) {
+    $personId = (int) $personId;
     $libelle = trim((string) $libelle);
     if ($libelle === '') {
         throw new Exception('Le nom du moment ne peut pas être vide.');
     }
     // Deux moments du meme nom pour une meme personne n'auraient aucun
     // sens et rendraient la fiche illisible.
-    $stmt = $db->prepare('SELECT COUNT(*) FROM medicament_moments WHERE person = ? AND LOWER(libelle) = LOWER(?)');
-    $stmt->execute([$person, $libelle]);
+    $stmt = $db->prepare('SELECT COUNT(*) FROM medicament_moments WHERE person_id = ? AND LOWER(libelle) = LOWER(?)');
+    $stmt->execute([$personId, $libelle]);
     if ((int) $stmt->fetchColumn() > 0) {
         throw new Exception('Le moment « ' . $libelle . ' » existe déjà.');
     }
 
-    $stmt = $db->prepare('SELECT COALESCE(MAX(ordre), -1) + 1 FROM medicament_moments WHERE person = ?');
-    $stmt->execute([$person]);
+    $stmt = $db->prepare('SELECT COALESCE(MAX(ordre), -1) + 1 FROM medicament_moments WHERE person_id = ?');
+    $stmt->execute([$personId]);
     $ordre = (int) $stmt->fetchColumn();
 
-    $stmt = $db->prepare('INSERT INTO medicament_moments (person, libelle, ordre) VALUES (?, ?, ?)');
-    $stmt->execute([$person, $libelle, $ordre]);
+    // Le nom est encore ecrit a cote de l'identifiant : la colonne texte
+    // existe jusqu'a la migration 0022, et les sauvegardes JSON s'en
+    // servent. C'est person_id qui fait foi (voir lib/persons.php).
+    $stmt = $db->prepare('INSERT INTO medicament_moments (person, person_id, libelle, ordre) VALUES (?, ?, ?, ?)');
+    $stmt->execute([nomPerson($db, $personId), $personId, $libelle, $ordre]);
     return (int) $db->lastInsertId();
 }
 
@@ -86,9 +92,9 @@ function renommerMoment($db, $id, $libelle) {
         throw new Exception('Moment introuvable.');
     }
     $stmt = $db->prepare(
-        'SELECT COUNT(*) FROM medicament_moments WHERE person = ? AND LOWER(libelle) = LOWER(?) AND id != ?'
+        'SELECT COUNT(*) FROM medicament_moments WHERE person_id = ? AND LOWER(libelle) = LOWER(?) AND id != ?'
     );
-    $stmt->execute([$moment['person'], $libelle, (int) $id]);
+    $stmt->execute([(int) $moment['person_id'], $libelle, (int) $id]);
     if ((int) $stmt->fetchColumn() > 0) {
         throw new Exception('Le moment « ' . $libelle . ' » existe déjà.');
     }
@@ -107,7 +113,7 @@ function deplacerMoment($db, $id, $direction) {
     if ($moment === null) {
         return;
     }
-    $moments = listerMoments($db, $moment['person']);
+    $moments = listerMoments($db, $moment['person_id']);
     $index = null;
     foreach ($moments as $i => $m) {
         if ((int) $m['id'] === (int) $id) {
@@ -134,7 +140,7 @@ function deplacerMoment($db, $id, $direction) {
     // Renumerote proprement tout le monde, pour que les prochains
     // deplacements partent d'une base saine.
     $position = 0;
-    foreach (listerMoments($db, $moment['person']) as $m) {
+    foreach (listerMoments($db, $moment['person_id']) as $m) {
         $stmt->execute([$position++, (int) $m['id']]);
     }
 }
@@ -163,9 +169,9 @@ function supprimerMoment($db, $id) {
 // Les médicaments
 // ------------------------------------------------------------------
 
-function listerMedicaments($db, $person) {
-    $stmt = $db->prepare('SELECT * FROM medicaments WHERE person = ? ORDER BY nom ASC, id ASC');
-    $stmt->execute([$person]);
+function listerMedicaments($db, $personId) {
+    $stmt = $db->prepare('SELECT * FROM medicaments WHERE person_id = ? ORDER BY nom ASC, id ASC');
+    $stmt->execute([(int) $personId]);
     return $stmt->fetchAll();
 }
 
@@ -174,9 +180,9 @@ function listerMedicaments($db, $person) {
  * n'en sont pas eux-mêmes une (pas de chaîne), en excluant éventuellement
  * celui qu'on est en train de modifier.
  */
-function listerMedicamentsPrincipaux($db, $person, $idExclu = null) {
-    $sql = 'SELECT * FROM medicaments WHERE person = ? AND alternative_de = 0';
-    $params = [$person];
+function listerMedicamentsPrincipaux($db, $personId, $idExclu = null) {
+    $sql = 'SELECT * FROM medicaments WHERE person_id = ? AND alternative_de = 0';
+    $params = [(int) $personId];
     if ($idExclu !== null) {
         $sql .= ' AND id != ?';
         $params[] = (int) $idExclu;
@@ -199,7 +205,7 @@ function obtenirMedicament($db, $id) {
  * même personne, existant, et pas lui-même une alternative. Retourne
  * l'identifiant validé, ou 0.
  */
-function validerAlternativeDe($db, $alternativeDe, $person, $idEnfant = null) {
+function validerAlternativeDe($db, $alternativeDe, $personId, $idEnfant = null) {
     $alternativeDe = (int) $alternativeDe;
     if ($alternativeDe <= 0) {
         return 0;
@@ -208,30 +214,31 @@ function validerAlternativeDe($db, $alternativeDe, $person, $idEnfant = null) {
         return 0;
     }
     $parent = obtenirMedicament($db, $alternativeDe);
-    if ($parent === null || $parent['person'] !== $person || (int) $parent['alternative_de'] > 0) {
+    if ($parent === null || (int) $parent['person_id'] !== (int) $personId || (int) $parent['alternative_de'] > 0) {
         return 0;
     }
     return $alternativeDe;
 }
 
-function ajouterMedicament($db, $person, $nom, $detail, $image, $alternativeDe = 0) {
-    $person = trim((string) $person);
+function ajouterMedicament($db, $personId, $nom, $detail, $image, $alternativeDe = 0) {
+    $personId = (int) $personId;
     $nom = trim((string) $nom);
-    if ($person === '') {
+    if ($personId <= 0) {
         throw new Exception('La personne est obligatoire.');
     }
     if ($nom === '') {
         throw new Exception('Le nom du médicament ne peut pas être vide.');
     }
     $stmt = $db->prepare(
-        'INSERT INTO medicaments (person, nom, detail, image, alternative_de) VALUES (?, ?, ?, ?, ?)'
+        'INSERT INTO medicaments (person, person_id, nom, detail, image, alternative_de) VALUES (?, ?, ?, ?, ?, ?)'
     );
     $stmt->execute([
-        $person,
+        nomPerson($db, $personId),
+        $personId,
         $nom,
         trim((string) $detail),
         (string) $image,
-        validerAlternativeDe($db, $alternativeDe, $person),
+        validerAlternativeDe($db, $alternativeDe, $personId),
     ]);
     return (int) $db->lastInsertId();
 }
@@ -261,7 +268,7 @@ function modifierMedicament($db, $id, $nom, $detail, $nouvelleImage, $alternativ
         $nom,
         trim((string) $detail),
         $image,
-        validerAlternativeDe($db, $alternativeDe, $actuel['person'], $id),
+        validerAlternativeDe($db, $alternativeDe, $actuel['person_id'], $id),
         (int) $id,
     ]);
 }
@@ -326,22 +333,23 @@ function definirPrises($db, $medicamentId, $quantitesParMoment) {
  * Une seule requête par table plutôt qu'une par moment : le plan tient
  * dans quelques dizaines de lignes, autant tout charger et assembler ici.
  */
-function construirePlan($db, $person) {
-    $moments = listerMoments($db, $person);
+function construirePlan($db, $personId) {
+    $personId = (int) $personId;
+    $moments = listerMoments($db, $personId);
     if (empty($moments)) {
         return [];
     }
 
     $medicaments = [];
-    foreach (listerMedicaments($db, $person) as $m) {
+    foreach (listerMedicaments($db, $personId) as $m) {
         $medicaments[(int) $m['id']] = $m;
     }
 
     $stmt = $db->prepare(
         'SELECT p.medicament_id, p.moment_id, p.quantite FROM medicament_prises p ' .
-        'JOIN medicaments m ON m.id = p.medicament_id WHERE m.person = ?'
+        'JOIN medicaments m ON m.id = p.medicament_id WHERE m.person_id = ?'
     );
-    $stmt->execute([$person]);
+    $stmt->execute([$personId]);
 
     // [id de moment][id de medicament] => quantite
     $parMoment = [];

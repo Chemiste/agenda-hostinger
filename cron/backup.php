@@ -73,6 +73,9 @@ try {
 // aucun filet jusqu'ici.
 $tables = [
     'appointments'       => 'appointments',
+    // Les personnes : sans elles, un person_id restaure ne designerait
+    // plus rien (voir migrations/0021_ajouter_persons.sql).
+    'persons'            => 'persons',
     'medicaments'        => 'medicaments',
     'medicament_moments' => 'medicament_moments',
     'medicament_prises'  => 'medicament_prises',

@@ -14,9 +14,13 @@ require_once __DIR__ . '/../lib/auth.php';
 requireAdminLogin();
 require_once __DIR__ . '/../lib/entete_admin.php';
 
-$config = require __DIR__ . '/../config.php';
-$p1 = isset($config['personne_1']) ? $config['personne_1'] : 'Papa';
-$p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
+require_once __DIR__ . '/../lib/db.php';
+require_once __DIR__ . '/../lib/persons.php';
+
+// Le menu deroulant "qui ?" de chaque ligne importee est engendre a partir
+// de la table persons : deux noms ecrits en dur ignoraient une eventuelle
+// troisieme personne.
+$patients = listerPatients(getDb());
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -54,8 +58,9 @@ $p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
   </div>
 
   <script>
-    window.PERSONNE_1 = <?= json_encode($p1) ?>;
-    window.PERSONNE_2 = <?= json_encode($p2) ?>;
+    window.PATIENTS = <?= json_encode(array_map(function ($p) {
+        return ['id' => (int) $p['id'], 'nom' => $p['nom']];
+    }, array_values($patients)), JSON_UNESCAPED_UNICODE) ?>;
   </script>
   <script src="/assets/admin.js?v=<?= filemtime(__DIR__ . '/../assets/admin.js') ?>"></script>
 </body>

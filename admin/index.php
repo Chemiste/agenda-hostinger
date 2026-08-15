@@ -107,6 +107,13 @@ $reminderDelai = getSetting($db, 'reminder_hours_before', '24');
       <div class="titre">Plan de médicaments</div>
       <div class="detail">Médicaments, quantités et moments</div>
     </a>
+    <?php /* Remplace personne_1/personne_2/membres_famille de config.php :
+             ajouter ou renommer quelqu'un ne demande plus de toucher au
+             code (voir migrations/0021_ajouter_persons.sql). */ ?>
+    <a class="carte-accueil carte-adresse" href="/admin/personnes.php">
+      <div class="titre">Personnes</div>
+      <div class="detail">Patients et membres de la famille</div>
+    </a>
   </div>
 
   <div class="groupe-titre">Suivi</div>

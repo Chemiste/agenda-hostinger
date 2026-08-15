@@ -25,12 +25,26 @@ require_once __DIR__ . '/../lib/auth.php';
 requireAdminLogin();
 require_once __DIR__ . '/../lib/db.php';
 require_once __DIR__ . '/../lib/medicaments.php';
+require_once __DIR__ . '/../lib/persons.php';
 require_once __DIR__ . '/../lib/entete_admin.php';
 
 $config = require __DIR__ . '/../config.php';
-$personneCible = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
 
 $db = getDb();
+
+// Le patient dont on affiche le plan. Son identifiant vient desormais de
+// la table persons (voir lib/persons.php) et non plus d'un nom ecrit dans
+// config.php : le renommer ne fait plus disparaitre ses medicaments.
+// La cle personne_2 ne sert plus qu'a retrouver QUI, une derniere fois -
+// a defaut, on prend le premier patient de la liste.
+$patients = listerPatients($db);
+$patient = personParNom($db, isset($config['personne_2']) ? $config['personne_2'] : '');
+if ($patient === null || !$patient['est_patient'] || !$patient['actif']) {
+    $patient = !empty($patients) ? reset($patients) : null;
+}
+$personCibleId = $patient !== null ? $patient['id'] : 0;
+$personneCible = $patient !== null ? $patient['nom'] : 'Personne';
+
 $erreur = '';        // erreurs du formulaire médicament
 $erreurMoment = '';  // erreurs du bloc « Moments de la journée »
 $idEnEdition = null;
@@ -99,7 +113,7 @@ function prisesSaisies($momentsAutorises) {
     return $resultat;
 }
 
-$moments = listerMoments($db, $personneCible);
+$moments = listerMoments($db, $personCibleId);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $action = $_POST['action'];
@@ -107,7 +121,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     // --- Les moments de la journée ---------------------------------
     if ($action === 'ajouter_moment') {
         try {
-            ajouterMoment($db, $personneCible, isset($_POST['libelle']) ? $_POST['libelle'] : '');
+            ajouterMoment($db, $personCibleId, isset($_POST['libelle']) ? $_POST['libelle'] : '');
             header('Location: /admin/medicaments.php#moments');
             exit;
         } catch (Exception $e) {
@@ -116,7 +130,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     } elseif ($action === 'renommer_moment' && isset($_POST['moment_id'])) {
         try {
             $moment = obtenirMoment($db, $_POST['moment_id']);
-            if ($moment === null || $moment['person'] !== $personneCible) {
+            if ($moment === null || (int) $moment['person_id'] !== $personCibleId) {
                 throw new Exception('Moment introuvable.');
             }
             renommerMoment($db, $_POST['moment_id'], isset($_POST['libelle']) ? $_POST['libelle'] : '');
@@ -127,7 +141,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         }
     } elseif ($action === 'deplacer_moment' && isset($_POST['moment_id'], $_POST['direction'])) {
         $moment = obtenirMoment($db, $_POST['moment_id']);
-        if ($moment !== null && $moment['person'] === $personneCible) {
+        if ($moment !== null && (int) $moment['person_id'] === $personCibleId) {
             deplacerMoment($db, $_POST['moment_id'], $_POST['direction']);
         }
         header('Location: /admin/medicaments.php#moments');
@@ -135,7 +149,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     } elseif ($action === 'supprimer_moment' && isset($_POST['moment_id'])) {
         try {
             $moment = obtenirMoment($db, $_POST['moment_id']);
-            if ($moment === null || $moment['person'] !== $personneCible) {
+            if ($moment === null || (int) $moment['person_id'] !== $personCibleId) {
                 throw new Exception('Moment introuvable.');
             }
             supprimerMoment($db, $_POST['moment_id']);
@@ -163,7 +177,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
             $id = ajouterMedicament(
                 $db,
-                $personneCible,
+                $personCibleId,
                 isset($_POST['nom']) ? $_POST['nom'] : '',
                 isset($_POST['detail']) ? $_POST['detail'] : '',
                 $image !== false ? $image : '',
@@ -241,7 +255,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
     // Les moments ont pu changer avant qu'une erreur n'interrompe la
     // redirection : on les relit pour afficher la page dans son etat reel.
-    $moments = listerMoments($db, $personneCible);
+    $moments = listerMoments($db, $personCibleId);
 }
 
 $medicamentEnEdition = null;
@@ -250,7 +264,7 @@ if ($idEnEdition === null && isset($_GET['modifier'])) {
 }
 if ($idEnEdition !== null) {
     $medicamentEnEdition = obtenirMedicament($db, $idEnEdition);
-    if ($medicamentEnEdition === null || $medicamentEnEdition['person'] !== $personneCible) {
+    if ($medicamentEnEdition === null || (int) $medicamentEnEdition['person_id'] !== $personCibleId) {
         $medicamentEnEdition = null;
         $idEnEdition = null;
     } elseif ($erreur === '') {
@@ -268,7 +282,7 @@ if ($idEnEdition !== null) {
 
 $photosExistantes = listerPhotosDuDossier($DOSSIER_PHOTOS);
 $photosUtilisees = listerPhotosUtilisees($db);
-$medicamentsPrincipaux = listerMedicamentsPrincipaux($db, $personneCible, $idEnEdition);
+$medicamentsPrincipaux = listerMedicamentsPrincipaux($db, $personCibleId, $idEnEdition);
 
 // Les moments de chaque medicament principal : choisir "alternative a X"
 // coche automatiquement les moments de X.
@@ -286,7 +300,7 @@ foreach ($moments as $m) {
 // celui des identifiants.
 $ordreDuMoment = array_flip(array_keys($libelleDuMoment));
 
-$tousLesMedicaments = listerMedicaments($db, $personneCible);
+$tousLesMedicaments = listerMedicaments($db, $personCibleId);
 $prisesParMedicament = [];
 foreach ($tousLesMedicaments as $m) {
     $prises = listerPrises($db, $m['id']);

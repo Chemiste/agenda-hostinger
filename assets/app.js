@@ -266,7 +266,7 @@ function chargerTaches() {
 // comme la liste des rendez-vous.
 function tachesPourFiltreActuel() {
   return tachesOuvertesActuelles.filter(function (t) {
-    return filtreActuel === 'Tous' || t.personne === '' || t.personne === filtreActuel;
+    return filtreActuel === 'Tous' || !t.person_id || String(t.person_id) === filtreActuel;
   });
 }
 
@@ -300,7 +300,9 @@ function cocherTacheDepuisAccueil(id) {
 
 function texteMetaTache(t) {
   var meta = [];
-  if (t.personne) meta.push(t.personne);
+  // Le nom vient de window.PATIENTS (donc a jour), avec la colonne texte
+  // en secours si l'identifiant ne correspond plus a personne.
+  if (t.person_id) meta.push(nomPatient(t.person_id) || t.personne || '');
   if (t.date_cible) {
     var d = formatDateCompacte(t.date_cible);
     meta.push('Pour le ' + d.jour + ' ' + d.mois);
@@ -453,6 +455,8 @@ function actualiserChoixPathologies(idPreselectionne) {
   var personneInput = document.querySelector('.personnes input:checked');
   var personne = personneInput ? personneInput.value : '';
   var liste = (personne && pathologiesParPersonne[personne]) ? pathologiesParPersonne[personne] : [];
+  // "personne" est ici un identifiant de patient : c'est la cle utilisee
+  // par l'API (voir api.php, action "pathologies").
 
   // Conserve le choix en cours si on n'en impose pas un (ex. l'utilisateur
   // change de personne apres avoir choisi une pathologie).
@@ -523,10 +527,25 @@ function lieuEtRouteHtml(r) {
     '</div>';
 }
 
-function classeBadge(personne) {
-  if (personne === window.PERSONNE_1) return 'papa';
-  if (personne === window.PERSONNE_2) return 'maman';
+// La couleur suit le RANG du patient dans window.PATIENTS, plus son nom :
+// renommer quelqu'un ne change plus sa couleur, et une 3e personne retombe
+// proprement sur la couleur neutre.
+function classeBadge(personId) {
+  var liste = window.PATIENTS || [];
+  for (var i = 0; i < liste.length; i++) {
+    if (String(liste[i].id) === String(personId)) {
+      return i === 0 ? 'papa' : (i === 1 ? 'maman' : 'deux');
+    }
+  }
   return 'deux';
+}
+
+function nomPatient(personId) {
+  var liste = window.PATIENTS || [];
+  for (var i = 0; i < liste.length; i++) {
+    if (String(liste[i].id) === String(personId)) return liste[i].nom;
+  }
+  return '';
 }
 
 // Reutilise pour re-afficher la liste quand on bascule mobile/desktop
@@ -556,7 +575,8 @@ function echapperRegex(s) {
 // synchro Google Calendar ne sont modifiés.
 function titreAffichage(r) {
   var doc = r.doctor || 'Rendez-vous';
-  var noms = [window.PERSONNE_1, window.PERSONNE_2].filter(Boolean).map(echapperRegex).join('|');
+  var noms = (window.PATIENTS || []).map(function (p) { return p.nom; })
+    .filter(Boolean).map(echapperRegex).join('|');
   if (noms) {
     var re = new RegExp('\\s*[-,]?\\s*\\bpour\\s+(' + noms + ')\\b\\.?', 'gi');
     doc = doc.replace(re, '').replace(/\s{2,}/g, ' ').replace(/^[\s,-]+|[\s,-]+$/g, '').trim();
@@ -568,7 +588,7 @@ function titreAffichage(r) {
 function afficherListe() {
   var aujourdhui = dateLocaleISO(new Date());
   var filtres = tousLesRdv.filter(function (r) {
-    var okPersonne = filtreActuel === 'Tous' || r.person === filtreActuel;
+    var okPersonne = filtreActuel === 'Tous' || String(r.person_id) === filtreActuel;
     var okTemps = filtreTemps === 'tous' ||
       (filtreTemps === 'avenir' ? r.date >= aujourdhui : r.date < aujourdhui);
     return okPersonne && okTemps && correspondRecherche(r);
@@ -587,7 +607,7 @@ function afficherListe() {
   var compteurAvenirEl = document.getElementById('compteurAvenir');
   if (compteurAvenirEl) {
     var nbAvenir = tousLesRdv.filter(function (r) {
-      var okPersonne = filtreActuel === 'Tous' || r.person === filtreActuel;
+      var okPersonne = filtreActuel === 'Tous' || String(r.person_id) === filtreActuel;
       return okPersonne && correspondRecherche(r) && r.date >= aujourdhui;
     }).length;
     compteurAvenirEl.textContent = nbAvenir > 0 ? '(' + nbAvenir + ')' : '';
@@ -595,7 +615,7 @@ function afficherListe() {
   var compteurPassesEl = document.getElementById('compteurPasses');
   if (compteurPassesEl) {
     var nbPasses = tousLesRdv.filter(function (r) {
-      var okPersonne = filtreActuel === 'Tous' || r.person === filtreActuel;
+      var okPersonne = filtreActuel === 'Tous' || String(r.person_id) === filtreActuel;
       return okPersonne && correspondRecherche(r) && r.date < aujourdhui;
     }).length;
     compteurPassesEl.textContent = nbPasses > 0 ? '(' + nbPasses + ')' : '';
@@ -603,7 +623,7 @@ function afficherListe() {
   var compteurTousEl = document.getElementById('compteurTous');
   if (compteurTousEl) {
     var nbTous = tousLesRdv.filter(function (r) {
-      return (filtreActuel === 'Tous' || r.person === filtreActuel) && correspondRecherche(r);
+      return (filtreActuel === 'Tous' || String(r.person_id) === filtreActuel) && correspondRecherche(r);
     }).length;
     compteurTousEl.textContent = nbTous > 0 ? '(' + nbTous + ')' : '';
   }
@@ -640,7 +660,7 @@ function afficherListe() {
       dernierMois = moisCourant;
     }
     var t = titreAffichage(r);
-    var cls = classeBadge(r.person);
+    var cls = classeBadge(r.person_id);
     // Repere visuel perdu depuis le passage au regroupement par mois (on
     // ne voit plus tout de suite "c'est aujourd'hui" comme avec l'ancien
     // regroupement par jour) : on le remet sous forme d'etiquette sur la
@@ -876,7 +896,7 @@ function lieuEtRouteCompactHtml(r) {
 
 function carteCompacteHtml(r) {
   var d = formatDateCompacte(r.date);
-  var cls = classeBadge(r.person);
+  var cls = classeBadge(r.person_id);
   var t = titreAffichage(r);
   return '<div class="carte-compacte">' +
       '<div class="cc-entete cc-' + cls + '">' +
@@ -916,9 +936,9 @@ function genererTachesCompactes(taches) {
   conteneur.innerHTML = '<h2 class="cc-taches-titre">Tâches</h2>' +
     '<div class="cc-taches-grille">' +
     taches.map(function (t) {
-      var cls = t.personne ? classeBadge(t.personne) : 'deux';
+      var cls = t.person_id ? classeBadge(t.person_id) : 'deux';
       var meta = [];
-      if (t.personne) meta.push(escapeHtml(t.personne));
+      if (t.person_id) meta.push(escapeHtml(nomPatient(t.person_id) || t.personne || ''));
       if (t.date_cible) {
         var d = formatDateCompacte(t.date_cible);
         meta.push('Pour le ' + d.jour + ' ' + d.mois);
@@ -973,7 +993,7 @@ function ouvrirEnEdition(id) {
   document.getElementById('fAccompagnant').value = r.accompagnant || '';
   document.getElementById('fNotes').value = r.notes || '';
   document.getElementById('fQuestions').value = r.questions || '';
-  selectionnerPersonne(r.person);
+  selectionnerPersonne(r.person_id);
   // Apres selectionnerPersonne() : le menu doit d'abord etre rempli avec
   // les pathologies de CETTE personne avant qu'on y resélectionne la
   // valeur enregistree.
@@ -985,9 +1005,9 @@ function ouvrirEnEdition(id) {
   ouvrirModal('formCard');
 }
 
-function selectionnerPersonne(nom) {
+function selectionnerPersonne(personId) {
   document.querySelectorAll('.personnes label').forEach(function (l) { l.classList.remove('checked'); });
-  var input = document.querySelector('.personnes input[value="' + nom + '"]');
+  var input = document.querySelector('.personnes input[value="' + personId + '"]');
   if (input) {
     input.checked = true;
     input.nextElementSibling.classList.add('checked');
@@ -1103,7 +1123,7 @@ document.getElementById('btnImporterMedecin').addEventListener('click', function
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      person: personneInput.value,
+      person_id: personneInput.value,
       doctor: doctor,
       department: document.getElementById('fDepartement').value,
       location: document.getElementById('fAdresse').value,
@@ -1166,7 +1186,7 @@ function restaurerRdv(r) {
     date: r.date,
     time: r.time,
     duration: r.duration,
-    person: r.person,
+    person_id: r.person_id,
     doctor: r.doctor,
     department: r.department,
     location: r.location,
@@ -1309,7 +1329,7 @@ document.getElementById('btnEnregistrer').addEventListener('click', function () 
     date: date,
     time: heure,
     duration: duree,
-    person: personneInput.value,
+    person_id: personneInput.value,
     doctor: medecin,
     department: departement,
     location: adresse,

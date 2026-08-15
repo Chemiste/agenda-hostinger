@@ -13,6 +13,7 @@
 require_once __DIR__ . '/lib/auth.php';
 requireLogin();
 require_once __DIR__ . '/lib/db.php';
+require_once __DIR__ . '/lib/persons.php';
 require_once __DIR__ . '/lib/activity_log.php';
 
 // Deja identifie sur cette session (ex: revenu ici via l'URL par erreur) :
@@ -22,20 +23,57 @@ if (personneSessionActuelle() !== null) {
     exit;
 }
 
-$config = require __DIR__ . '/config.php';
-$membresFamille = (isset($config['membres_famille']) && is_array($config['membres_famille']) && !empty($config['membres_famille']))
-    ? $config['membres_famille']
-    : ['Michel', 'Christiane', 'Helene', 'Laurent'];
+$db = getDb();
+
+// La liste vient de la base (voir admin/personnes.php). Repli sur
+// config.php si la table est vide ou absente : une installation neuve, ou
+// un environnement ou la migration 0021 n'est pas encore appliquee, doit
+// continuer a laisser tout le monde entrer.
+$membres = [];
+try {
+    $membres = listerMembresFamille($db);
+} catch (Exception $e) {
+    $membres = [];
+}
+
+$replisurConfig = empty($membres);
+if ($replisurConfig) {
+    $config = require __DIR__ . '/config.php';
+    $noms = (isset($config['membres_famille']) && is_array($config['membres_famille']) && !empty($config['membres_famille']))
+        ? $config['membres_famille']
+        : ['Michel', 'Christiane', 'Helene', 'Laurent'];
+    foreach ($noms as $nom) {
+        $membres[] = ['id' => 0, 'nom' => $nom];
+    }
+}
 
 $erreur = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $nom = isset($_POST['personne']) ? trim($_POST['personne']) : '';
-    if (!in_array($nom, $membresFamille, true)) {
+    // Le bouton envoie un identifiant quand la table existe, un nom sinon.
+    $choisi = null;
+    if (!$replisurConfig && isset($_POST['person_id'])) {
+        $id = (int) $_POST['person_id'];
+        foreach ($membres as $m) {
+            if ((int) $m['id'] === $id) {
+                $choisi = $m;
+                break;
+            }
+        }
+    } elseif ($replisurConfig && isset($_POST['personne'])) {
+        $nom = trim((string) $_POST['personne']);
+        foreach ($membres as $m) {
+            if ($m['nom'] === $nom) {
+                $choisi = $m;
+                break;
+            }
+        }
+    }
+
+    if ($choisi === null) {
         $erreur = 'Merci de choisir un nom dans la liste.';
     } else {
-        definirPersonneSession($nom);
-        $db = getDb();
-        enregistrerActivite($db, 'connexion', $nom);
+        definirPersonneSession($choisi['nom'], (int) $choisi['id']);
+        enregistrerActivite($db, 'connexion', $choisi['nom']);
         // Evite qu'index.php (via requireIdentite -> enregistrerVisiteSiNecessaire)
         // n'enregistre une deuxieme ligne "Connexion" dans la foulee.
         $_SESSION['derniere_visite_loggee'] = time();
@@ -61,10 +99,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <p class="erreur"><?= htmlspecialchars($erreur) ?></p>
     <?php endif; ?>
     <form method="post" class="choix-personnes">
-      <?php foreach ($membresFamille as $nom): ?>
-        <button class="secondaire" type="submit" name="personne" value="<?= htmlspecialchars($nom) ?>"><?= htmlspecialchars($nom) ?></button>
+      <?php foreach ($membres as $m): ?>
+        <?php if ($replisurConfig): ?>
+          <button class="secondaire" type="submit" name="personne" value="<?= htmlspecialchars($m['nom']) ?>"><?= htmlspecialchars($m['nom']) ?></button>
+        <?php else: ?>
+          <button class="secondaire" type="submit" name="person_id" value="<?= (int) $m['id'] ?>"><?= htmlspecialchars($m['nom']) ?></button>
+        <?php endif; ?>
       <?php endforeach; ?>
     </form>
+    <?php if (empty($membres)): ?>
+      <p class="erreur">Aucune personne n'est autorisée à se connecter. Ajoute-les depuis l'administration, page « Personnes ».</p>
+    <?php endif; ?>
   </div>
 </body>
 </html>

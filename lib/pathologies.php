@@ -9,9 +9,11 @@
  * réservée à Laurent) et pathologies_plan.php (fiche imprimable).
  */
 
-function listerPathologies($db, $person) {
-    $stmt = $db->prepare('SELECT * FROM pathologies WHERE person = ? ORDER BY nom ASC');
-    $stmt->execute([$person]);
+require_once __DIR__ . '/persons.php';
+
+function listerPathologies($db, $personId) {
+    $stmt = $db->prepare('SELECT * FROM pathologies WHERE person_id = ? ORDER BY nom ASC');
+    $stmt->execute([(int) $personId]);
     return $stmt->fetchAll();
 }
 
@@ -22,17 +24,19 @@ function obtenirPathologie($db, $id) {
     return $p !== false ? $p : null;
 }
 
-function ajouterPathologie($db, $person, $nom, $cause, $traitement) {
-    $person = trim((string) $person);
+function ajouterPathologie($db, $personId, $nom, $cause, $traitement) {
+    $personId = (int) $personId;
     $nom = trim((string) $nom);
-    if ($person === '') {
+    if ($personId <= 0) {
         throw new Exception('La personne est obligatoire.');
     }
     if ($nom === '') {
         throw new Exception('Le nom de la pathologie ne peut pas être vide.');
     }
-    $stmt = $db->prepare('INSERT INTO pathologies (person, nom, cause, traitement) VALUES (?, ?, ?, ?)');
-    $stmt->execute([$person, $nom, trim((string) $cause), trim((string) $traitement)]);
+    // Le nom est encore ecrit a cote de l'identifiant : la colonne texte
+    // existe jusqu'a la migration 0022. C'est person_id qui fait foi.
+    $stmt = $db->prepare('INSERT INTO pathologies (person, person_id, nom, cause, traitement) VALUES (?, ?, ?, ?, ?)');
+    $stmt->execute([nomPerson($db, $personId), $personId, $nom, trim((string) $cause), trim((string) $traitement)]);
     return (int) $db->lastInsertId();
 }
 

@@ -14,6 +14,7 @@ require_once __DIR__ . '/../lib/auth.php';
 requireAdminLogin();
 require_once __DIR__ . '/../lib/db.php';
 require_once __DIR__ . '/../lib/calendar_sync.php';
+require_once __DIR__ . '/../lib/persons.php';
 require_once __DIR__ . '/../lib/entete_admin.php';
 
 $config = require __DIR__ . '/../config.php';
@@ -94,13 +95,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 $dureeRestauree = (!empty($ligne['duration_minutes']) && (int) $ligne['duration_minutes'] > 0)
                     ? (int) $ligne['duration_minutes'] : 30;
 
-                $stmt = $db->prepare('INSERT INTO appointments (id, appt_date, appt_time, duration_minutes, person, doctor, department, location, phone, route, accompagnant, notes, questions, pathologie_id, calendar_event_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+                // Les sauvegardes faites avant la migration 0021 ne
+                // contiennent qu'un NOM : on retrouve l'identifiant
+                // correspondant. S'il n'existe plus (personne supprimee),
+                // person_id reste a 0 et le rendez-vous sera visible mais
+                // sans personne rattachee - plutot que de le rattacher au
+                // hasard, ou de refuser la restauration.
+                $personIdLigne = isset($ligne['person_id']) ? (int) $ligne['person_id'] : 0;
+                if ($personIdLigne === 0 && !empty($ligne['person'])) {
+                    $patientLigne = personParNom($db, $ligne['person']);
+                    if ($patientLigne !== null) {
+                        $personIdLigne = $patientLigne['id'];
+                    }
+                }
+
+                $stmt = $db->prepare('INSERT INTO appointments (id, appt_date, appt_time, duration_minutes, person, person_id, doctor, department, location, phone, route, accompagnant, notes, questions, pathologie_id, calendar_event_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
                 $stmt->execute([
                     $id,
                     $ligne['appt_date'],
                     $ligne['appt_time'],
                     $dureeRestauree,
                     $ligne['person'],
+                    $personIdLigne,
                     isset($ligne['doctor']) ? $ligne['doctor'] : '',
                     isset($ligne['department']) ? $ligne['department'] : '',
                     isset($ligne['location']) ? $ligne['location'] : '',

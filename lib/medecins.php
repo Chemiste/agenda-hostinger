@@ -12,7 +12,7 @@
 
 function listerMedecins($db) {
     return $db->query(
-        'SELECT * FROM medecins ORDER BY person ASC, doctor ASC'
+        'SELECT * FROM medecins ORDER BY person_id ASC, doctor ASC'
     )->fetchAll();
 }
 
@@ -23,21 +23,25 @@ function obtenirMedecin($db, $id) {
     return $medecin !== false ? $medecin : null;
 }
 
-function ajouterMedecin($db, $person, $doctor, $department, $location, $phone, $route, $notes) {
-    $person = trim((string) $person);
+function ajouterMedecin($db, $personId, $doctor, $department, $location, $phone, $route, $notes) {
+    require_once __DIR__ . '/persons.php';
+    $personId = (int) $personId;
     $doctor = trim((string) $doctor);
-    if ($person === '') {
+    if ($personId <= 0) {
         throw new Exception('La personne est obligatoire.');
     }
     if ($doctor === '') {
         throw new Exception('Le nom du médecin ne peut pas être vide.');
     }
+    // Le nom est encore ecrit a cote de l'identifiant : la colonne texte
+    // existe jusqu'a la migration 0022. C'est person_id qui fait foi.
     $stmt = $db->prepare(
-        'INSERT INTO medecins (person, doctor, department, location, phone, route, notes) ' .
-        'VALUES (?, ?, ?, ?, ?, ?, ?)'
+        'INSERT INTO medecins (person, person_id, doctor, department, location, phone, route, notes) ' .
+        'VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
     );
     $stmt->execute([
-        $person,
+        nomPerson($db, $personId),
+        $personId,
         $doctor,
         trim((string) $department),
         trim((string) $location),
@@ -47,21 +51,23 @@ function ajouterMedecin($db, $person, $doctor, $department, $location, $phone, $
     ]);
 }
 
-function modifierMedecin($db, $id, $person, $doctor, $department, $location, $phone, $route, $notes) {
-    $person = trim((string) $person);
+function modifierMedecin($db, $id, $personId, $doctor, $department, $location, $phone, $route, $notes) {
+    require_once __DIR__ . '/persons.php';
+    $personId = (int) $personId;
     $doctor = trim((string) $doctor);
-    if ($person === '') {
+    if ($personId <= 0) {
         throw new Exception('La personne est obligatoire.');
     }
     if ($doctor === '') {
         throw new Exception('Le nom du médecin ne peut pas être vide.');
     }
     $stmt = $db->prepare(
-        'UPDATE medecins SET person = ?, doctor = ?, department = ?, location = ?, phone = ?, route = ?, notes = ? ' .
+        'UPDATE medecins SET person = ?, person_id = ?, doctor = ?, department = ?, location = ?, phone = ?, route = ?, notes = ? ' .
         'WHERE id = ?'
     );
     $stmt->execute([
-        $person,
+        nomPerson($db, $personId),
+        $personId,
         $doctor,
         trim((string) $department),
         trim((string) $location),
@@ -93,22 +99,23 @@ function supprimerMedecin($db, $id) {
  *
  * Retourne 'cree', 'mis_a_jour' ou 'inchange'.
  */
-function fusionnerMedecinDepuisRdv($db, $person, $doctor, $department, $location, $phone, $route) {
-    $person = trim((string) $person);
+function fusionnerMedecinDepuisRdv($db, $personId, $doctor, $department, $location, $phone, $route) {
+    require_once __DIR__ . '/persons.php';
+    $personId = (int) $personId;
     $doctor = trim((string) $doctor);
-    if ($person === '') {
+    if ($personId <= 0) {
         throw new Exception('La personne est obligatoire.');
     }
     if ($doctor === '') {
         throw new Exception('Le nom du médecin ne peut pas être vide.');
     }
 
-    $stmt = $db->prepare('SELECT * FROM medecins WHERE person = ? AND LOWER(doctor) = LOWER(?)');
-    $stmt->execute([$person, $doctor]);
+    $stmt = $db->prepare('SELECT * FROM medecins WHERE person_id = ? AND LOWER(doctor) = LOWER(?)');
+    $stmt->execute([$personId, $doctor]);
     $existant = $stmt->fetch();
 
     if ($existant === false) {
-        ajouterMedecin($db, $person, $doctor, $department, $location, $phone, $route, '');
+        ajouterMedecin($db, $personId, $doctor, $department, $location, $phone, $route, '');
         return 'cree';
     }
 

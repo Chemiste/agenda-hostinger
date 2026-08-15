@@ -212,6 +212,16 @@ function construireSql($db, $analyse, $tableSource) {
             . $db->quote($p['quantite']) . ");\n";
     }
 
+    // Rattachement a la table persons (migration 0021). Ces lignes sont
+    // indispensables si la migration 0021 est deja passee au moment ou ce
+    // fichier est execute : les INSERT ci-dessus ne renseignent que le NOM,
+    // et un person_id laisse a 0 rendrait tout le plan invisible - la page
+    // Medicaments filtre desormais sur l'identifiant, pas sur le nom.
+    // Sans effet (0 ligne modifiee) si la colonne n'existe pas encore.
+    $sql .= "\n";
+    $sql .= "UPDATE medicaments m JOIN persons p ON p.nom = m.person SET m.person_id = p.id;\n";
+    $sql .= "UPDATE medicament_moments m JOIN persons p ON p.nom = m.person SET m.person_id = p.id;\n";
+
     return $sql;
 }
 

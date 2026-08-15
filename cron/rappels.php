@@ -12,7 +12,7 @@
  * éviter que n'importe qui puisse déclencher l'envoi en tombant sur cette
  * page. Générez-la par exemple avec `openssl rand -hex 20`.
  *
- * Les réglages techniques (activé/désactivé, délai, adresse de Chem,
+ * Les réglages techniques (activé/désactivé, délai, adresse de Laurent,
  * expéditeur) se configurent depuis admin/reglages.php. Les adresses de
  * Papa/Maman et leurs préférences ("aussi recevoir les rappels de
  * l'autre") se configurent depuis mes_rappels.php, pas ici.
@@ -26,6 +26,7 @@
 
 require_once __DIR__ . '/../lib/db.php';
 require_once __DIR__ . '/../lib/settings.php';
+require_once __DIR__ . '/../lib/rappels_personnes.php';
 require_once __DIR__ . '/../lib/mailer.php';
 
 $config = require __DIR__ . '/../config.php';
@@ -65,45 +66,23 @@ if ($heures < 1) {
     $heures = 24;
 }
 
-$p1 = isset($config['personne_1']) ? $config['personne_1'] : 'Papa';
-$p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
+// Reglages par personne : voir lib/rappels_personnes.php. Ils sont
+// indexes par identifiant, donc valables pour autant de patients qu'on
+// veut - l'ancienne version ne connaissait que "person1" et "person2",
+// une troisieme personne n'aurait jamais rien recu, en silence.
+$patients = listerPatients($db);
+$reglages = lireReglagesRappel($db, $patients);
 
 $emailChem = trim(getSetting($db, 'reminder_email_chem', ''));
 $emailFrom = trim(getSetting($db, 'reminder_email_from', ''));
-$emailPerson1 = trim(getSetting($db, 'reminder_email_person1', ''));
-$notifySelfPerson1 = getSetting($db, 'reminder_notify_self_person1', '1') === '1';
-$notifyOtherPerson1 = getSetting($db, 'reminder_notify_other_person1', '0') === '1';
-$emailPerson2 = trim(getSetting($db, 'reminder_email_person2', ''));
-$notifySelfPerson2 = getSetting($db, 'reminder_notify_self_person2', '1') === '1';
-$notifyOtherPerson2 = getSetting($db, 'reminder_notify_other_person2', '0') === '1';
 
-if ($emailChem === '' && $emailPerson1 === '' && $emailPerson2 === '') {
+$auMoinsUneAdresse = $emailChem !== '';
+foreach ($reglages as $r) {
+    if ($r['email'] !== '') { $auMoinsUneAdresse = true; break; }
+}
+if (!$auMoinsUneAdresse) {
     echo "Rappels activés mais aucune adresse email configurée (admin/reglages.php / mes_rappels.php).";
     exit;
-}
-
-// Destinataires pour un rendez-vous donne : la personne concernee (si
-// elle a renseigne son email ET n'a pas desactive ses propres rappels),
-// plus l'autre personne si elle a choisi de recevoir aussi les rappels de
-// celle-ci, plus Chem dans tous les cas (destinataire fixe, voir
-// admin/reglages.php).
-function destinatairesRappel(
-    $personneRdv, $p1, $p2,
-    $emailPerson1, $notifySelfPerson1, $notifyOtherPerson1,
-    $emailPerson2, $notifySelfPerson2, $notifyOtherPerson2,
-    $emailChem
-) {
-    $destinataires = [];
-    if ($personneRdv === $p1) {
-        if ($emailPerson1 !== '' && $notifySelfPerson1) $destinataires[] = $emailPerson1;
-        if ($notifyOtherPerson2 && $emailPerson2 !== '') $destinataires[] = $emailPerson2;
-    } elseif ($personneRdv === $p2) {
-        if ($emailPerson2 !== '' && $notifySelfPerson2) $destinataires[] = $emailPerson2;
-        if ($notifyOtherPerson1 && $emailPerson1 !== '') $destinataires[] = $emailPerson1;
-    }
-    if ($emailChem !== '') $destinataires[] = $emailChem;
-
-    return array_values(array_unique($destinataires));
 }
 
 $stmt = $db->prepare(
@@ -139,12 +118,7 @@ $echecs = 0;
 $ignores = 0;
 
 foreach ($rdvs as $rdv) {
-    $destinataires = destinatairesRappel(
-        $rdv['person'], $p1, $p2,
-        $emailPerson1, $notifySelfPerson1, $notifyOtherPerson1,
-        $emailPerson2, $notifySelfPerson2, $notifyOtherPerson2,
-        $emailChem
-    );
+    $destinataires = destinatairesRappel($rdv['person_id'], $reglages, $emailChem);
     if (empty($destinataires)) {
         $ignores++;
         continue;
@@ -155,7 +129,8 @@ foreach ($rdvs as $rdv) {
     $lignes = [];
     $lignes[] = 'Rappel de rendez-vous : ' . $quand;
     $lignes[] = '';
-    $lignes[] = 'Personne concernée : ' . $rdv['person'];
+    $nomConcerne = ((int) $rdv['person_id'] > 0) ? nomPerson($db, $rdv['person_id']) : $rdv['person'];
+    $lignes[] = 'Personne concernée : ' . $nomConcerne;
     if (!empty($rdv['doctor'])) $lignes[] = 'Médecin / consultation : ' . $rdv['doctor'];
     if (!empty($rdv['department'])) $lignes[] = 'Service : ' . $rdv['department'];
     if (!empty($rdv['location'])) $lignes[] = 'Adresse : ' . $rdv['location'];
@@ -176,7 +151,7 @@ foreach ($rdvs as $rdv) {
     }
     $corps = implode("\n", $lignes);
 
-    $sujet = 'Rappel : rendez-vous ' . $rdv['person'] . ' - ' . $quand;
+    $sujet = 'Rappel : rendez-vous ' . $nomConcerne . ' - ' . $quand;
 
     $envoi = envoyerEmail($destinataires, $sujet, $corps, $emailFrom, $configSmtp);
 

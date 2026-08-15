@@ -2,10 +2,14 @@
 require_once __DIR__ . '/lib/auth.php';
 requireIdentite();
 require_once __DIR__ . '/lib/entete.php';
+require_once __DIR__ . '/lib/db.php';
+require_once __DIR__ . '/lib/persons.php';
 
 $config = require __DIR__ . '/config.php';
-$p1 = isset($config['personne_1']) ? $config['personne_1'] : 'Papa';
-$p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
+// Les patients viennent de la table persons (voir admin/personnes.php) :
+// onglets, boutons radio du formulaire et couleurs en decoulent, sans
+// aucun nom ecrit en dur.
+$patients = listerPatients(getDb());
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -46,8 +50,10 @@ $p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
 
     <div class="tabs" id="tabs" role="tablist">
       <div class="tab tous active" data-filtre="Tous" tabindex="0" role="tab" aria-selected="true">Tous</div>
-      <div class="tab papa" data-filtre="<?= htmlspecialchars($p1) ?>" tabindex="0" role="tab" aria-selected="false"><?= htmlspecialchars($p1) ?></div>
-      <div class="tab maman" data-filtre="<?= htmlspecialchars($p2) ?>" tabindex="0" role="tab" aria-selected="false"><?= htmlspecialchars($p2) ?></div>
+      <?php $rangTab = 0; foreach ($patients as $unPatient): ?>
+        <?php $classeTab = $rangTab === 0 ? 'papa' : ($rangTab === 1 ? 'maman' : 'deux'); $rangTab++; ?>
+        <div class="tab <?= $classeTab ?>" data-filtre="<?= (int) $unPatient['id'] ?>" tabindex="0" role="tab" aria-selected="false"><?= htmlspecialchars($unPatient['nom']) ?></div>
+      <?php endforeach; ?>
       <!-- Recherche repliee par defaut, sur la meme ligne que les onglets
            (place libre a leur droite) : ca evite une ligne entiere avant
            d'arriver aux rendez-vous. Le bouton la deplie (voir app.js). -->
@@ -149,15 +155,16 @@ $p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
         <p class="section-titre">Qui</p>
         <div class="champ">
           <div class="personnes" id="personnes">
-            <input type="radio" name="personne" value="<?= htmlspecialchars($p1) ?>" id="pPapa">
-            <label class="sel-papa" for="pPapa"><?= htmlspecialchars($p1) ?></label>
-            <input type="radio" name="personne" value="<?= htmlspecialchars($p2) ?>" id="pMaman">
-            <label class="sel-maman" for="pMaman"><?= htmlspecialchars($p2) ?></label>
+            <?php $rangRadio = 0; foreach ($patients as $unPatient): ?>
+              <?php $classeSel = $rangRadio === 0 ? 'sel-papa' : ($rangRadio === 1 ? 'sel-maman' : 'sel-deux'); $rangRadio++; ?>
+              <input type="radio" name="personne" value="<?= (int) $unPatient['id'] ?>" id="pPatient<?= (int) $unPatient['id'] ?>">
+              <label class="<?= $classeSel ?>" for="pPatient<?= (int) $unPatient['id'] ?>"><?= htmlspecialchars($unPatient['nom']) ?></label>
+            <?php endforeach; ?>
           </div>
         </div>
         <div class="champ">
           <label>Accompagnant (facultatif)</label>
-          <input type="text" id="fAccompagnant" placeholder="Ex. Chem, Laurent, Hélène...">
+          <input type="text" id="fAccompagnant" placeholder="Ex. Laurent, Hélène, un voisin...">
         </div>
         <!-- Options remplies en JS selon la personne cochee ci-dessus (voir
              chargerPathologies()/actualiserChoixPathologies() dans app.js) :
@@ -248,8 +255,11 @@ $p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script>
-    window.PERSONNE_1 = <?= json_encode($p1) ?>;
-    window.PERSONNE_2 = <?= json_encode($p2) ?>;
+    // [{id, nom}] dans l'ordre d'affichage : app.js en tire les couleurs
+    // (par rang) et les libelles, au lieu de comparer a deux noms figes.
+    window.PATIENTS = <?= json_encode(array_map(function ($p) {
+        return ['id' => (int) $p['id'], 'nom' => $p['nom']];
+    }, array_values($patients)), JSON_UNESCAPED_UNICODE) ?>;
     window.PERSONNE_CONNECTEE = <?= json_encode(personneSessionActuelle()) ?>;
   </script>
   <script src="/assets/app.js?v=<?= filemtime(__DIR__ . '/assets/app.js') ?>"></script>

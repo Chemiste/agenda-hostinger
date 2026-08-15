@@ -18,23 +18,26 @@ requireIdentite();
 require_once __DIR__ . '/lib/entete.php';
 require_once __DIR__ . '/lib/db.php';
 require_once __DIR__ . '/lib/pathologies.php';
+require_once __DIR__ . '/lib/persons.php';
 
-$config = require __DIR__ . '/config.php';
-$p1 = isset($config['personne_1']) ? $config['personne_1'] : 'Papa';
-$p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
 $peutModifier = personneSessionActuelle() === 'Laurent';
 
 $db = getDb();
+
+// Les patients viennent de la table persons (voir admin/personnes.php) :
+// une troisieme personne apparait ici sans toucher au code, et renommer
+// quelqu'un ne detache plus ses pathologies.
+$patients = listerPatients($db);
 $erreur = '';
 $idEnEdition = null;
 
 if ($peutModifier && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     if ($_POST['action'] === 'ajouter') {
         try {
-            $personneForm = isset($_POST['person']) ? $_POST['person'] : '';
+            $personIdForm = validerPatient($db, isset($_POST['person_id']) ? $_POST['person_id'] : 0);
             ajouterPathologie(
                 $db,
-                $personneForm,
+                $personIdForm,
                 isset($_POST['nom']) ? $_POST['nom'] : '',
                 isset($_POST['cause']) ? $_POST['cause'] : '',
                 isset($_POST['traitement']) ? $_POST['traitement'] : ''
@@ -42,7 +45,7 @@ if ($peutModifier && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['acti
             // Post/Redirect/Get (comme medicaments.php) : repart sur un
             // formulaire vide plutot que de rester rempli apres l'ajout,
             // et revient a la bonne section (Michel ou Christiane).
-            header('Location: /pathologies.php?p=' . urlencode($personneForm) . '#formulairePathologie');
+            header('Location: /pathologies.php?p=' . $personIdForm . '#formulairePathologie');
             exit;
         } catch (Exception $e) {
             $erreur = $e->getMessage();
@@ -56,8 +59,8 @@ if ($peutModifier && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['acti
                 isset($_POST['cause']) ? $_POST['cause'] : '',
                 isset($_POST['traitement']) ? $_POST['traitement'] : ''
             );
-            $personneForm = isset($_POST['person']) ? $_POST['person'] : '';
-            header('Location: /pathologies.php?p=' . urlencode($personneForm) . '#formulairePathologie');
+            $personIdForm = validerPatient($db, isset($_POST['person_id']) ? $_POST['person_id'] : 0);
+            header('Location: /pathologies.php?p=' . $personIdForm . '#formulairePathologie');
             exit;
         } catch (Exception $e) {
             $erreur = $e->getMessage();
@@ -65,8 +68,8 @@ if ($peutModifier && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['acti
         }
     } elseif ($_POST['action'] === 'supprimer' && isset($_POST['id'])) {
         supprimerPathologie($db, $_POST['id']);
-        $personneForm = isset($_POST['person']) ? $_POST['person'] : '';
-        header('Location: /pathologies.php?p=' . urlencode($personneForm));
+        $personIdForm = validerPatient($db, isset($_POST['person_id']) ? $_POST['person_id'] : 0);
+        header('Location: /pathologies.php?p=' . $personIdForm);
         exit;
     }
 }
@@ -77,7 +80,7 @@ if ($peutModifier && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['acti
 // formulaire pre-rempli. Sur un echec de validation (POST qui retombe ici
 // sans redirection), $_POST['person'] joue le meme role que "?p=..." pour
 // savoir dans quelle section reafficher l'erreur et les valeurs saisies.
-$personneAffichee = isset($_GET['p']) ? $_GET['p'] : (isset($_POST['person']) ? $_POST['person'] : '');
+$personIdAffiche = (int) (isset($_GET['p']) ? $_GET['p'] : (isset($_POST['person_id']) ? $_POST['person_id'] : 0));
 
 // $idEnEdition peut deja etre defini a ce stade suite a un echec de
 // validation sur "modifier" (voir plus haut) : dans ce cas on garde cet id
@@ -95,7 +98,7 @@ if ($peutModifier && $idEnEdition !== null) {
     if ($pathologieEnEdition === null) {
         $idEnEdition = null;
     } else {
-        $personneAffichee = $pathologieEnEdition['person'];
+        $personIdAffiche = (int) $pathologieEnEdition['person_id'];
         if ($erreur === '') {
             $_POST['nom'] = $pathologieEnEdition['nom'];
             $_POST['cause'] = $pathologieEnEdition['cause'];
@@ -104,10 +107,9 @@ if ($peutModifier && $idEnEdition !== null) {
     }
 }
 
-$personnes = [$p1, $p2];
 $pathologiesParPersonne = [];
-foreach ($personnes as $personne) {
-    $pathologiesParPersonne[$personne] = listerPathologies($db, $personne);
+foreach ($patients as $patient) {
+    $pathologiesParPersonne[$patient['id']] = listerPathologies($db, $patient['id']);
 }
 
 // Personne dont la section est visible au chargement : celle deja ciblee
@@ -116,15 +118,16 @@ foreach ($personnes as $personne) {
 // l'autre sans recharger la page) est gere en JS plus bas - ne depend pas
 // du nombre de personnes, contrairement a l'ancien affichage empile qui
 // devenait plus long a chaque personne ajoutee.
-$personneActive = ($personneAffichee !== '' && in_array($personneAffichee, $personnes, true))
-    ? $personneAffichee
-    : $personnes[0];
+$personIdActif = isset($patients[$personIdAffiche])
+    ? $personIdAffiche
+    : (!empty($patients) ? (int) key($patients) : 0);
 
-// Meme mapping que classeBadge() dans app.js (papa/maman colores, "deux"
-// en secours si jamais une 3e personne s'ajoutait un jour).
-function classePersonnePathologie($personne, $p1, $p2) {
-    if ($personne === $p1) return 'papa';
-    if ($personne === $p2) return 'maman';
+// Meme mapping de couleurs que classeBadge() dans app.js. Il repose
+// desormais sur le RANG du patient et non sur son nom : une 3e personne
+// retombe sur "deux" sans rien casser.
+function classePersonnePathologie($rang) {
+    if ($rang === 0) return 'papa';
+    if ($rang === 1) return 'maman';
     return 'deux';
 }
 ?>
@@ -152,57 +155,60 @@ function classePersonnePathologie($personne, $p1, $p2) {
   </p>
 
   <div class="tabs" id="tabsPersonnesPathologies" role="tablist">
-    <?php foreach ($personnes as $personne): ?>
-      <div class="tab <?= classePersonnePathologie($personne, $p1, $p2) ?> <?= $personne === $personneActive ? 'active' : '' ?>" data-personne="<?= htmlspecialchars($personne) ?>" tabindex="0" role="tab" aria-selected="<?= $personne === $personneActive ? 'true' : 'false' ?>"><?= htmlspecialchars($personne) ?></div>
+    <?php $rang = 0; foreach ($patients as $patient): ?>
+      <div class="tab <?= classePersonnePathologie($rang++) ?> <?= $patient['id'] === $personIdActif ? 'active' : '' ?>" data-personne="<?= (int) $patient['id'] ?>" tabindex="0" role="tab" aria-selected="<?= $patient['id'] === $personIdActif ? 'true' : 'false' ?>"><?= htmlspecialchars($patient['nom']) ?></div>
     <?php endforeach; ?>
   </div>
 
-  <?php foreach ($personnes as $personne): ?>
+  <?php foreach ($patients as $patient): ?>
     <?php
-      $enEditionIci = $peutModifier && $pathologieEnEdition !== null && $pathologieEnEdition['person'] === $personne;
-      $listePersonne = $pathologiesParPersonne[$personne];
+      $personne = $patient['nom'];
+      $personId = (int) $patient['id'];
+      $estAffichee = $personIdAffiche === $personId;
+      $enEditionIci = $peutModifier && $pathologieEnEdition !== null && (int) $pathologieEnEdition['person_id'] === $personId;
+      $listePersonne = $pathologiesParPersonne[$personId];
     ?>
     <!-- Pas de carte englobante ni de titre repetant le nom de la personne :
          l'onglet actif l'indique deja, et l'emboitement de cartes (padding +
          marges a chaque niveau) laissait beaucoup de blanc perdu. -->
-    <div class="section-personne-pathologies <?= $personne === $personneActive ? 'active' : '' ?>" id="section-<?= htmlspecialchars($personne) ?>" data-personne="<?= htmlspecialchars($personne) ?>">
-      <a class="principal bouton-fiche" href="/pathologies_plan.php?person=<?= urlencode($personne) ?>">
+    <div class="section-personne-pathologies <?= $personId === $personIdActif ? 'active' : '' ?>" id="section-<?= $personId ?>" data-personne="<?= $personId ?>">
+      <a class="principal bouton-fiche" href="/pathologies_plan.php?person=<?= $personId ?>">
         <svg class="icone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6"/><rect x="4" y="9" width="16" height="8" rx="1"/><path d="M6 17v4h12v-4"/></svg>
         Voir / imprimer la fiche de <?= htmlspecialchars($personne) ?>
       </a>
 
       <?php if ($peutModifier): ?>
-      <div class="outil" id="<?= $personneAffichee === $personne ? 'formulairePathologie' : '' ?>" style="margin-top:14px;">
+      <div class="outil" id="<?= $estAffichee ? 'formulairePathologie' : '' ?>" style="margin-top:14px;">
         <h2 class="panneau-titre"><?= $enEditionIci ? 'Modifier la pathologie' : 'Ajouter une pathologie' ?></h2>
 
-        <?php if ($erreur && $personneAffichee === $personne): ?>
+        <?php if ($erreur && $estAffichee): ?>
           <p class="erreur"><?= htmlspecialchars($erreur) ?></p>
         <?php endif; ?>
 
         <form method="post">
           <input type="hidden" name="action" value="<?= $enEditionIci ? 'modifier' : 'ajouter' ?>">
-          <input type="hidden" name="person" value="<?= htmlspecialchars($personne) ?>">
+          <input type="hidden" name="person_id" value="<?= $personId ?>">
           <?php if ($enEditionIci): ?>
             <input type="hidden" name="id" value="<?= (int) $idEnEdition ?>">
           <?php endif; ?>
           <div class="champ">
             <label>Pathologie</label>
-            <input type="text" name="nom" placeholder="Ex. Dos, Bras..." required value="<?= $personneAffichee === $personne && isset($_POST['nom']) ? htmlspecialchars($_POST['nom']) : '' ?>">
+            <input type="text" name="nom" placeholder="Ex. Dos, Bras..." required value="<?= $estAffichee && isset($_POST['nom']) ? htmlspecialchars($_POST['nom']) : '' ?>">
           </div>
           <div class="champ-ligne">
             <div class="champ">
               <label>Cause / raison (facultatif)</label>
-              <textarea name="cause" rows="2" placeholder="Ex. Tassement des vertèbres, selon le scanner fait à St Luc"><?= $personneAffichee === $personne && isset($_POST['cause']) ? htmlspecialchars($_POST['cause']) : '' ?></textarea>
+              <textarea name="cause" rows="2" placeholder="Ex. Tassement des vertèbres, selon le scanner fait à St Luc"><?= $estAffichee && isset($_POST['cause']) ? htmlspecialchars($_POST['cause']) : '' ?></textarea>
             </div>
             <div class="champ">
               <label>Ce qui est fait pour soigner (facultatif)</label>
-              <textarea name="traitement" rows="2" placeholder="Ex. Kiné 2x/semaine, revu par Dr Dupont en octobre, Dafalgan si besoin"><?= $personneAffichee === $personne && isset($_POST['traitement']) ? htmlspecialchars($_POST['traitement']) : '' ?></textarea>
+              <textarea name="traitement" rows="2" placeholder="Ex. Kiné 2x/semaine, revu par Dr Dupont en octobre, Dafalgan si besoin"><?= $estAffichee && isset($_POST['traitement']) ? htmlspecialchars($_POST['traitement']) : '' ?></textarea>
             </div>
           </div>
           <div class="form-boutons">
             <button class="principal" type="submit"><?= $enEditionIci ? 'Enregistrer les modifications' : 'Ajouter' ?></button>
             <?php if ($enEditionIci): ?>
-              <a class="secondaire" href="/pathologies.php?p=<?= urlencode($personne) ?>">Annuler</a>
+              <a class="secondaire" href="/pathologies.php?p=<?= $personId ?>">Annuler</a>
             <?php endif; ?>
           </div>
         </form>
@@ -244,7 +250,7 @@ function classePersonnePathologie($personne, $p1, $p2) {
                   <form method="post" data-confirm="Supprimer cette pathologie ?">
                     <input type="hidden" name="action" value="supprimer">
                     <input type="hidden" name="id" value="<?= (int) $path['id'] ?>">
-                    <input type="hidden" name="person" value="<?= htmlspecialchars($personne) ?>">
+                    <input type="hidden" name="person_id" value="<?= $personId ?>">
                     <button type="submit" class="lien-danger">Supprimer</button>
                   </form>
                 </div>

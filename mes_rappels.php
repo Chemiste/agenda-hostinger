@@ -14,34 +14,20 @@ require_once __DIR__ . '/lib/auth.php';
 requireIdentite();
 require_once __DIR__ . '/lib/db.php';
 require_once __DIR__ . '/lib/settings.php';
+require_once __DIR__ . '/lib/rappels_personnes.php';
 require_once __DIR__ . '/lib/mailer.php';
 
 $config = require __DIR__ . '/config.php';
 $configSmtp = construireConfigSmtp($config);
-$p1 = isset($config['personne_1']) ? $config['personne_1'] : 'Papa';
-$p2 = isset($config['personne_2']) ? $config['personne_2'] : 'Maman';
 
 $db = getDb();
 $reminderEnabled = getSetting($db, 'reminder_enabled', '0') === '1';
 
-// Avant la v1.16.0, une seule adresse email etait partagee pour "les
-// parents" (reglee dans l'administration). Si les nouveaux champs
-// individuels n'ont encore jamais ete remplis, on part de cette ancienne
-// valeur plutot que de repartir de zero.
-$ancienEmailPartage = getSetting($db, 'reminder_email_parents', '');
-
-$defauts = [
-    'reminder_email_person1' => $ancienEmailPartage,
-    'reminder_notify_self_person1' => '1',
-    'reminder_notify_other_person1' => '0',
-    'reminder_email_person2' => $ancienEmailPartage,
-    'reminder_notify_self_person2' => '1',
-    'reminder_notify_other_person2' => '0',
-];
-$valeurs = [];
-foreach ($defauts as $cle => $defaut) {
-    $valeurs[$cle] = getSetting($db, $cle, $defaut);
-}
+// Une carte par patient, engendree par une boucle : les deux blocs etaient
+// ecrits en dur pour "person1" et "person2", une troisieme personne
+// n'aurait eu ni champ ni rappel (voir lib/rappels_personnes.php).
+$patients = listerPatients($db);
+$reglages = lireReglagesRappel($db, $patients);
 
 // "?enregistre=1" plutot qu'un simple booleen mis a jour dans la meme
 // requete : permet de rediriger apres l'enregistrement (Post/Redirect/Get,
@@ -51,43 +37,51 @@ $messageEnregistre = isset($_GET['enregistre']);
 $resultatTest = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $valeurs['reminder_email_person1'] = isset($_POST['reminder_email_person1']) ? trim($_POST['reminder_email_person1']) : '';
-    $valeurs['reminder_notify_self_person1'] = !empty($_POST['reminder_notify_self_person1']) ? '1' : '0';
-    $valeurs['reminder_notify_other_person1'] = !empty($_POST['reminder_notify_other_person1']) ? '1' : '0';
-    $valeurs['reminder_email_person2'] = isset($_POST['reminder_email_person2']) ? trim($_POST['reminder_email_person2']) : '';
-    $valeurs['reminder_notify_self_person2'] = !empty($_POST['reminder_notify_self_person2']) ? '1' : '0';
-    $valeurs['reminder_notify_other_person2'] = !empty($_POST['reminder_notify_other_person2']) ? '1' : '0';
+    // Relit d'abord tout ce qui a ete saisi, pour que l'envoi de test
+    // utilise l'adresse a l'ecran meme si elle n'est pas encore enregistree.
+    foreach ($patients as $patient) {
+        $id = (int) $patient['id'];
+        $reglages[$id] = [
+            'email' => isset($_POST['email_' . $id]) ? trim($_POST['email_' . $id]) : '',
+            'soi' => !empty($_POST['soi_' . $id]),
+            'autres' => !empty($_POST['autres_' . $id]),
+        ];
+    }
 
-    if (isset($_POST['action']) && $_POST['action'] === 'enregistrer') {
-        foreach ($valeurs as $cle => $val) {
-            setSetting($db, $cle, $val);
+    $action = isset($_POST['action']) ? $_POST['action'] : '';
+
+    if ($action === 'enregistrer') {
+        foreach ($reglages as $id => $r) {
+            enregistrerReglagesRappel($db, $id, $r['email'], $r['soi'], $r['autres']);
         }
         header('Location: /mes_rappels.php?enregistre=1');
         exit;
-    } elseif (isset($_POST['action']) && in_array($_POST['action'], ['tester_person1', 'tester_person2'], true)) {
-        $estPerson1 = $_POST['action'] === 'tester_person1';
-        $email = $estPerson1 ? $valeurs['reminder_email_person1'] : $valeurs['reminder_email_person2'];
-        $nomPersonne = $estPerson1 ? $p1 : $p2;
+    } elseif (strpos($action, 'tester_') === 0) {
+        $idTeste = (int) substr($action, strlen('tester_'));
+        if (isset($reglages[$idTeste])) {
+            $email = $reglages[$idTeste]['email'];
+            $nomPersonne = $patients[$idTeste]['nom'];
 
-        if ($email === '') {
-            $resultatTest = [
-                'cible' => $_POST['action'],
-                'ok' => false,
-                'message' => 'Renseignez une adresse email avant de tester.',
-            ];
-        } else {
-            $emailFrom = getSetting($db, 'reminder_email_from', '');
-            $corps = "Ceci est un email de test pour $nomPersonne, envoye depuis l'agenda medical.\n\n"
-                . "Si vous recevez ce message, les rappels de rendez-vous fonctionneront bien pour vous.\n\n"
-                . "(Pensez a verifier le dossier des indesirables/spam si vous ne le voyez pas dans votre boite de reception principale.)";
-            $envoi = envoyerEmail([$email], 'Test - Agenda medical', $corps, $emailFrom, $configSmtp);
-            $resultatTest = [
-                'cible' => $_POST['action'],
-                'ok' => $envoi['ok'],
-                'message' => $envoi['ok']
-                    ? "Email de test envoyé à $email. Vérifiez la réception (et le dossier spam)."
-                    : "L'envoi a échoué : " . $envoi['erreur'],
-            ];
+            if ($email === '') {
+                $resultatTest = [
+                    'cible' => $idTeste,
+                    'ok' => false,
+                    'message' => 'Renseignez une adresse email avant de tester.',
+                ];
+            } else {
+                $emailFrom = getSetting($db, 'reminder_email_from', '');
+                $corps = "Ceci est un email de test pour $nomPersonne, envoye depuis l'agenda medical.\n\n"
+                    . "Si vous recevez ce message, les rappels de rendez-vous fonctionneront bien pour vous.\n\n"
+                    . "(Pensez a verifier le dossier des indesirables/spam si vous ne le voyez pas dans votre boite de reception principale.)";
+                $envoi = envoyerEmail([$email], 'Test - Agenda medical', $corps, $emailFrom, $configSmtp);
+                $resultatTest = [
+                    'cible' => $idTeste,
+                    'ok' => $envoi['ok'],
+                    'message' => $envoi['ok']
+                        ? "Email de test envoyé à $email. Vérifiez la réception (et le dossier spam)."
+                        : "L'envoi a échoué : " . $envoi['erreur'],
+                ];
+            }
         }
     }
 }
@@ -110,7 +104,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <a href="/index.php">Retour à l'agenda</a>
     </div>
   </div>
-  <p class="sous-titre" style="margin-bottom:18px;">Chacun renseigne ici son adresse email, active ou désactive les rappels pour lui-même (sans avoir à effacer son adresse), et peut aussi choisir d'être prévenu des rendez-vous de l'autre.</p>
+  <p class="sous-titre" style="margin-bottom:18px;">Chacun renseigne ici son adresse email, active ou désactive les rappels pour lui-même (sans avoir à effacer son adresse), et peut aussi choisir d'être prévenu des rendez-vous des autres.</p>
 
   <?php if (!$reminderEnabled): ?>
     <p class="aide avertissement" style="margin:8px 0 16px;">Les rappels par email sont actuellement désactivés pour tout le monde (réglage géré dans l'administration). Les réglages ci-dessous seront pris en compte dès qu'ils seront réactivés.</p>
@@ -121,51 +115,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <?php endif; ?>
 
   <form method="post">
-    <div class="outil">
-      <h2 class="panneau-titre"><?= htmlspecialchars($p1) ?></h2>
-      <div class="champ">
-        <label>Adresse email de <?= htmlspecialchars($p1) ?></label>
-        <input type="email" name="reminder_email_person1" value="<?= htmlspecialchars($valeurs['reminder_email_person1']) ?>" placeholder="<?= htmlspecialchars($p1) ?>@example.com">
-        <p class="aide">L'adresse peut rester enregistrée même si les rappels sont désactivés ci-dessous.</p>
-      </div>
-      <div class="champ-case">
-        <input type="checkbox" name="reminder_notify_self_person1" id="soi1" value="1" <?= $valeurs['reminder_notify_self_person1'] === '1' ? 'checked' : '' ?>>
-        <label for="soi1">Je souhaite recevoir un rappel pour mes rendez-vous</label>
-      </div>
-      <div class="champ-case">
-        <input type="checkbox" name="reminder_notify_other_person1" id="autre1" value="1" <?= $valeurs['reminder_notify_other_person1'] === '1' ? 'checked' : '' ?>>
-        <label for="autre1">Recevoir aussi les rappels des rendez-vous de <?= htmlspecialchars($p2) ?></label>
-      </div>
+    <?php $premier = true; foreach ($patients as $patient): ?>
+      <?php $id = (int) $patient['id']; $r = $reglages[$id]; ?>
+      <div class="outil"<?= $premier ? '' : ' style="margin-top:16px;"' ?>>
+        <h2 class="panneau-titre"><?= htmlspecialchars($patient['nom']) ?></h2>
+        <div class="champ">
+          <label>Adresse email de <?= htmlspecialchars($patient['nom']) ?></label>
+          <input type="email" name="email_<?= $id ?>" value="<?= htmlspecialchars($r['email']) ?>" placeholder="<?= htmlspecialchars(strtolower($patient['nom'])) ?>@example.com">
+          <p class="aide">L'adresse peut rester enregistrée même si les rappels sont désactivés ci-dessous.</p>
+        </div>
+        <div class="champ-case">
+          <input type="checkbox" name="soi_<?= $id ?>" id="soi<?= $id ?>" value="1" <?= $r['soi'] ? 'checked' : '' ?>>
+          <label for="soi<?= $id ?>">Je souhaite recevoir un rappel pour mes rendez-vous</label>
+        </div>
+        <?php /* "des autres" et non "de X" : avec plus de deux personnes,
+                 nommer l'autre n'a plus de sens. */ ?>
+        <div class="champ-case">
+          <input type="checkbox" name="autres_<?= $id ?>" id="autres<?= $id ?>" value="1" <?= $r['autres'] ? 'checked' : '' ?>>
+          <label for="autres<?= $id ?>">Recevoir aussi les rappels des rendez-vous des autres personnes</label>
+        </div>
 
-      <?php if ($resultatTest !== null && $resultatTest['cible'] === 'tester_person1'): ?>
-        <p class="<?= $resultatTest['ok'] ? 'info' : 'erreur' ?>"><?= htmlspecialchars($resultatTest['message']) ?></p>
-      <?php endif; ?>
+        <?php if ($resultatTest !== null && $resultatTest['cible'] === $id): ?>
+          <p class="<?= $resultatTest['ok'] ? 'info' : 'erreur' ?>"><?= htmlspecialchars($resultatTest['message']) ?></p>
+        <?php endif; ?>
 
-      <button class="secondaire" type="submit" name="action" value="tester_person1">Envoyer un email de test à <?= htmlspecialchars($p1) ?></button>
-    </div>
-
-    <div class="outil" style="margin-top:16px;">
-      <h2 class="panneau-titre"><?= htmlspecialchars($p2) ?></h2>
-      <div class="champ">
-        <label>Adresse email de <?= htmlspecialchars($p2) ?></label>
-        <input type="email" name="reminder_email_person2" value="<?= htmlspecialchars($valeurs['reminder_email_person2']) ?>" placeholder="<?= htmlspecialchars($p2) ?>@example.com">
-        <p class="aide">L'adresse peut rester enregistrée même si les rappels sont désactivés ci-dessous.</p>
+        <button class="secondaire" type="submit" name="action" value="tester_<?= $id ?>">Envoyer un email de test à <?= htmlspecialchars($patient['nom']) ?></button>
       </div>
-      <div class="champ-case">
-        <input type="checkbox" name="reminder_notify_self_person2" id="soi2" value="1" <?= $valeurs['reminder_notify_self_person2'] === '1' ? 'checked' : '' ?>>
-        <label for="soi2">Je souhaite recevoir un rappel pour mes rendez-vous</label>
-      </div>
-      <div class="champ-case">
-        <input type="checkbox" name="reminder_notify_other_person2" id="autre2" value="1" <?= $valeurs['reminder_notify_other_person2'] === '1' ? 'checked' : '' ?>>
-        <label for="autre2">Recevoir aussi les rappels des rendez-vous de <?= htmlspecialchars($p1) ?></label>
-      </div>
-
-      <?php if ($resultatTest !== null && $resultatTest['cible'] === 'tester_person2'): ?>
-        <p class="<?= $resultatTest['ok'] ? 'info' : 'erreur' ?>"><?= htmlspecialchars($resultatTest['message']) ?></p>
-      <?php endif; ?>
-
-      <button class="secondaire" type="submit" name="action" value="tester_person2">Envoyer un email de test à <?= htmlspecialchars($p2) ?></button>
-    </div>
+      <?php $premier = false; ?>
+    <?php endforeach; ?>
 
     <div class="form-boutons" style="margin-top:16px;">
       <button class="principal" type="submit" name="action" value="enregistrer">Enregistrer les réglages</button>
