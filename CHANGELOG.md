@@ -12,6 +12,15 @@
   son titre seul en bas d'une page), un rendez-vous seul sur sa ligne
   occupe toute la largeur, et la feuille porte sa date d'impression.
 
+- **Sauvegarde automatique étendue aux médicaments et aux pathologies.**
+  Seuls les rendez-vous étaient sauvegardés : ces deux tables, saisies à la
+  main et longues à reconstituer, n'avaient aucun filet. Un fichier JSON
+  par table désormais (`medicaments-…json`, `pathologies-…json`), même
+  rétention de 60 jours. Le format et l'écran de restauration des
+  rendez-vous sont inchangés. Si une table est absente (migration pas
+  encore appliquée sur cet environnement), la sauvegarde des autres se
+  poursuit et un avertissement est affiché.
+
 - **Médicaments : "tel médicament OU tel autre".** Un médicament peut
   désormais être déclaré alternative d'un autre ("Dafalgan Forte OU
   Paracetamol EG"). L'alternative reste une ligne complète — son nom, sa

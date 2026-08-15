@@ -115,7 +115,9 @@ En cas de suppression accidentelle d'un rendez-vous, une sauvegarde automatique 
 >
 > **Si ça ne se déclenche toujours pas automatiquement** (mais que visiter l'URL à la main fonctionne) : dans la liste des tâches Cron, cliquez sur **"Afficher le résultat"** pour voir la sortie de la dernière exécution — une sortie vide ne veut pas forcément dire un échec, `wget -q` ne log rien par défaut en cas de succès. Vérifiez aussi qu'aucun espace ou caractère invisible ne s'est glissé dans le chemin lors du copier-coller.
 
-Chaque sauvegarde est un export complet des rendez-vous à cet instant, conservé 60 jours puis supprimé automatiquement. Le dossier `backups/` est bloqué à l'accès direct par son propre `.htaccess` : seule la page d'administration (avec son mot de passe) peut les consulter.
+Chaque sauvegarde est un export complet des **rendez-vous**, des **médicaments** et des **pathologies** à cet instant — un fichier JSON par table (`appointments-…json`, `medicaments-…json`, `pathologies-…json`), conservé 60 jours puis supprimé automatiquement. Le dossier `backups/` est bloqué à l'accès direct par son propre `.htaccess` : seule la page d'administration (avec son mot de passe) peut les consulter.
+
+Seuls les rendez-vous ont un écran de restauration (`admin/sauvegardes.php`). Pour les médicaments et les pathologies, la sauvegarde sert de filet : en cas de problème, le fichier JSON permet de reconstituer les données à la main, ce qui est bien plus rapide que de tout retrouver de mémoire.
 
 Si vous n'avez pas de Cron Jobs sur votre plan Hostinger, vous pouvez toujours déclencher une sauvegarde manuellement en visitant l'URL `cron/backup.php?token=...` vous-même de temps en temps — ce n'est juste plus automatique.
 
