@@ -2,6 +2,26 @@
 
 ## Non publié
 
+- **L'alternative passe à droite du médicament, plus en dessous.** Empilée,
+  elle rendait sa carte deux fois plus haute que ses voisines — qui
+  s'étiraient pour rien, puisque la grille aligne les hauteurs d'une même
+  rangée. C'est ce qui faisait déborder la fiche de Christiane sur une
+  seconde page. La carte occupe désormais deux colonnes et les deux boîtes
+  sont côte à côte.
+  Comme deux boîtes côte à côte ressemblent par défaut à deux médicaments
+  à prendre ensemble — exactement l'erreur à éviter — l'avertissement est
+  volontairement redondant : bandeau « ⚠ UN SEUL DES DEUX — jamais les deux
+  ensemble » en tête de carte, cadre plus épais, « OU » encadré au centre
+  d'une barre verticale qui traverse toute la hauteur, et mention
+  « À PRENDRE » / « OU, À LA PLACE » au-dessus de chaque boîte. Aucun de
+  ces signaux ne repose sur la couleur seule.
+  Le détail n'est écrit qu'une fois, en bas, **s'il est identique** aux
+  deux (Paracetamol / Dafalgan) ; s'il diffère (Escitalopram 5 mg x2 /
+  Sipralexa 10 mg) chacun garde le sien. La quantité, elle, reste toujours
+  collée à sa boîte. Sur téléphone les boîtes repassent l'une sous l'autre,
+  en gardant bandeau, cadre et mentions. Les sections restent insécables
+  entre deux pages.
+
 - **Deux outils sensibles passent derrière le mot de passe d'administration.**
   `outils/migrate.php` (appliquer une migration de base de données) et
   `outils/import_calendar.php` (import en masse depuis Google Calendar) ne
