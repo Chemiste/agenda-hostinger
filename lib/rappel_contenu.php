@@ -43,43 +43,84 @@ function echapperHtml($texte) {
 }
 
 /**
- * Le plan de prise, aplati en lignes lisibles.
+ * Le plan de prise, prepare pour l'affichage.
  *
- * Une entree par moment de la journee : ['libelle' => 'Matin',
- * 'lignes' => ['Escitalopram 10 mg — 1 comprimé', ...]].
+ * Une entree par moment de la journee :
+ *   ['libelle' => 'Matin', 'medicaments' => [ ... ]]
+ * et pour chaque medicament :
+ *   ['boites' => [['nom' => 'Paracetamol EG Forte', 'quantite' => '1 comprimé',
+ *                  'detail' => ''], ...],
+ *    'detail_commun' => '1000 mg — contre la douleur...',
+ *    'avec_alternative' => true]
  *
- * Les alternatives sont rendues sur la MEME ligne que leur principal,
- * separees par « OU », et jamais comme deux entrees distinctes : le plan
- * imprime consacre trois signaux redondants a eviter que Michel ou
- * Christiane prenne les deux. Les lister l'un sous l'autre ici defairait
- * cette precaution.
+ * DEUX REGLES REPRISES DE LA FICHE IMPRIMEE (voir medicaments.php), pour
+ * que le mail dise la meme chose qu'elle :
+ *
+ *  1. Le detail ne s'ecrit une seule fois, en fin de ligne, QUE s'il est
+ *     identique pour toutes les boites. Paracetamol et Dafalgan partagent
+ *     "1000 mg - contre la douleur, max 3x/jour" : le repeter allongerait
+ *     la ligne sans rien apprendre. Des que les details different
+ *     (Escitalopram 5mg x2 / Sipralexa 10mg), chacun reste colle a son nom
+ *     - sans quoi on melangerait deux posologies.
+ *  2. La quantite ne descend JAMAIS en fin de ligne : elle est propre a
+ *     chaque boite, et la deplacer laisserait croire qu'elle vaut pour les
+ *     deux.
+ *
+ * L'avertissement "l'un OU l'autre" est pose une seule fois par
+ * medicament, et non par alternative : avec deux alternatives il
+ * apparaissait deux fois.
  */
 function lignesPlanMedicaments($db, $personId) {
     $sections = [];
     foreach (construirePlan($db, $personId) as $section) {
-        $lignes = [];
+        $medicaments = [];
         foreach ($section['medicaments'] as $med) {
-            $texte = $med['nom'];
-            if (!empty($med['detail'])) {
-                $texte .= ' ' . $med['detail'];
-            }
-            if (!empty($med['quantite'])) {
-                $texte .= ' — ' . $med['quantite'];
-            }
+            $boites = [['nom' => $med['nom'],
+                        'detail' => isset($med['detail']) ? $med['detail'] : '',
+                        'quantite' => isset($med['quantite']) ? $med['quantite'] : '']];
             foreach ($med['alternatives'] as $alt) {
-                $texteAlt = $alt['nom'];
-                if (!empty($alt['detail'])) {
-                    $texteAlt .= ' ' . $alt['detail'];
-                }
-                $texte .= '   OU   ' . $texteAlt . ' (l\'un OU l\'autre, jamais les deux)';
+                $boites[] = ['nom' => $alt['nom'],
+                             'detail' => isset($alt['detail']) ? $alt['detail'] : '',
+                             'quantite' => isset($alt['quantite']) ? $alt['quantite'] : ''];
             }
-            $lignes[] = $texte;
+
+            $avecAlternative = count($boites) > 1;
+            $detailCommun = '';
+            if ($avecAlternative && $boites[0]['detail'] !== '') {
+                $detailCommun = $boites[0]['detail'];
+                foreach ($boites as $b) {
+                    if ($b['detail'] !== $detailCommun) { $detailCommun = ''; break; }
+                }
+            }
+            if ($detailCommun !== '') {
+                foreach ($boites as $i => $b) {
+                    $boites[$i]['detail'] = '';
+                }
+            }
+
+            $medicaments[] = [
+                'boites' => $boites,
+                'detail_commun' => $detailCommun,
+                'avec_alternative' => $avecAlternative,
+            ];
         }
-        if (!empty($lignes)) {
-            $sections[] = ['libelle' => $section['moment']['libelle'], 'lignes' => $lignes];
+        if (!empty($medicaments)) {
+            $sections[] = ['libelle' => $section['moment']['libelle'], 'medicaments' => $medicaments];
         }
     }
     return $sections;
+}
+
+/** Une boite, en texte : "Paracetamol EG Forte 1000 mg — 1 comprimé". */
+function libelleBoite($b) {
+    $texte = $b['nom'];
+    if ($b['detail'] !== '') {
+        $texte .= ' ' . $b['detail'];
+    }
+    if ($b['quantite'] !== '') {
+        $texte .= ' — ' . $b['quantite'];
+    }
+    return $texte;
 }
 
 /**
@@ -142,8 +183,24 @@ function rappelEnTexte($nomConcerne, $quand, $infos, $rdv, $questions, $medicame
         foreach ($medicaments as $section) {
             $l[] = '';
             $l[] = $section['libelle'] . ' :';
-            foreach ($section['lignes'] as $ligne) {
-                $l[] = '- ' . $ligne;
+            foreach ($section['medicaments'] as $med) {
+                $morceaux = [];
+                foreach ($med['boites'] as $b) {
+                    $morceaux[] = libelleBoite($b);
+                }
+                // "OU" en majuscules : le texte brut n'a pas de gras, la
+                // casse est le seul relief disponible.
+                $l[] = '- ' . implode('   OU   ', $morceaux);
+                // Le detail commun sur sa propre ligne, comme sur la fiche
+                // imprimee ou il est centre sous les deux boites : mis a la
+                // suite, il empilait trois tirets ("— 1 comprimé — 1000 mg
+                // — contre la douleur") et devenait illisible.
+                if ($med['detail_commun'] !== '') {
+                    $l[] = '  ' . $med['detail_commun'];
+                }
+                if ($med['avec_alternative']) {
+                    $l[] = '  UN SEUL DES DEUX, jamais les deux ensemble';
+                }
             }
         }
     }
@@ -211,8 +268,28 @@ function rappelEnHtml($nomConcerne, $quand, $infos, $rdv, $questions, $medicamen
             $o[] = '<div style="' . $police . 'font-size:15px;font-weight:700;text-transform:uppercase;'
                  . 'letter-spacing:0.04em;color:#5b6068;margin:14px 0 4px;">' . echapperHtml($section['libelle']) . '</div>';
             $o[] = '<ul style="' . $police . 'font-size:17px;line-height:1.6;color:#1c1d20;margin:0;padding-left:22px;">';
-            foreach ($section['lignes'] as $ligne) {
-                $o[] = '<li style="margin-bottom:4px;">' . echapperHtml($ligne) . '</li>';
+            foreach ($section['medicaments'] as $med) {
+                $morceaux = [];
+                foreach ($med['boites'] as $b) {
+                    $morceaux[] = echapperHtml(libelleBoite($b));
+                }
+                // "OU" en gras : c'est le mot qui porte tout le sens de la
+                // ligne. Noye dans le reste, il se lit comme un "et".
+                $ligne = implode(' <strong>OU</strong> ', $morceaux);
+                // Sur sa propre ligne, comme sur la fiche imprimee : a la
+                // suite, il empilait trois tirets et devenait illisible.
+                if ($med['detail_commun'] !== '') {
+                    $ligne .= '<br><span style="font-size:15px;color:#5b6068;">'
+                            . echapperHtml($med['detail_commun']) . '</span>';
+                }
+                if ($med['avec_alternative']) {
+                    // Ecrit en toutes lettres, sur sa propre ligne : Chem est
+                    // daltonien, et cette precaution ne doit dependre ni de
+                    // la couleur ni de la place disponible.
+                    $ligne .= '<br><span style="font-size:15px;font-weight:700;color:#993536;">'
+                            . 'Un seul des deux, jamais les deux ensemble</span>';
+                }
+                $o[] = '<li style="margin-bottom:8px;">' . $ligne . '</li>';
             }
             $o[] = '</ul>';
         }

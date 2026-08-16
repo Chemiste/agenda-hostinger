@@ -533,3 +533,14 @@ textarea.motifs { width:100%; min-height:100px; font-family:inherit; font-size:1
    site et on ne verrait donc PAS ce que recoivent reellement Michel et
    Christiane - ce qui viderait l'apercu de son interet. */
 .apercu-rappel { width:100%; height:520px; border:1px solid var(--border); border-radius:var(--radius-md); background:#fff; }
+
+/* Recapitulatif en tete de la page des rappels : ce que fait le site
+   AUJOURD'HUI, avant les formulaires qui servent a le changer. On lisait
+   sinon les reglages dans des champs de saisie, ce qui ne dit pas si le
+   cron enverra quelque chose. Les etats se lisent en toutes lettres
+   (« activés » / « désactivés »), jamais a la couleur seule. */
+.recap-rappels { font-size:14px; }
+.ligne-recap { display:flex; gap:14px; padding:6px 0; border-bottom:1px solid var(--border); }
+.ligne-recap:last-child { border-bottom:none; }
+.cle-recap { flex:0 0 108px; color:var(--text-secondary); font-weight:600; font-size:13px; }
+.val-recap { color:var(--text); min-width:0; word-break:break-word; }
