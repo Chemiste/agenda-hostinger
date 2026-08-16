@@ -23,6 +23,21 @@
     coïncident. L'incohérence produisait des messages acceptés puis
     supprimés en silence.
 
+- **Rafraîchir les réglages ne redemande plus « voulez-vous renvoyer les
+  informations ? ».** La page affichée était la réponse au formulaire :
+  recharger (F5, ou revenir en arrière) proposait de **rejouer l'action**,
+  et accepter faisait partir un deuxième email. Chaque envoi de formulaire
+  se termine désormais par une redirection, et le message de résultat
+  transite par la session — F5 ne fait plus que relire.
+  - L'**aperçu à l'écran passe en GET** : il ne fait que lire. Son adresse
+    (`?action=apercu&rdv_id=12`) peut être rechargée, mise en favori ou
+    partagée sans rien déclencher, et le rendez-vous choisi reste
+    sélectionné. Seul « Me l'envoyer par email » repart en POST, par un
+    `formmethod` sur son propre bouton.
+  - Restent à traiter, même défaut : `admin/alias_adresses.php` et surtout
+    `admin/sauvegardes.php`, où recharger après une restauration propose de
+    la refaire.
+
 - **Les boutons d'action des formulaires ne transmettaient plus rien.**
   `admin-ui.js` désactive les boutons à la soumission pour éviter le
   double-clic — mais **un bouton désactivé n'envoie plus son couple

@@ -23,6 +23,16 @@
  * cliquer sur "tester" testerait sinon autre chose que ce que le cron
  * utilisera - exactement le genre de verification qui rassure a tort.
  *
+ * TOUT POST SE TERMINE PAR UNE REDIRECTION. Sans cela, la page affichee
+ * est la reponse au formulaire : rafraichir (F5, ou revenir en arriere)
+ * fait apparaitre le "voulez-vous renvoyer les informations ?" du
+ * navigateur, et accepter REJOUE l'action - un deuxieme email part. Le
+ * message a afficher passe donc par la session et n'est lu qu'une fois.
+ *
+ * L'apercu a l'ecran, lui, passe en GET : il ne fait que LIRE. Son adresse
+ * (?action=apercu&rdv_id=12) peut etre rechargee ou mise en favori sans
+ * rien declencher.
+ *
  * Les adresses de Michel et Christiane et leurs preferences ne sont PAS
  * ici : chacun les gere depuis mes_rappels.php.
  *
@@ -56,48 +66,6 @@ foreach ($defauts as $cle => $defaut) {
     $valeurs[$cle] = getSetting($db, $cle, $defaut);
 }
 
-$action = isset($_POST['action']) ? $_POST['action'] : '';
-$messageEnregistre = false;
-$resultatTest = null;
-$resultatApercu = null;
-$apercuHtml = '';
-
-// --- 1. Enregistrement des reglages ------------------------------------
-if ($action === 'enregistrer') {
-    $valeurs['reminder_enabled'] = !empty($_POST['reminder_enabled']) ? '1' : '0';
-    $valeurs['reminder_hours_before'] = isset($_POST['reminder_hours_before'])
-        ? (string) max(1, (int) $_POST['reminder_hours_before'])
-        : $valeurs['reminder_hours_before'];
-    $valeurs['reminder_email_chem'] = isset($_POST['reminder_email_chem']) ? trim($_POST['reminder_email_chem']) : '';
-    $valeurs['reminder_email_from'] = isset($_POST['reminder_email_from']) ? trim($_POST['reminder_email_from']) : '';
-
-    foreach ($valeurs as $cle => $val) {
-        setSetting($db, $cle, $val);
-    }
-    $messageEnregistre = true;
-}
-
-// --- 2. Email de test --------------------------------------------------
-if ($action === 'tester') {
-    if ($valeurs['reminder_email_chem'] === '') {
-        $resultatTest = ['ok' => false, 'message' => "Aucune adresse enregistrée : remplis « Ton adresse email » ci-dessus, puis Enregistrer."];
-    } else {
-        $corps = "Ceci est un email de test envoyé depuis la page de réglages de l'agenda médical.\n\n"
-            . "Si tu reçois ce message, l'envoi fonctionne.";
-        $envoi = envoyerEmail([$valeurs['reminder_email_chem']], 'Test - Agenda medical',
-                              $corps, $valeurs['reminder_email_from'], $configSmtp);
-        $resultatTest = $envoi['ok']
-            ? ['ok' => true, 'message' => 'Envoyé à ' . $valeurs['reminder_email_chem'] . '.']
-            : ['ok' => false, 'message' => "Échec : " . $envoi['erreur']];
-    }
-}
-
-// --- 3. Apercu d'un vrai rappel ----------------------------------------
-//
-// AUCUN effet de bord : reminder_sent_at n'est jamais touche. Sans cette
-// precaution, previsualiser un rappel empecherait le vrai de partir -
-// l'outil de verification casserait ce qu'il sert a verifier.
-
 $rdvsAVenir = $db->query(
     'SELECT id, appt_date, appt_time, person_id, person, doctor, department, location, '
     . 'phone, route, accompagnant, notes, questions, rappel_actif '
@@ -114,36 +82,131 @@ function libelleQuand($date, $heure) {
          . $mois[(int) date('n', $ts)] . ' ' . date('Y', $ts) . ' à ' . date('H:i', $ts);
 }
 
-if ($action === 'apercu' || $action === 'envoyer_apercu') {
+function rdvParId($rdvs, $id) {
+    foreach ($rdvs as $r) {
+        if ((int) $r['id'] === (int) $id) {
+            return $r;
+        }
+    }
+    return null;
+}
+
+/**
+ * Range le message a afficher, puis RECHARGE la page en GET.
+ *
+ * C'est ce qui evite le « voulez-vous renvoyer les informations ? » de
+ * Firefox : apres un POST, la page affichee EST la reponse au POST, donc
+ * la rafraichir renvoie le formulaire - et reenvoie l'email au passage.
+ * En repartant sur une adresse ordinaire, F5 ne fait plus que relire.
+ *
+ * Le message ne survivrait pas a la redirection : il passe par la session,
+ * qui existe deja pour la connexion, et n'est lu qu'une fois.
+ */
+function rechargerAvecMessage($flash, $rdvId = 0) {
+    $_SESSION['flash_reglages'] = $flash;
+    // Chemin absolu depuis la racine du site, comme partout ailleurs : un
+    // chemin relatif se resoudrait differemment selon l'adresse d'ou vient
+    // l'appel.
+    header('Location: /admin/reglages.php' . ($rdvId > 0 ? '?rdv_id=' . (int) $rdvId : ''));
+    exit;
+}
+
+// Les actions qui ECRIVENT ou qui ENVOIENT n'arrivent que par POST. Seul
+// l'apercu passe par GET : il ne fait que lire, donc son adresse peut etre
+// rechargee, mise en favori ou partagee sans rien declencher.
+$action = isset($_POST['action']) ? $_POST['action'] : '';
+
+// --- 1. Enregistrement des reglages ------------------------------------
+if ($action === 'enregistrer') {
+    $valeurs['reminder_enabled'] = !empty($_POST['reminder_enabled']) ? '1' : '0';
+    $valeurs['reminder_hours_before'] = isset($_POST['reminder_hours_before'])
+        ? (string) max(1, (int) $_POST['reminder_hours_before'])
+        : $valeurs['reminder_hours_before'];
+    $valeurs['reminder_email_chem'] = isset($_POST['reminder_email_chem']) ? trim($_POST['reminder_email_chem']) : '';
+    $valeurs['reminder_email_from'] = isset($_POST['reminder_email_from']) ? trim($_POST['reminder_email_from']) : '';
+
+    foreach ($valeurs as $cle => $val) {
+        setSetting($db, $cle, $val);
+    }
+    rechargerAvecMessage(['bloc' => 'reglages', 'ok' => true, 'message' => 'Réglages enregistrés.']);
+}
+
+// --- 2. Email de test --------------------------------------------------
+if ($action === 'tester') {
+    if ($valeurs['reminder_email_chem'] === '') {
+        rechargerAvecMessage(['bloc' => 'test', 'ok' => false,
+            'message' => "Aucune adresse enregistrée : remplis « Ton adresse email » ci-dessus, puis Enregistrer."]);
+    }
+    $corps = "Ceci est un email de test envoyé depuis la page de réglages de l'agenda médical.\n\n"
+        . "Si tu reçois ce message, l'envoi fonctionne.";
+    $envoi = envoyerEmail([$valeurs['reminder_email_chem']], 'Test - Agenda medical',
+                          $corps, $valeurs['reminder_email_from'], $configSmtp);
+    rechargerAvecMessage(['bloc' => 'test', 'ok' => $envoi['ok'],
+        'message' => $envoi['ok']
+            ? 'Envoyé à ' . $valeurs['reminder_email_chem'] . '.'
+            : "Échec : " . $envoi['erreur']]);
+}
+
+// --- 3. S'envoyer un vrai rappel ---------------------------------------
+//
+// AUCUN effet de bord sur les rappels : reminder_sent_at n'est jamais
+// touche. Sans cette precaution, previsualiser un rappel empecherait le
+// vrai de partir - l'outil de verification casserait ce qu'il sert a
+// verifier.
+if ($action === 'envoyer_apercu') {
     $idChoisi = isset($_POST['rdv_id']) ? (int) $_POST['rdv_id'] : 0;
-    $rdv = null;
-    foreach ($rdvsAVenir as $r) {
-        if ((int) $r['id'] === $idChoisi) { $rdv = $r; break; }
+    $rdv = rdvParId($rdvsAVenir, $idChoisi);
+
+    if ($rdv === null) {
+        rechargerAvecMessage(['bloc' => 'apercu', 'ok' => false,
+            'message' => 'Choisis un rendez-vous dans la liste.']);
+    }
+    if ($valeurs['reminder_email_chem'] === '') {
+        rechargerAvecMessage(['bloc' => 'apercu', 'ok' => false,
+            'message' => "Aucune adresse enregistrée : remplis « Ton adresse email » dans les réglages ci-dessus, puis Enregistrer."], $idChoisi);
     }
 
+    $quandA = libelleQuand($rdv['appt_date'], $rdv['appt_time']);
+    $nomA = ((int) $rdv['person_id'] > 0) ? nomPerson($db, $rdv['person_id']) : $rdv['person'];
+    $message = composerRappel($db, $rdv, $nomA, $quandA);
+    $envoi = envoyerEmail(
+        [$valeurs['reminder_email_chem']],
+        '[Aperçu] Rappel : rendez-vous ' . $nomA . ' - ' . $quandA,
+        $message['texte'], $valeurs['reminder_email_from'], $configSmtp, $message['html']
+    );
+    rechargerAvecMessage(['bloc' => 'apercu', 'ok' => $envoi['ok'],
+        'message' => $envoi['ok']
+            ? 'Aperçu envoyé à ' . $valeurs['reminder_email_chem']
+              . '. Le rendez-vous n\'est pas marqué comme rappelé : le vrai rappel partira normalement.'
+            : "Échec : " . $envoi['erreur']], $idChoisi);
+}
+
+// --- 4. Apercu a l'ecran (lecture seule, donc en GET) -------------------
+$idChoisi = isset($_GET['rdv_id']) ? (int) $_GET['rdv_id'] : 0;
+$apercuHtml = '';
+$resultatApercu = null;
+
+if (isset($_GET['action']) && $_GET['action'] === 'apercu') {
+    $rdv = rdvParId($rdvsAVenir, $idChoisi);
     if ($rdv === null) {
         $resultatApercu = ['ok' => false, 'message' => 'Choisis un rendez-vous dans la liste.'];
     } else {
-        $quandA = libelleQuand($rdv['appt_date'], $rdv['appt_time']);
-        $nomA = ((int) $rdv['person_id'] > 0) ? nomPerson($db, $rdv['person_id']) : $rdv['person'];
-        $message = composerRappel($db, $rdv, $nomA, $quandA);
-
-        if ($action === 'apercu') {
-            $apercuHtml = $message['html'];
-        } elseif ($valeurs['reminder_email_chem'] === '') {
-            $resultatApercu = ['ok' => false, 'message' => "Aucune adresse enregistrée : remplis « Ton adresse email » dans les réglages ci-dessus, puis Enregistrer."];
-        } else {
-            $envoi = envoyerEmail(
-                [$valeurs['reminder_email_chem']],
-                '[Aperçu] Rappel : rendez-vous ' . $nomA . ' - ' . $quandA,
-                $message['texte'], $valeurs['reminder_email_from'], $configSmtp, $message['html']
-            );
-            $resultatApercu = $envoi['ok']
-                ? ['ok' => true, 'message' => 'Aperçu envoyé à ' . $valeurs['reminder_email_chem']
-                    . '. Le rendez-vous n\'est pas marqué comme rappelé : le vrai rappel partira normalement.']
-                : ['ok' => false, 'message' => "Échec : " . $envoi['erreur']];
-        }
+        $apercuHtml = composerRappel(
+            $db, $rdv,
+            ((int) $rdv['person_id'] > 0) ? nomPerson($db, $rdv['person_id']) : $rdv['person'],
+            libelleQuand($rdv['appt_date'], $rdv['appt_time'])
+        )['html'];
     }
+}
+
+// Le message laisse par la redirection, lu une seule fois.
+$flash = isset($_SESSION['flash_reglages']) ? $_SESSION['flash_reglages'] : null;
+unset($_SESSION['flash_reglages']);
+
+$messageEnregistre = ($flash !== null && $flash['bloc'] === 'reglages');
+$resultatTest = ($flash !== null && $flash['bloc'] === 'test') ? $flash : null;
+if ($flash !== null && $flash['bloc'] === 'apercu') {
+    $resultatApercu = $flash;
 }
 
 // Hostinger exige que l'expediteur corresponde a la boite authentifiee.
@@ -271,7 +334,11 @@ $expediteurIncoherent = $configSmtp !== null
     <?php if (empty($rdvsAVenir)): ?>
       <p class="vide">Aucun rendez-vous à venir.</p>
     <?php else: ?>
-      <form method="post">
+      <?php /* En GET : afficher un apercu ne fait que lire, l'adresse peut
+               donc etre rechargee sans que Firefox demande a « renvoyer les
+               informations ». Seul l'envoi par email repart en POST, via
+               formmethod sur son propre bouton. */ ?>
+      <form method="get" action="/admin/reglages.php">
         <div class="champ">
           <label for="rdv_id">Rendez-vous</label>
           <select name="rdv_id" id="rdv_id">
@@ -283,13 +350,13 @@ $expediteurIncoherent = $configSmtp !== null
                          . ($r['doctor'] !== '' ? ' — ' . $r['doctor'] : '')
                          . (empty($r['rappel_actif']) ? '   (rappel désactivé sur ce rendez-vous)' : '');
               ?>
-              <option value="<?= (int) $r['id'] ?>"<?= (isset($idChoisi) && $idChoisi === (int) $r['id']) ? ' selected' : '' ?>><?= htmlspecialchars($libelle) ?></option>
+              <option value="<?= (int) $r['id'] ?>"<?= ($idChoisi === (int) $r['id']) ? ' selected' : '' ?>><?= htmlspecialchars($libelle) ?></option>
             <?php endforeach; ?>
           </select>
         </div>
         <div class="form-boutons" style="margin-top:12px;">
           <button class="principal" type="submit" name="action" value="apercu">Afficher ici</button>
-          <button class="secondaire" type="submit" name="action" value="envoyer_apercu">Me l'envoyer par email</button>
+          <button class="secondaire" type="submit" name="action" value="envoyer_apercu" formmethod="post">Me l'envoyer par email</button>
         </div>
       </form>
     <?php endif; ?>
