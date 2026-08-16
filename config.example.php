@@ -18,14 +18,37 @@ return [
     'db_user' => 'REMPLACER_utilisateur',
     'db_pass' => 'REMPLACER_mot_de_passe_base',
 
-    // --- Mot de passe familial (hash bcrypt, genere via outils/generate_password.php) ---
-    'family_password_hash' => 'REMPLACER_PAR_LE_HASH_GENERE',
+    // --- Connexion des membres de la famille : compte Google ---
+    // Identifiant client OAuth 2.0 de type "Application Web", cree dans la
+    // console Google Cloud (voir Guide_installation_hostinger.md, section
+    // "Connexion par compte Google"). Ce n'est PAS le compte de service
+    // utilise pour Calendar : ce sont deux identifiants differents, dans le
+    // meme projet.
+    //
+    // Il n'y a plus de mot de passe familial : il donnait l'acces sans
+    // donner l'identite, et l'ecran "Qui etes-vous ?" qui le suivait
+    // croyait sur parole le nom clique. Chaque personne est reliee a son
+    // compte Google depuis /admin/personnes.php.
+    'google_client_id' => 'REMPLACER_PAR_L_IDENTIFIANT_CLIENT.apps.googleusercontent.com',
 
-    // --- Mot de passe d'administration (nettoyage, import .ics, sauvegardes) ---
-    // Second mot de passe, DIFFERENT du mot de passe familial, connu de
-    // vous seul. Meme genere via outils/generate_password.php (ouvrez la page
-    // une deuxieme fois avec un autre mot de passe).
-    'admin_password_hash' => 'REMPLACER_PAR_LE_HASH_GENERE',
+    // --- Jeton d'installation (voir installer.php) ---
+    // Chaine aleatoire de votre choix, utilisee UNE SEULE FOIS : elle
+    // autorise installer.php a creer les tables et a designer le premier
+    // administrateur, a partir du compte Google qui s'y connecte.
+    //
+    // Elle protege la fenetre entre le moment ou le site repond et celui ou
+    // vous lancez l'installation : sans jeton, le premier venu qui trouve
+    // l'adresse deviendrait administrateur, et repartirait avec l'agenda
+    // medical de vos parents.
+    //
+    // Des qu'un administrateur existe, installer.php refuse de tourner et
+    // ce jeton n'a plus aucun effet - vous pouvez le laisser ou l'effacer.
+    // Ex : genere avec `openssl rand -hex 20`.
+    //
+    // Il n'y a AUCUN mot de passe sur ce site : tout le monde entre par son
+    // compte Google, y compris pour administrer (drapeau "Administre" dans
+    // /admin/personnes.php).
+    'installation_token' => 'REMPLACER_PAR_UNE_CHAINE_ALEATOIRE',
 
     // --- Jeton de sauvegarde automatique (voir cron/backup.php) ---
     // Chaine aleatoire longue de votre choix, utilisee dans l'URL du

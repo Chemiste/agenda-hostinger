@@ -43,10 +43,6 @@ function afficherEnteteAdmin($titre, $sousTitre = '', $estAccueil = false) {
       <?php /* Certains outils (outils/migrate.php, import_calendar.php) ne
                demandent que le mot de passe familial : leur proposer une
                « déconnexion admin » n'aurait aucun sens. */ ?>
-      <?php if (function_exists('isAdminLoggedIn') && isAdminLoggedIn()): ?>
-        <span class="sep">·</span>
-        <a href="/admin/logout.php">Déconnexion admin</a>
-      <?php endif; ?>
     </div>
   </div>
   <?php if ($sousTitre !== ''): ?>

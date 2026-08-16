@@ -20,7 +20,13 @@ require_once __DIR__ . '/lib/db.php';
 require_once __DIR__ . '/lib/pathologies.php';
 require_once __DIR__ . '/lib/persons.php';
 
-$peutModifier = personneSessionActuelle() === 'Laurent';
+// ATTENTION - ne pas revenir a personneSessionActuelle() === 'Laurent'.
+// Ce test a existe, et il n'en etait pas un : l'identite venait d'un nom
+// clique dans un ecran de choix, que rien ne verifiait. N'importe qui dans
+// la famille pouvait se declarer Laurent et supprimer les pathologies de
+// Michel ou de Christiane. Depuis que Google atteste l'identite, le
+// drapeau est_admin de la table persons a du sens.
+$peutModifier = personneConnecteeEstAdmin();
 
 $db = getDb();
 

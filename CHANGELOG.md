@@ -2,6 +2,62 @@
 
 ## Non publié
 
+- **Connexion par compte Google, et un vrai droit d'administration.**
+  Le site demandait un mot de passe familial partagé, puis affichait
+  « Qui êtes-vous ? » où chacun cliquait son nom. Ce clic n'était vérifié
+  par rien — et il servait pourtant de droit d'accès : `pathologies.php`
+  autorisait l'ajout, la modification et la **suppression** à quiconque
+  s'était déclaré Laurent. N'importe quel membre de la famille pouvait
+  effacer les pathologies de Michel ou de Christiane, sans mauvaise
+  intention, et le journal aurait enregistré le nom déclaré.
+
+  Désormais Google atteste l'identité, et le droit de modifier est un
+  drapeau `est_admin` porté par la personne. Points notables :
+  - `lib/google_login.php` vérifie le jeton sans Composer : signature RS256
+    contre les clés publiques de Google, puis `aud`, `iss` et `exp`.
+    L'algorithme est **imposé** et non lu dans le jeton — accepter
+    `alg` tel qu'annoncé est la faille classique des vérificateurs de JWT
+    écrits à la main (`alg: none` désactive la vérification).
+  - Le rattachement se fait par adresse à la première connexion, puis par
+    `sub`, l'identifiant que Google ne réattribue jamais. Une adresse
+    abandonnée peut être réattribuée à un tiers ; garder l'adresse comme
+    critère reviendrait à lui donner un jour l'agenda médical.
+  - Mode « callback JavaScript » et non `login_uri` : avec `login_uri`,
+    c'est Google qui poste vers le site, la requête est inter-site et le
+    cookie de session (SameSite=Lax) n'est pas transmis. Ici le navigateur
+    poste vers notre propre domaine.
+  - `session_regenerate_id()` à chaque connexion. Le php.ini d'Hostinger
+    laisse `session.use_strict_mode` à 0, donc PHP accepte un identifiant
+    de session qu'il n'a pas émis : sans régénération, la fixation de
+    session était réellement possible.
+  - **Il n'y a plus aucun mot de passe sur le site.** Le mot de passe
+    familial et le mot de passe d'administration sont supprimés, avec
+    `qui_est_ce.php`, `admin/login.php`, `admin/logout.php` et
+    `outils/generate_password.php`. Administrer ne demande que le drapeau
+    « Administre » : exiger en plus un mot de passe pour ouvrir la page
+    d'accueil de l'administration était incohérent, puisque supprimer une
+    pathologie — geste bien plus lourd — ne demandait déjà que le drapeau.
+
+- **`installer.php` : amorçage d'un site neuf par compte Google.** C'est ce
+  qui a permis de supprimer le dernier mot de passe. Sur une base vide,
+  se connecter exige d'être inscrit et inscrire quelqu'un exige d'être
+  administrateur : les deux conditions s'excluent. Le mot de passe
+  d'administration ne servait plus qu'à trancher ce nœud, une fois dans la
+  vie du site.
+  - La page **se désactive d'elle-même** dès qu'une personne porte le
+    drapeau. Pas de fichier à penser à supprimer : le site cesse d'être
+    installable au moment où il devient installé.
+  - Un **jeton** (`installation_token` dans `config.php`) protège la fenêtre
+    qui précède. Entre le moment où le site répond et celui où on lance
+    l'installation, le premier venu qui trouve l'adresse deviendrait
+    administrateur — et repartirait avec le dossier médical. Le jeton se
+    pose là où on saisit déjà les identifiants de base, donc sans étape
+    supplémentaire.
+  - Les fonctions de migration passent de `outils/migrate.php` à
+    `lib/migrations.php` : l'installateur doit créer les tables avant qu'un
+    administrateur existe, donc sans passer par `outils/migrate.php`, qui en
+    exige justement un.
+
 - **Le fuseau horaire ne dépend plus du réglage de l'hébergeur.**
   `lib/db.php` fixe `Europe/Brussels` — c'est le seul fichier inclus par
   les 11 points d'entrée qui manipulent des dates. Le serveur était livré

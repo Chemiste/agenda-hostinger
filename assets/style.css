@@ -1384,3 +1384,15 @@ button.danger:active { transform: scale(0.97); }
   #entete-impression p { font-size: 11pt; color: #444; margin: 0; }
   #entete-impression p:empty { display: none; }
 }
+/* Zone du bouton "Se connecter avec Google" (login.php). Le bouton lui-meme
+   est dessine par Google dans une iframe : on ne peut pas le styler, on se
+   contente de le centrer. Sa largeur est imposee par Google, d'ou le
+   display:flex plutot qu'un text-align qui n'aurait aucun effet sur un
+   element de type inline-block a largeur fixe. */
+.zone-bouton-google { display: flex; justify-content: center; margin-top: 18px; min-height: 44px; }
+
+/* Lien vers /admin/login.php depuis la page de connexion : discret, mais
+   presente. C'est la seule porte qui ne depend pas de Google - donc celle
+   qu'il faut trouver quand Google est justement le probleme. */
+.lien-secours { margin-top: 20px; font-size: 13px; color: var(--text-muted); }
+.lien-secours a { color: var(--text-secondary); }

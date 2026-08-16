@@ -28,7 +28,7 @@ require_once __DIR__ . '/lib/db.php';
 require_once __DIR__ . '/lib/medicaments.php';
 require_once __DIR__ . '/lib/persons.php';
 
-$peutModifier = personneSessionActuelle() === 'Laurent';
+$peutModifier = personneConnecteeEstAdmin();
 
 $db = getDb();
 

@@ -10,7 +10,7 @@
  * guide d'installation.
  *
  * Une fois l'import terminé et vérifié, supprimez ou renommez ce fichier
- * du serveur (comme generate_password.php) : le relancer par erreur ne
+ * du serveur une fois l'import fait : le relancer par erreur ne
  * crée pas de doublons (les événements déjà importés sont détectés via
  * leur identifiant Google Calendar), mais il n'a plus de raison de
  * rester accessible en ligne.

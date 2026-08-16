@@ -69,7 +69,7 @@ function listerPatients($db) {
     return $patients;
 }
 
-/** Les personnes qui peuvent s'identifier sur le site (qui_est_ce.php). */
+/** Les personnes autorisees a se connecter au site (voir login.php). */
 function listerMembresFamille($db) {
     $membres = [];
     foreach (listerPersons($db) as $p) {
@@ -128,7 +128,14 @@ function validerPatient($db, $id) {
 // Écriture (administration)
 // ------------------------------------------------------------------
 
-function ajouterPerson($db, $nom, $estPatient, $peutSeConnecter) {
+/**
+ * @param string $googleEmail Adresse du compte Google autorisé à se
+ *        connecter sous cette identité. C'est le seul moyen d'entrer sur
+ *        le site : une personne sans adresse ne peut pas se connecter.
+ * @param bool   $estAdmin    Droit de modifier les données de santé et
+ *        d'atteindre l'administration.
+ */
+function ajouterPerson($db, $nom, $estPatient, $peutSeConnecter, $googleEmail = '', $estAdmin = false) {
     $nom = trim((string) $nom);
     if ($nom === '') {
         throw new Exception('Le nom ne peut pas être vide.');
@@ -136,14 +143,19 @@ function ajouterPerson($db, $nom, $estPatient, $peutSeConnecter) {
     if (personParNom($db, $nom) !== null) {
         throw new Exception('« ' . $nom . ' » existe déjà.');
     }
+    $googleEmail = normaliserEmailGoogle($db, $googleEmail, null);
     $stmt = $db->prepare('SELECT COALESCE(MAX(ordre), 0) + 1 FROM persons');
     $stmt->execute();
     $ordre = (int) $stmt->fetchColumn();
 
     $stmt = $db->prepare(
-        'INSERT INTO persons (nom, est_patient, peut_se_connecter, ordre) VALUES (?, ?, ?, ?)'
+        'INSERT INTO persons (nom, est_patient, peut_se_connecter, ordre, google_email, est_admin) ' .
+        'VALUES (?, ?, ?, ?, ?, ?)'
     );
-    $stmt->execute([$nom, $estPatient ? 1 : 0, $peutSeConnecter ? 1 : 0, $ordre]);
+    $stmt->execute([
+        $nom, $estPatient ? 1 : 0, $peutSeConnecter ? 1 : 0, $ordre,
+        $googleEmail !== '' ? $googleEmail : null, $estAdmin ? 1 : 0,
+    ]);
     oublierCachePersons();
     return (int) $db->lastInsertId();
 }
@@ -153,7 +165,7 @@ function ajouterPerson($db, $nom, $estPatient, $peutSeConnecter) {
  * le reste pointe sur l'identifiant. C'est précisément ce que cette table
  * est venue régler.
  */
-function modifierPerson($db, $id, $nom, $estPatient, $peutSeConnecter) {
+function modifierPerson($db, $id, $nom, $estPatient, $peutSeConnecter, $googleEmail = '', $estAdmin = false) {
     $nom = trim((string) $nom);
     if ($nom === '') {
         throw new Exception('Le nom ne peut pas être vide.');
@@ -162,11 +174,55 @@ function modifierPerson($db, $id, $nom, $estPatient, $peutSeConnecter) {
     if ($autre !== null && $autre['id'] !== (int) $id) {
         throw new Exception('« ' . $nom . ' » existe déjà.');
     }
-    $stmt = $db->prepare(
-        'UPDATE persons SET nom = ?, est_patient = ?, peut_se_connecter = ? WHERE id = ?'
-    );
-    $stmt->execute([$nom, $estPatient ? 1 : 0, $peutSeConnecter ? 1 : 0, (int) $id]);
+    $googleEmail = normaliserEmailGoogle($db, $googleEmail, (int) $id);
+
+    // Changer l'adresse detache le compte Google deja lie (google_sub) :
+    // le lien doit se refaire a la premiere connexion avec la NOUVELLE
+    // adresse. Sans ce detachement, corriger une adresse saisie de travers
+    // n'aurait aucun effet - l'ancien compte, deja rattache par son sub,
+    // continuerait d'entrer.
+    $stmt = $db->prepare('SELECT google_email FROM persons WHERE id = ?');
+    $stmt->execute([(int) $id]);
+    $ancienne = (string) $stmt->fetchColumn();
+    $detacher = strtolower($ancienne) !== strtolower((string) $googleEmail);
+
+    $sql = 'UPDATE persons SET nom = ?, est_patient = ?, peut_se_connecter = ?, '
+         . 'google_email = ?, est_admin = ?' . ($detacher ? ', google_sub = NULL' : '')
+         . ' WHERE id = ?';
+    $stmt = $db->prepare($sql);
+    $stmt->execute([
+        $nom, $estPatient ? 1 : 0, $peutSeConnecter ? 1 : 0,
+        $googleEmail !== '' ? $googleEmail : null, $estAdmin ? 1 : 0, (int) $id,
+    ]);
     oublierCachePersons();
+}
+
+/**
+ * Valide une adresse Google et verifie qu'aucune autre personne ne l'utilise
+ * deja : deux personnes partageant une adresse rendraient la connexion
+ * ambigue, et laquelle des deux entrerait dependrait de l'ordre des lignes.
+ */
+function normaliserEmailGoogle($db, $email, $idExclu) {
+    $email = strtolower(trim((string) $email));
+    if ($email === '') {
+        return '';
+    }
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        throw new Exception('« ' . $email . ' » n\'est pas une adresse e-mail valide.');
+    }
+    $sql = 'SELECT nom FROM persons WHERE LOWER(google_email) = ?';
+    $params = [$email];
+    if ($idExclu !== null) {
+        $sql .= ' AND id <> ?';
+        $params[] = $idExclu;
+    }
+    $stmt = $db->prepare($sql . ' LIMIT 1');
+    $stmt->execute($params);
+    $dejaPrise = $stmt->fetchColumn();
+    if ($dejaPrise !== false) {
+        throw new Exception('Cette adresse est déjà associée à ' . $dejaPrise . '.');
+    }
+    return $email;
 }
 
 /** Compte ce qui est rattaché à une personne, table par table. */

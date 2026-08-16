@@ -103,7 +103,9 @@ function afficherEnteteNavigation($pageActive = '') {
             <a class="doublon-nav" href="<?= $d['url'] ?>"><?= $svg($d['icone']) ?><?= htmlspecialchars($d['libelle']) ?></a>
           <?php endif; ?>
         <?php endforeach; ?>
-        <?php if (personneSessionActuelle() === 'Laurent'): ?>
+        <?php /* Le drapeau est_admin, pas le prenom : voir
+                 personneConnecteeEstAdmin() dans lib/auth.php. */ ?>
+        <?php if (personneConnecteeEstAdmin()): ?>
           <a href="/admin/index.php"><?= $svg('<path d="M12 20a8 8 0 1 0 0-16 8 8 0 0 0 0 16z"/><path d="M12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>') ?>Administration</a>
         <?php endif; ?>
         <a href="/logout.php" id="lienDeconnexion" class="lien-deconnexion"><?= $svg('<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/>') ?>Déconnexion</a>

@@ -1,6 +1,21 @@
 <?php
 /**
- * Gestion de la connexion (un seul mot de passe familial partage).
+ * Gestion de la connexion.
+ *
+ * L'acces au site passe par un compte Google (voir login.php et
+ * lib/google_login.php). Le mot de passe familial partage a disparu : il
+ * donnait l'acces sans donner l'identite, et l'ecran "Qui etes-vous ?" qui
+ * le suivait croyait sur parole le nom clique - alors que ce nom servait
+ * aussi de droit d'acces.
+ *
+ * UNE SEULE PORTE : login.php, qui exige un compte Google rattache a une
+ * personne active dans la table persons. Il n'y a plus aucun mot de passe
+ * sur ce site.
+ *
+ * Le premier administrateur est designe par installer.php, qui ne
+ * fonctionne que tant qu'aucun administrateur n'existe. C'est ce qui a
+ * permis de supprimer le mot de passe d'administration : il ne servait
+ * plus qu'a resoudre l'amorcage d'un site vide.
  */
 
 // Par defaut, PHP utilise un cookie de session "de navigateur" (expire a la
@@ -45,16 +60,21 @@ function requireLogin() {
     }
 }
 
-function attemptLogin($password) {
-    $config = require __DIR__ . '/../config.php';
-    if (!isset($config['family_password_hash']) || $config['family_password_hash'] === 'REMPLACER_PAR_LE_HASH_GENERE') {
-        return false;
-    }
-    if (password_verify($password, $config['family_password_hash'])) {
-        $_SESSION['logged_in'] = true;
-        return true;
-    }
-    return false;
+/**
+ * Ouvre la session pour une personne dont l'identite vient d'etre ATTESTEE
+ * par Google. Ne jamais appeler ailleurs qu'apres verifierJetonGoogle().
+ *
+ * session_regenerate_id() donne un nouvel identifiant de session au moment
+ * ou les droits changent. Sans lui, un identifiant de session pose a
+ * l'avance par un tiers resterait valable une fois la victime connectee
+ * (fixation de session) - d'autant que le php.ini d'Hostinger laisse
+ * session.use_strict_mode a 0, donc PHP accepte un identifiant qu'il n'a
+ * pas emis lui-meme.
+ */
+function connecterPersonne($personne) {
+    session_regenerate_id(true);
+    $_SESSION['logged_in'] = true;
+    definirPersonneSession($personne['nom'], (int) $personne['id']);
 }
 
 function logout() {
@@ -64,10 +84,10 @@ function logout() {
 
 /**
  * Identite de la personne actuellement connectee (Michel, Christiane,
- * Helene, Laurent...) - distincte du mot de passe familial partage : le
- * mot de passe donne acces au site, ce choix (qui_est_ce.php) permet de
- * savoir QUI a fait quoi pour le journal d'activite (voir historique.php
- * et admin/historique.php, lib/activity_log.php).
+ * Helene, Laurent...). Elle vient du compte Google utilise pour se
+ * connecter : elle n'est plus declarative, et sert donc aussi bien au
+ * journal d'activite (historique.php, lib/activity_log.php) qu'aux droits
+ * (voir personneConnecteeEstAdmin plus bas).
  *
  * La session memorise desormais un IDENTIFIANT (table persons, voir
  * migrations/0021_ajouter_persons.sql). Le nom en est deduit a la lecture :
@@ -130,39 +150,17 @@ function definirPersonneSession($nom, $personId = null) {
  */
 function requireIdentite() {
     requireLogin();
-    if (personneSessionActuelle() === null) {
-        header('Location: /qui_est_ce.php');
+    // L'identite est desormais indissociable de la connexion : elle vient
+    // du compte Google. Une session sans identite n'est plus le cas normal
+    // "il faut encore choisir son nom" mais un cas anormal - typiquement
+    // une session ouverte par le mot de passe d'administration, qui donne
+    // acces a /admin/ et non aux pages familiales. On renvoie donc vers la
+    // connexion plutot que vers un ecran de choix qui n'existe plus.
+    if (personIdSessionActuel() === null) {
+        header('Location: /login.php');
         exit;
     }
-    rattraperIdentiteSession();
     enregistrerVisiteSiNecessaire();
-}
-
-/**
- * Complete une session ouverte AVANT la mise en place de la table persons :
- * elle ne connait qu'un nom. On retrouve l'identifiant correspondant et on
- * le memorise, plutot que de renvoyer tout le monde sur "Qui etes-vous ?"
- * le jour du deploiement.
- */
-function rattraperIdentiteSession() {
-    if (personIdSessionActuel() !== null) {
-        return;
-    }
-    $nom = isset($_SESSION['personne_courante']) ? $_SESSION['personne_courante'] : '';
-    if ($nom === '') {
-        return;
-    }
-    require_once __DIR__ . '/db.php';
-    require_once __DIR__ . '/persons.php';
-    try {
-        $p = personParNom(getDb(), $nom);
-        if ($p !== null) {
-            $_SESSION['person_id'] = $p['id'];
-        }
-    } catch (Exception $e) {
-        // Table pas encore creee sur cet environnement : on continue avec
-        // le nom seul, comme avant.
-    }
 }
 
 /**
@@ -170,9 +168,9 @@ function rattraperIdentiteSession() {
  * enregistree pour cette session remonte a plus de 2h - sans ce garde-fou,
  * chaque page vue (index -> taches -> medecins...) creerait sa propre
  * ligne, ce qui rendrait le journal illisible. Appelee automatiquement par
- * requireIdentite() sur chaque page familiale ; qui_est_ce.php met deja a
- * jour $_SESSION['derniere_visite_loggee'] lui-meme pour eviter une ligne
- * en double juste apres avoir choisi son nom.
+ * requireIdentite() sur chaque page familiale ; login.php met deja a jour
+ * $_SESSION['derniere_visite_loggee'] lui-meme pour eviter une ligne en
+ * double juste apres la connexion.
  */
 function enregistrerVisiteSiNecessaire() {
     $seuilInactivite = 60 * 60 * 2; // 2 heures
@@ -189,37 +187,50 @@ function enregistrerVisiteSiNecessaire() {
 }
 
 /**
- * Deuxieme niveau de protection pour les pages d'administration
- * (nettoyage des donnees, import .ics, sauvegardes...), avec un mot de
- * passe distinct du mot de passe familial. Objectif : meme si quelqu'un
- * de la famille tombe sur l'URL d'une page admin, il lui faut un
- * deuxieme mot de passe (connu de vous seul) pour y entrer.
+ * La personne connectee a-t-elle le droit de modifier les donnees de sante
+ * (pathologies, plan de medicaments) et d'atteindre l'administration ?
+ *
+ * Le drapeau est_admin de la table persons, PAS une comparaison de prenom.
+ * Le code testait auparavant `personneSessionActuelle() === 'Laurent'` :
+ * comme l'identite n'etait pas authentifiee, il suffisait de cliquer le bon
+ * nom pour obtenir ces droits. Maintenant que Google atteste l'identite, le
+ * drapeau a un sens.
+ *
+ * Il n'y a pas de seconde voie : le drapeau est la seule facon d'obtenir
+ * ces droits, et il ne s'attribue que depuis /admin/personnes.php - ou par
+ * installer.php pour le tout premier administrateur.
  */
-
-function isAdminLoggedIn() {
-    return !empty($_SESSION['admin_logged_in']);
-}
-
-function requireAdminLogin() {
-    requireLogin();
-    if (!isAdminLoggedIn()) {
-        header('Location: /admin/login.php');
-        exit;
-    }
-}
-
-function attemptAdminLogin($password) {
-    $config = require __DIR__ . '/../config.php';
-    if (!isset($config['admin_password_hash']) || $config['admin_password_hash'] === 'REMPLACER_PAR_LE_HASH_GENERE') {
+function personneConnecteeEstAdmin() {
+    $id = personIdSessionActuel();
+    if ($id === null) {
         return false;
     }
-    if (password_verify($password, $config['admin_password_hash'])) {
-        $_SESSION['admin_logged_in'] = true;
-        return true;
+    require_once __DIR__ . '/db.php';
+    require_once __DIR__ . '/persons.php';
+    try {
+        $p = obtenirPerson(getDb(), $id);
+        return $p !== null && !empty($p['est_admin']);
+    } catch (Exception $e) {
+        // Colonne absente (migration 0022 pas encore passee) : on refuse,
+        // plutot que d'ouvrir les droits par accident.
+        return false;
     }
-    return false;
 }
 
-function adminLogout() {
-    unset($_SESSION['admin_logged_in']);
+/**
+ * Acces aux pages d'administration : reserve aux personnes portant le
+ * drapeau est_admin.
+ *
+ * requireLogin() d'abord, pour distinguer deux situations qui n'appellent
+ * pas la meme reponse : un visiteur sans session doit se connecter, un
+ * membre connecte mais sans droits n'a rien a faire ici et repart vers
+ * l'agenda. Le renvoyer vers la connexion l'y ferait tourner en rond,
+ * puisqu'il est deja connecte.
+ */
+function requireAdminLogin() {
+    requireLogin();
+    if (!personneConnecteeEstAdmin()) {
+        header('Location: /index.php');
+        exit;
+    }
 }

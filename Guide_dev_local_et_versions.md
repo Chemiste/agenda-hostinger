@@ -36,7 +36,8 @@ cp config.example.php config.php
 - `db_name` → `agenda_dev`
 - `db_user` → `agenda_dev`
 - `db_pass` → `un_mot_de_passe_local`
-- `family_password_hash` → générez-le en local avec `outils/generate_password.php` (voir ci-dessous)
+- `installation_token` → n'importe quelle chaîne, elle ne sert qu'une fois (voir `installer.php`)
+- `google_client_id` → le même identifiant client qu'en production, à condition d'avoir ajouté `http://localhost:8081` aux origines JavaScript autorisées dans la console Google
 - laissez `google_calendar_id` vide en local (pas besoin de polluer votre vrai calendrier pendant les tests)
 
 `config.php` est ignoré par Git (`.gitignore`) : chaque environnement (votre machine, le serveur Hostinger) a le sien, jamais partagé ni commité.
@@ -49,7 +50,7 @@ php outils/migrate.php
 
 Ça crée la table `appointments` (et la table technique `schema_migrations` qui garde la trace de ce qui a été appliqué).
 
-Pour le mot de passe : lancez le serveur de dev (étape suivante), ouvrez `http://localhost:8000/outils/generate_password.php`, générez un hash, collez-le dans `config.php`, puis supprimez le fichier ou laissez-le (en local ce n'est pas grave, mais ne le mettez jamais en prod — il est justement listé pour rappel dans le guide Hostinger).
+Pour amorcer une base locale vide : lancez le serveur de dev (étape suivante) et ouvrez `http://localhost:8081/installer.php`. Il demande le `installation_token`, crée les tables, puis fait de votre compte Google le premier administrateur. Il refuse de tourner dès qu'un administrateur existe.
 
 ## 4. Lancer le site en local
 
@@ -105,7 +106,7 @@ Dès que vous modifiez la table `appointments` (nouvelle colonne, nouvel index, 
    - **Sans accès SSH** : ouvrez `https://agenda.hellau.be/outils/migrate.php` dans le navigateur, connectez-vous avec le mot de passe **d'administration**, la page liste les migrations en attente, cliquez sur **Lancer les migrations**.
 3. Rechargez le site et vérifiez que tout fonctionne.
 
-`config.php` reste propre à chaque environnement : ne le copiez jamais de votre machine vers le serveur (les identifiants de base de données et le mot de passe familial sont différents entre local et production).
+`config.php` reste propre à chaque environnement : ne le copiez jamais de votre machine vers le serveur (les identifiants de base de données sont différents entre local et production).
 
 ## 7bis. Déploiement automatique par FTP (`deploiement/deployer.php`)
 

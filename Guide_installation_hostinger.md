@@ -5,7 +5,7 @@ J'ai choisi **PHP + MySQL** : c'est la seule techno garantie de fonctionner sur 
 Le site utilise :
 - un **sous-domaine** (ex : `agenda.hellau.be`)
 - une **base de données MySQL** pour stocker les rendez-vous
-- **un mot de passe familial partagé** pour se connecter
+- **une connexion par compte Google** pour chaque membre de la famille
 - en option, une **synchronisation vers Google Calendar** (le calendrier que vous avez déjà créé)
 
 ## Étape 1 — Créer le sous-domaine
@@ -26,7 +26,7 @@ La table `appointments` sera créée à l'étape 5 via le script `outils/migrate
 
 1. Dans hPanel, ouvrez le **Gestionnaire de fichiers** (ou utilisez FTP/FileZilla si vous préférez).
 2. Allez dans le dossier du sous-domaine créé à l'étape 1.
-3. Envoyez-y **tout le contenu** du dossier `agenda-hostinger` fourni, **en conservant exactement la structure de dossiers** : à la racine `index.php`, `login.php`, `logout.php`, `api.php`, `mes_rappels.php`, `config.example.php`, `.htaccess`, ainsi que les dossiers `migrations/`, `lib/` (avec son propre `.htaccess`), `assets/`, `backups/` (avec son propre `.htaccess`), et les trois dossiers d'outils : `admin/` (login, logout, index, import, corriger, sauvegardes, reglages), `cron/` (backup, rappels) et `outils/` (migrate, generate_password, import_calendar).
+3. Envoyez-y **tout le contenu** du dossier `agenda-hostinger` fourni, **en conservant exactement la structure de dossiers** : à la racine `index.php`, `login.php`, `logout.php`, `api.php`, `mes_rappels.php`, `config.example.php`, `.htaccess`, ainsi que les dossiers `migrations/`, `lib/` (avec son propre `.htaccess`), `assets/`, `backups/` (avec son propre `.htaccess`), et `installer.php` à la racine, et les trois dossiers d'outils : `admin/` (index, personnes, import, corriger, sauvegardes, reglages), `cron/` (backup, rappels) et `outils/` (migrate, import_calendar).
 4. Ne renvoyez pas votre `config.php` local : créez-en un directement sur le serveur (étape suivante). Chaque environnement a le sien.
 
 ## Étape 4 — Configurer `config.php` sur le serveur
@@ -34,43 +34,83 @@ La table `appointments` sera créée à l'étape 5 via le script `outils/migrate
 1. Dans le Gestionnaire de fichiers, dupliquez `config.example.php`, renommez la copie `config.php`.
 2. Modifiez `config.php` et remplacez :
    - `db_host`, `db_name`, `db_user`, `db_pass` par les informations de la base créée à l'étape 2
-   - laissez `family_password_hash` et les lignes Google pour l'instant
+   - laissez `google_client_id`, `installation_token` et les autres lignes Google pour l'instant
 
 Enregistrez.
 
-## Étape 5 — Définir les deux mots de passe
+## Étape 5 — Définir le jeton d'installation
 
-Le site en utilise **deux** : le mot de passe *familial*, partagé avec tout le monde, et le mot de passe *d'administration*, que vous gardez pour vous. Les deux se génèrent au même endroit, autant le faire d'un coup.
+Il n'y a **aucun mot de passe** sur ce site : tout le monde entre avec son compte Google, y compris pour administrer. Reste à résoudre le tout premier accès — sur une base vide, personne n'est encore inscrit, donc personne ne peut se connecter pour inscrire qui que ce soit.
 
-1. Ouvrez `https://agenda.hellau.be/outils/generate_password.php` dans votre navigateur.
-2. Saisissez le mot de passe que vous voulez utiliser en famille, cliquez sur **Générer le hash**, copiez la valeur dans `config.php`, champ `family_password_hash`.
-3. Recommencez avec le mot de passe d'administration (différent, et gardé pour vous) → champ `admin_password_hash`.
-4. **Supprimez le fichier `outils/generate_password.php`** du serveur (via le Gestionnaire de fichiers) — il ne doit pas rester en ligne.
+C'est le rôle de `installer.php`, et du jeton qui l'autorise.
 
-## Étape 6 — Créer les tables
+1. Dans `config.php`, remplissez `installation_token` avec une chaîne aléatoire longue (par exemple le résultat de `openssl rand -hex 20`, ou n'importe quel générateur de mot de passe).
+2. Gardez-la sous la main : vous la saisirez une fois, à l'étape 7.
 
-Ouvrez `https://agenda.hellau.be/outils/migrate.php`, connectez-vous avec le mot de passe **d'administration** (appliquer une migration modifie la structure de la base : le mot de passe familial ne suffit pas), puis cliquez sur **Lancer les migrations**. La table `appointments` est créée.
+> **Pourquoi un jeton et pas rien du tout.** Entre le moment où le site répond et celui où vous lancez l'installation, il y a une fenêtre pendant laquelle le premier venu qui trouve l'adresse deviendrait administrateur — et repartirait avec le dossier médical de vos parents. Le jeton ferme cette fenêtre, sans rien ajouter à votre travail puisque vous êtes déjà dans `config.php`.
+>
+> Dès qu'un administrateur existe, `installer.php` refuse de tourner. Vous pouvez laisser le jeton dans `config.php`, il n'a plus aucun effet.
 
-## Étape 7 — Créer les personnes
+## Étape 5 bis — Autoriser la connexion par compte Google
 
-Ouvrez `https://agenda.hellau.be/admin/personnes.php` (mot de passe familial, puis mot de passe d'administration) et ajoutez chaque personne avec ses deux cases :
+Chaque membre de la famille entre avec son compte Google. Aucun mot de passe à retenir, et surtout : le site n'a plus à croire sur parole qui prétend être qui.
+
+Tout se passe dans la section **Google Auth Platform** de la console Google Cloud. Attention : ce n'est plus sous « APIs et services → Écran de consentement OAuth », Google a réorganisé ces pages. Les liens directs ci-dessous évitent de chercher dans les menus.
+
+1. **Identité de l'application** — [console.cloud.google.com/auth/branding](https://console.developers.google.com/auth/branding)
+   Sélectionnez votre projet (le même que pour la synchronisation Calendar, si vous l'avez déjà créée), puis remplissez le nom de l'application, votre adresse de contact et le domaine autorisé (`hellau.be`). C'est ce nom que verront Michel et Christiane sur l'écran de Google : mettez quelque chose qu'ils reconnaissent, par exemple « Agenda médical ».
+
+2. **Type d'utilisateurs** — [console.cloud.google.com/auth/audience](https://console.developers.google.com/auth/audience)
+   Choisissez **Externe**. « Interne » n'existe que pour les organisations Google Workspace et n'est de toute façon pas proposé avec un compte Gmail personnel.
+
+   **Ne remplissez pas la liste d'utilisateurs de test, elle est inutile ici.** Google prévoit une exception documentée : une application qui utilise Sign in with Google et ne demande que le nom, l'adresse et le profil (`openid`, `email`, `profile` — notre cas) n'a pas besoin d'utilisateurs de test. Personne ne voit d'écran « application non vérifiée » et aucune autorisation n'expire au bout de sept jours. Le mode **Test** peut donc rester en place indéfiniment.
+
+   > **Le contrôle d'accès est entièrement de votre côté.** Google laissera n'importe quel compte arriver jusqu'à la page de connexion du site ; c'est le champ adresse de `/admin/personnes.php` qui accepte ou refuse. Un inconnu qui trouverait l'adresse du site verrait le bouton, se connecterait à son compte, et serait renvoyé avec « Ce compte Google n'a pas accès à l'agenda ».
+
+3. **Les données demandées** — [console.cloud.google.com/auth/scopes](https://console.developers.google.com/auth/scopes)
+   Rien à ajouter. Les autorisations par défaut (`email`, `profile`, `openid`) suffisent : le site a seulement besoin de savoir qui vous êtes, il ne lit ni vos mails ni vos contacts.
+
+4. **Créer l'identifiant** — [console.cloud.google.com/auth/clients](https://console.developers.google.com/auth/clients)
+   Cliquez sur **Créer un client**, type d'application **Application Web**. Dans **Origines JavaScript autorisées**, ajoutez :
+   - `https://agenda.hellau.be`
+   - `http://localhost` **et** `http://localhost:8081` si vous développez en local (Google demande les deux)
+
+   N'ajoutez **aucune** URI de redirection : le site utilise le mode « callback JavaScript », qui n'en a pas besoin. Une origine, c'est le protocole et le nom d'hôte, sans chemin ni barre oblique finale.
+
+5. Copiez l'**ID client** (il se termine par `.apps.googleusercontent.com`) dans `config.php`, champ `google_client_id`.
+
+> **Ce n'est pas le compte de service de Calendar.** Les deux vivent dans le même projet mais ne sont pas interchangeables : le compte de service permet au *site* de parler à Google, l'ID client permet aux *personnes* de prouver qui elles sont.
+
+## Étape 6 — Installer
+
+Ouvrez `https://agenda.hellau.be/installer.php`.
+
+1. Saisissez le **jeton d'installation** de l'étape 5. Les tables sont créées dans la foulée (toutes les migrations sont appliquées).
+2. Cliquez sur **Se connecter avec Google** et choisissez **votre** compte. Il devient le premier administrateur.
+
+Vous êtes ensuite redirigé vers la page de connexion habituelle.
+
+## Étape 7 — Créer les autres personnes
+
+Connectez-vous, puis ouvrez **Administration → Les personnes** (`/admin/personnes.php`) et ajoutez chaque membre de la famille :
 
 - **Patient** — on suit sa santé : elle a un onglet dans l'agenda, un plan de médicaments, des pathologies, un carnet de médecins.
-- **Se connecte** — elle apparaît dans « Qui êtes-vous ? » à l'ouverture du site.
+- **Se connecte** — elle est autorisée à entrer sur le site, avec l'adresse Google indiquée en face.
+- **Administre** — elle peut modifier les pathologies et le plan de médicaments, et atteindre l'administration.
 
-Vos parents ont les deux ; les autres membres de la famille, seulement la seconde.
+Renseignez l'**adresse du compte Google** de chaque personne qui se connecte. Sans elle, personne ne peut entrer : se connecter avec un compte Google valide ne donne aucun droit tant que l'adresse n'a pas été inscrite ici.
 
-> Cette page est volontairement accessible **avant** de s'être identifié : elle ne demande que les deux mots de passe. C'est ce qui permet d'amorcer un site vide, où « Qui êtes-vous ? » n'a encore personne à proposer.
+La colonne « Compte Google » affiche « en attente de 1re connexion » jusqu'à ce que la personne se soit connectée au moins une fois. À ce moment-là, le site mémorise l'identifiant interne du compte (que Google ne réattribue jamais) et n'utilise plus l'adresse pour l'identifier — une adresse peut changer de propriétaire, cet identifiant non. Si vous corrigez l'adresse plus tard, le rattachement est défait et se refera à la connexion suivante.
 
 ## Étape 8 — Tester
 
 1. Ouvrez `https://agenda.hellau.be`. Vous devez arriver sur l'écran de connexion.
-2. Entrez le mot de passe familial.
+2. Cliquez sur **Se connecter avec Google** et choisissez votre compte.
 3. Ajoutez un rendez-vous test, vérifiez qu'il apparaît dans la liste.
 4. Dans phpMyAdmin, vérifiez qu'une ligne est bien apparue dans la table `appointments`.
 5. Supprimez le rendez-vous test.
 
-À partir de maintenant, vous, Papa et Maman partagez le même lien et le même mot de passe.
+À partir de maintenant, vous, Papa et Maman partagez le même lien — chacun entre avec son propre compte Google.
 
 ## Étape 9 (facultatif) — Synchronisation vers Google Calendar
 
@@ -93,24 +133,24 @@ C'est une synchronisation à sens unique (site → Calendar) : modifier un évé
 
 Si vous aviez déjà des rendez-vous dans le calendrier Google créé pour vos parents, vous pouvez les récupérer en une fois dans le site (nécessite d'avoir fait l'étape 9 juste avant, pour que le site puisse lire ce calendrier).
 
-1. Ouvrez `https://agenda.hellau.be/outils/import_calendar.php`, connectez-vous avec le mot de passe **d'administration**.
+1. Ouvrez `https://agenda.hellau.be/outils/import_calendar.php`, connecté avec un compte marqué **Administre**.
 2. Choisissez une période (du / au), cliquez sur **Charger les évènements de cette période**.
 3. Une liste s'affiche : décochez ceux à ne pas importer, choisissez la bonne personne (Papa ou Maman) pour chaque ligne — un rendez-vous ne concerne jamais qu'une seule personne, même si le calendrier d'origine ne le précisait pas.
 4. Cliquez sur **Importer la sélection**.
 
 Chaque rendez-vous importé reste lié à son évènement Google Calendar d'origine : si vous le modifiez ensuite depuis le site, l'évènement existant sera mis à jour (pas de doublon créé). Relancer cet import par erreur ne duplique rien non plus — les évènements déjà importés sont automatiquement ignorés.
 
-**Une fois l'import fait et vérifié, supprimez `outils/import_calendar.php` du serveur** (comme `outils/generate_password.php`) : il n'a plus de raison de rester en ligne.
+**Une fois l'import fait et vérifié, supprimez `outils/import_calendar.php` du serveur** : il n'a plus de raison de rester en ligne.
 
-## Protéger les outils d'administration par un second mot de passe
+## Qui peut administrer
 
-Le site a une zone d'administration (`admin/index.php`), organisée en trois groupes : **Rendez-vous** (import `.ics`, correction de rendez-vous existants), **Sauvegardes** (restauration) et **Notifications** (réglages des rappels). Pour que le reste de la famille n'y ait pas accès même s'il tombe sur l'adresse, cette zone est protégée par un **second mot de passe**, différent du mot de passe familial.
+Le site a une zone d'administration (`admin/index.php`), organisée en trois groupes : **Rendez-vous** (import `.ics`, correction de rendez-vous existants), **Sauvegardes** (restauration) et **Notifications** (réglages des rappels).
 
-Il est défini à l'étape 5 ci-dessus (`admin_password_hash` dans `config.php`). Pour le changer plus tard : remettez temporairement `outils/generate_password.php` sur le serveur, générez un nouveau hash, mettez à jour `config.php`, puis supprimez à nouveau le fichier.
+Elle est réservée aux personnes portant le drapeau **Administre** dans `/admin/personnes.php`. Il n'y a pas de mot de passe supplémentaire : votre compte Google vous identifie déjà, et exiger un second secret n'aurait rien protégé de plus — modifier une pathologie, geste bien plus lourd de conséquences, ne demande de toute façon que ce même drapeau.
 
-Deux outils de `outils/` demandent ce même mot de passe, parce qu'ils touchent à la structure ou écrivent en masse : `migrate.php` (migrations de base de données) et `import_calendar.php` (import depuis Google Calendar).
+Un membre de la famille sans le drapeau qui tomberait sur l'adresse est renvoyé vers l'agenda.
 
-Il n'y a plus de lien visible vers `admin/index.php` dans l'agenda : gardez cette adresse en favori pour y accéder directement. Même en la connaissant, l'accès reste bloqué tant que le mot de passe d'administration n'est pas défini dans `config.php`.
+Il n'y a pas de lien visible vers `admin/index.php` pour les autres : il n'apparaît dans le menu que pour les personnes qui administrent.
 
 ## Sauvegardes automatiques
 
@@ -127,7 +167,7 @@ En cas de suppression accidentelle d'un rendez-vous, une sauvegarde automatique 
 >
 > **Si ça ne se déclenche toujours pas automatiquement** (mais que visiter l'URL à la main fonctionne) : dans la liste des tâches Cron, cliquez sur **"Afficher le résultat"** pour voir la sortie de la dernière exécution — une sortie vide ne veut pas forcément dire un échec, `wget -q` ne log rien par défaut en cas de succès. Vérifiez aussi qu'aucun espace ou caractère invisible ne s'est glissé dans le chemin lors du copier-coller.
 
-Chaque sauvegarde est un export complet des **rendez-vous**, des **médicaments** et des **pathologies** à cet instant — un fichier JSON par table (`appointments-…json`, `medicaments-…json`, `medicament_moments-…json`, `medicament_prises-…json`, `pathologies-…json`), conservé 60 jours puis supprimé automatiquement. Le dossier `backups/` est bloqué à l'accès direct par son propre `.htaccess` : seule la page d'administration (avec son mot de passe) peut les consulter.
+Chaque sauvegarde est un export complet des **rendez-vous**, des **médicaments** et des **pathologies** à cet instant — un fichier JSON par table (`appointments-…json`, `medicaments-…json`, `medicament_moments-…json`, `medicament_prises-…json`, `pathologies-…json`), conservé 60 jours puis supprimé automatiquement. Le dossier `backups/` est bloqué à l'accès direct par son propre `.htaccess` : seule la page d'administration peut les consulter.
 
 Seuls les rendez-vous ont un écran de restauration (`admin/sauvegardes.php`). Pour les médicaments et les pathologies, la sauvegarde sert de filet : en cas de problème, le fichier JSON permet de reconstituer les données à la main, ce qui est bien plus rapide que de tout retrouver de mémoire.
 
@@ -176,7 +216,7 @@ Si vous laissez `smtp_host` vide, le site continue de fonctionner en se rabattan
 
 ### Étape 3 — Chaque parent règle ses propres préférences
 
-Contrairement au reste (réservé à l'administration), les adresses email de vos parents et leurs préférences ne se configurent PAS dans `admin/reglages.php` : chacun les gère lui-même, avec le mot de passe familial habituel (pas besoin du mot de passe admin), depuis le lien **"Rappels par email"** en haut de l'agenda (`mes_rappels.php`).
+Contrairement au reste (réservé à l'administration), les adresses email de vos parents et leurs préférences ne se configurent PAS dans `admin/reglages.php` : chacun les gère lui-même, une fois connecté avec son compte Google (pas besoin du mot de passe admin), depuis le lien **"Rappels par email"** en haut de l'agenda (`mes_rappels.php`).
 
 Sur cette page, chaque personne (identifiée par son prénom, ex. "Michel" / "Christiane") peut :
 - renseigner sa propre adresse email (vide = aucun rappel pour elle) ;
@@ -192,7 +232,7 @@ Tout se passe dans **Administration → Personnes** (`/admin/personnes.php`). Au
 Chaque personne porte deux cases :
 
 - **Patient** — on suit sa santé : elle a un onglet dans l'agenda, un plan de médicaments, des pathologies, un carnet de médecins.
-- **Se connecte** — elle apparaît dans « Qui êtes-vous ? » à l'ouverture du site.
+- **Se connecte** — elle est autorisée à entrer sur le site, avec l'adresse Google indiquée en face.
 
 Michel et Christiane ont les deux, Hélène et Laurent seulement la seconde.
 
@@ -213,16 +253,17 @@ Contrairement à la version Google Apps Script, il n'y a pas de « déploiement 
 
 - `config.php`, tous les fichiers `.json` et `.sql`, ainsi que tout le dossier `lib/` sont bloqués à l'accès direct par le `.htaccess` fourni.
 - Le dossier `backups/` a son propre `.htaccess` qui bloque tout accès direct aux sauvegardes.
-- La zone d'administration (`admin/index.php` et ses sous-pages : import `.ics`, correction de rendez-vous, sauvegardes) est protégée par un second mot de passe distinct du mot de passe familial (voir « Protéger les outils d'administration » plus haut), et n'a pas de lien visible depuis l'agenda.
+- La zone d'administration (`admin/index.php` et ses sous-pages : import `.ics`, correction de rendez-vous, sauvegardes) est réservée aux personnes portant le drapeau **Administre** (voir « Qui peut administrer » plus haut).
 - Le SSL (`https://`) chiffre les échanges entre le navigateur et le serveur.
 - Ne partagez jamais `config.php` ni `service-account.json`.
-- Pour changer le mot de passe familial ou le mot de passe d'administration plus tard : remettez temporairement `outils/generate_password.php` sur le serveur, générez un nouveau hash, mettez à jour `config.php` (`family_password_hash` ou `admin_password_hash`), puis supprimez à nouveau `outils/generate_password.php`.
+- Pour donner ou retirer les droits d'administration : cochez ou décochez **Administre** dans `/admin/personnes.php`. L'effet est immédiat au chargement de page suivant, sans reconnexion.
+- Pour retirer l'accès à quelqu'un : effacez son adresse Google dans `admin/personnes.php`, ou désactivez la personne. L'effet est immédiat à la prochaine connexion.
 
 ## Mise à jour depuis une version antérieure à la réorganisation des fichiers (v2.0.0)
 
 À partir de la version 2.0.0, les pages d'administration, les scripts Cron et les outils d'installation sont rangés dans des sous-dossiers (`admin/`, `cron/`, `outils/`) plutôt qu'à la racine du site. Si vous mettez à jour un site déjà installé avec l'ancienne structure (fichiers `admin_nettoyage.php`, `backup.php`, `rappels.php`, `migrate.php`, etc. directement à la racine), il faut, en plus de renvoyer les nouveaux fichiers :
 
-1. **Supprimer les anciens fichiers racine** devenus obsolètes : `admin_login.php`, `admin_logout.php`, `admin_nettoyage.php`, `admin_reglages.php`, `backup.php`, `rappels.php`, `migrate.php`, `generate_password.php`, `import_calendar.php` (s'il est encore présent). Les laisser en place ne casse rien techniquement, mais ce sont des doublons obsolètes qu'il vaut mieux retirer.
+1. **Supprimer les anciens fichiers racine** devenus obsolètes : `admin_login.php`, `admin_logout.php`, `admin_nettoyage.php`, `admin_reglages.php`, `backup.php`, `rappels.php`, `migrate.php`, `import_calendar.php` (s'il est encore présent). Les laisser en place ne casse rien techniquement, mais ce sont des doublons obsolètes qu'il vaut mieux retirer.
 2. **Mettre à jour les deux Cron Jobs** dans hPanel (Avancé > Cron Jobs) pour pointer vers les nouvelles URLs `cron/backup.php?token=...` et `cron/rappels.php?token=...` (voir les sections correspondantes ci-dessus).
 3. **Mettre à jour votre favori/marque-page** vers la page d'administration : la nouvelle adresse est `https://agenda.hellau.be/admin/index.php`.
 

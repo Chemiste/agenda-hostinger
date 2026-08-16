@@ -39,7 +39,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $db,
                 isset($_POST['nom']) ? $_POST['nom'] : '',
                 !empty($_POST['est_patient']),
-                !empty($_POST['peut_se_connecter'])
+                !empty($_POST['peut_se_connecter']),
+                isset($_POST['google_email']) ? $_POST['google_email'] : '',
+                !empty($_POST['est_admin'])
             );
         } elseif ($action === 'modifier' && isset($_POST['id'])) {
             modifierPerson(
@@ -47,7 +49,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $_POST['id'],
                 isset($_POST['nom']) ? $_POST['nom'] : '',
                 !empty($_POST['est_patient']),
-                !empty($_POST['peut_se_connecter'])
+                !empty($_POST['peut_se_connecter']),
+                isset($_POST['google_email']) ? $_POST['google_email'] : '',
+                !empty($_POST['est_admin'])
             );
         } elseif ($action === 'deplacer' && isset($_POST['id'], $_POST['direction'])) {
             deplacerPerson($db, $_POST['id'], $_POST['direction']);
@@ -119,8 +123,9 @@ $index = 0;
         <thead>
           <tr>
             <th scope="col">Personne</th>
+            <th scope="col">Compte Google</th>
             <th scope="col" class="col-droit">Patient</th>
-            <th scope="col" class="col-droit">Se connecte</th>
+            <th scope="col" class="col-droit">Administre</th>
             <th scope="col">Données rattachées</th>
             <th scope="col" class="col-ordre">Ordre</th>
             <th scope="col" class="col-actions">Actions</th>
@@ -135,16 +140,20 @@ $index = 0;
           ?>
           <?php if ($enEdition): ?>
             <tr class="ligne-edition-personne">
-              <td colspan="6">
+              <td colspan="7">
                 <form method="post" class="form-personne">
                   <input type="hidden" name="action" value="modifier">
                   <input type="hidden" name="id" value="<?= $p['id'] ?>">
                   <input type="text" name="nom" value="<?= htmlspecialchars($p['nom']) ?>" aria-label="Nom" required autofocus>
+                  <input type="email" name="google_email" value="<?= htmlspecialchars(isset($p['google_email']) ? $p['google_email'] : '') ?>" aria-label="Adresse du compte Google" placeholder="adresse@gmail.com">
                   <label class="case-drapeau">
                     <input type="checkbox" name="est_patient" value="1"<?= $p['est_patient'] ? ' checked' : '' ?>> Patient
                   </label>
                   <label class="case-drapeau">
                     <input type="checkbox" name="peut_se_connecter" value="1"<?= $p['peut_se_connecter'] ? ' checked' : '' ?>> Se connecte
+                  </label>
+                  <label class="case-drapeau">
+                    <input type="checkbox" name="est_admin" value="1"<?= !empty($p['est_admin']) ? ' checked' : '' ?>> Administre
                   </label>
                   <button type="submit" class="principal">Enregistrer</button>
                   <a class="secondaire" href="/admin/personnes.php">Annuler</a>
@@ -159,11 +168,29 @@ $index = 0;
                   <span class="etiquette-personne etiquette-inactive">Désactivée</span>
                 <?php endif; ?>
               </td>
+              <?php /* L'etat du rattachement compte plus que l'adresse
+                       elle-meme : tant que google_sub est vide, la personne
+                       n'a jamais reussi a se connecter et on ne sait pas si
+                       l'adresse est la bonne. */ ?>
+              <td class="compte-google">
+                <?php if (empty($p['peut_se_connecter'])): ?>
+                  <span class="marque-droit non">✕ ne se connecte pas</span>
+                <?php elseif (empty($p['google_email'])): ?>
+                  <span class="marque-droit non">✕ aucune adresse</span>
+                <?php else: ?>
+                  <span class="email-google"><?= htmlspecialchars($p['google_email']) ?></span>
+                  <?php if (!empty($p['google_sub'])): ?>
+                    <span class="etiquette-personne etiquette-lie">✔ relié</span>
+                  <?php else: ?>
+                    <span class="etiquette-personne etiquette-attente">en attente de 1re connexion</span>
+                  <?php endif; ?>
+                <?php endif; ?>
+              </td>
               <td class="col-droit">
                 <span class="marque-droit <?= $p['est_patient'] ? 'oui' : 'non' ?>"><?= $p['est_patient'] ? '✔ oui' : '✕ non' ?></span>
               </td>
               <td class="col-droit">
-                <span class="marque-droit <?= $p['peut_se_connecter'] ? 'oui' : 'non' ?>"><?= $p['peut_se_connecter'] ? '✔ oui' : '✕ non' ?></span>
+                <span class="marque-droit <?= !empty($p['est_admin']) ? 'oui' : 'non' ?>"><?= !empty($p['est_admin']) ? '✔ oui' : '✕ non' ?></span>
               </td>
               <td class="donnees-personne">
                 <?php if (empty($donnees)): ?>
@@ -232,8 +259,10 @@ $index = 0;
     <form method="post" class="form-personne form-ajouter-personne">
       <input type="hidden" name="action" value="ajouter">
       <input type="text" name="nom" placeholder="Nouvelle personne" aria-label="Nom de la nouvelle personne" required>
+      <input type="email" name="google_email" placeholder="adresse@gmail.com" aria-label="Adresse du compte Google">
       <label class="case-drapeau"><input type="checkbox" name="est_patient" value="1"> Patient</label>
       <label class="case-drapeau"><input type="checkbox" name="peut_se_connecter" value="1" checked> Se connecte</label>
+      <label class="case-drapeau"><input type="checkbox" name="est_admin" value="1"> Administre</label>
       <button type="submit" class="principal">Ajouter</button>
     </form>
   </div>

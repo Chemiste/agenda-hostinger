@@ -295,6 +295,17 @@ textarea.motifs { width:100%; min-height:100px; font-family:inherit; font-size:1
 .actions-personne a.lien-modifier-tache { font-size:13px; }
 .form-personne { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:0; flex:1 1 100%; }
 .form-personne input[type=text] { flex:1 1 180px; margin:0; }
+.form-personne input[type=email] { flex:1 1 220px; margin:0; }
+
+/* Colonne "Compte Google" : l'adresse, et surtout l'etat du rattachement.
+   Tant qu'aucune connexion n'a reussi, on ne sait pas si l'adresse saisie
+   est la bonne - l'etiquette le dit au lieu de laisser croire que tout est
+   en place. Les deux etats se distinguent par le mot autant que par la
+   couleur (Chem est daltonien). */
+.compte-google { font-size:13px; }
+.email-google { color:var(--text-secondary); word-break:break-all; margin-right:6px; }
+.etiquette-personne.etiquette-attente { color:#7a5a12; background:#fdf5e3; border-color:#efe0b8; }
+.etiquette-personne.etiquette-lie { color:#1c5c39; background:#eaf6ef; border-color:#c9e5d5; }
 .form-personne .principal, .form-personne .secondaire { flex:none; padding:8px 14px; font-size:13.5px; }
 .form-ajouter-personne { margin-top:12px; }
 .case-drapeau { display:flex; align-items:center; gap:6px; font-size:13px; font-weight:600; color:var(--text-secondary); white-space:nowrap; cursor:pointer; }
