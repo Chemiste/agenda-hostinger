@@ -2,6 +2,27 @@
 
 ## Non publié
 
+- **Relire un vrai rappel avant que tes parents ne le reçoivent.**
+  L'email de test n'envoyait qu'une phrase fixe : il prouvait que l'envoi
+  fonctionnait, pas que le rappel était juste. `admin/reglages.php` permet
+  maintenant de choisir un rendez-vous à venir et de composer son message
+  **réel** — médicaments et pathologies compris — soit affiché sur place,
+  soit envoyé à son auteur.
+  - L'aperçu **ne marque pas** le rendez-vous comme rappelé
+    (`reminder_sent_at` reste intact). Sans cette précaution, prévisualiser
+    un rappel aurait empêché le vrai de partir — l'outil de vérification
+    aurait cassé ce qu'il servait à vérifier.
+  - Le rendu passe par une `iframe` en `srcdoc` : le message porte ses
+    propres styles et sa propre balise `body`. Inséré dans la page, il
+    hériterait de la feuille du site et n'aurait plus rien à voir avec ce
+    que reçoivent Michel et Christiane.
+  - La page **avertit quand l'adresse d'expédition diffère du compte SMTP**.
+    Les deux sont distinctes par nature — l'une est un identifiant de
+    connexion dans `config.php`, l'autre une adresse affichée, stockée en
+    base pour être modifiable sans FTP — mais Hostinger exige qu'elles
+    coïncident. L'incohérence produisait des messages acceptés puis
+    supprimés en silence.
+
 - **Les boutons d'action des formulaires ne transmettaient plus rien.**
   `admin-ui.js` désactive les boutons à la soumission pour éviter le
   double-clic — mais **un bouton désactivé n'envoie plus son couple
