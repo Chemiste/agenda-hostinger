@@ -125,27 +125,37 @@ function libelleBoite($b) {
 }
 
 /**
- * Date courte : "mar 18 août, 14:00".
+ * Le mois d'une date, en toutes lettres : "août 2026".
  *
- * Volontairement plus courte que le libelle du rendez-vous principal
- * (formaterDateFr dans cron/rappels.php, qui ecrit le jour en entier et
- * l'annee) : ici elle remplit une colonne de tableau sur un ecran de
- * telephone, ou "mercredi 24 septembre 2026" passerait a la ligne trois
- * fois. L'annee est omise pour la meme raison - la fenetre est de huit
- * semaines, l'annee ne leve aucune ambiguite.
+ * Sert d'intertitre dans la liste des rendez-vous a venir. C'est LUI qui
+ * porte l'annee, et c'est pour cela qu'il existe : la liste va jusqu'a
+ * l'annee suivante, et une ligne "mar 18 janv." sans annee serait
+ * ambigue. La repeter sur chaque ligne allongerait en revanche une colonne
+ * deja etroite sur un telephone.
  */
-function dateCourteFr($date, $heure) {
-    $jours = ['dim', 'lun', 'mar', 'mer', 'jeu', 'ven', 'sam'];
-    $mois = ['', 'janv.', 'févr.', 'mars', 'avril', 'mai', 'juin', 'juil.',
-             'août', 'sept.', 'oct.', 'nov.', 'déc.'];
-    $ts = strtotime($date . ' ' . $heure);
-    return $jours[(int) date('w', $ts)] . ' ' . (int) date('j', $ts) . ' '
-         . $mois[(int) date('n', $ts)] . ', ' . date('H:i', $ts);
+function libelleMoisFr($date) {
+    $mois = ['', 'janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet',
+             'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+    $ts = strtotime($date . ' 12:00');
+    return $mois[(int) date('n', $ts)] . ' ' . date('Y', $ts);
 }
 
 /**
- * Les rendez-vous a venir des DEUX personnes, hors celui qui fait l'objet
- * du rappel.
+ * Jour court, sans le mois ni l'annee : "mar 18, 14:00".
+ *
+ * Le mois est deja dans l'intertitre au-dessus (voir libelleMoisFr). Le
+ * jour de la SEMAINE, lui, reste : c'est ce qu'on regarde quand on cherche
+ * si une date proposee au comptoir tombe deja sur autre chose.
+ */
+function jourCourtFr($date, $heure) {
+    $jours = ['dim', 'lun', 'mar', 'mer', 'jeu', 'ven', 'sam'];
+    $ts = strtotime($date . ' ' . $heure);
+    return $jours[(int) date('w', $ts)] . ' ' . (int) date('j', $ts) . ', ' . date('H:i', $ts);
+}
+
+/**
+ * TOUS les rendez-vous a venir des DEUX personnes, hors celui qui fait
+ * l'objet du rappel, regroupes par mois.
  *
  * POURQUOI LES DEUX. Michel et Christiane vont souvent en consultation
  * ensemble, et la question posee au comptoir en repartant est toujours la
@@ -154,32 +164,37 @@ function dateCourteFr($date, $heure) {
  * La colonne "Qui" n'est donc pas decorative : sans elle, la liste
  * melangerait deux agendas sans qu'on puisse les demeler.
  *
- * POURQUOI UNE FENETRE ET UN PLAFOND. Il y a regulierement plus de vingt
- * rendez-vous en attente. Les mettre tous ferait un mail interminable pour
- * une information qui, au-dela de deux mois, ne sert pas en salle
- * d'attente. On garde huit semaines, au plus douze lignes, et on ANNONCE
- * ce qui a ete laisse de cote - une liste tronquee en silence ferait
- * croire qu'il n'y a rien d'autre.
+ * POURQUOI AUCUNE LIMITE. Une premiere version s'arretait a huit semaines
+ * et douze lignes, pour ne pas allonger le mail. C'etait passer a cote de
+ * l'usage : certains rendez-vous se prennent pour l'annee suivante, et une
+ * liste tronquee repond "rien de prevu" pour une date ou il y a en realite
+ * deja quelque chose. Une reponse fausse est pire qu'une liste longue -
+ * d'autant que cette liste est en fin de message, apres tout ce qui sert
+ * pendant la consultation.
  *
- * @return array{lignes:array, restants:int}
+ * REGROUPES PAR MOIS pour rester lisibles sur cette longueur, et parce que
+ * c'est l'intertitre qui porte l'annee.
+ *
+ * @return array liste de ['mois' => 'août 2026', 'lignes' => [...]]
  */
-function prochainsRendezVous($db, $idExclu, $horizonJours = 56, $maximum = 12) {
+function prochainsRendezVous($db, $idExclu) {
     $stmt = $db->prepare(
         'SELECT id, appt_date, appt_time, person_id, person, doctor, department '
         . 'FROM appointments '
         . 'WHERE TIMESTAMP(appt_date, appt_time) > NOW() '
-        . 'AND TIMESTAMP(appt_date, appt_time) <= DATE_ADD(NOW(), INTERVAL ? DAY) '
         . 'AND id <> ? '
         . 'ORDER BY appt_date, appt_time'
     );
-    $stmt->execute([(int) $horizonJours, (int) $idExclu]);
-    $trouves = $stmt->fetchAll();
+    $stmt->execute([(int) $idExclu]);
 
-    $restants = count($trouves) > $maximum ? count($trouves) - $maximum : 0;
-    $lignes = [];
-    foreach (array_slice($trouves, 0, $maximum) as $r) {
-        $lignes[] = [
-            'quand' => dateCourteFr($r['appt_date'], $r['appt_time']),
+    $groupes = [];
+    foreach ($stmt->fetchAll() as $r) {
+        $mois = libelleMoisFr($r['appt_date']);
+        if (!isset($groupes[$mois])) {
+            $groupes[$mois] = ['mois' => $mois, 'lignes' => []];
+        }
+        $groupes[$mois]['lignes'][] = [
+            'quand' => jourCourtFr($r['appt_date'], $r['appt_time']),
             'qui' => ((int) $r['person_id'] > 0) ? nomPerson($db, $r['person_id']) : $r['person'],
             // Un rendez-vous sans medecin renseigne existe (prise de sang,
             // examen) : mieux vaut une case explicite qu'une case vide, ou
@@ -190,7 +205,9 @@ function prochainsRendezVous($db, $idExclu, $horizonJours = 56, $maximum = 12) {
         ];
     }
 
-    return ['lignes' => $lignes, 'restants' => $restants];
+    // Reindexe : les cles textuelles ("août 2026") ne servaient qu'au
+    // regroupement, et l'ordre chronologique vient deja du ORDER BY.
+    return array_values($groupes);
 }
 
 /**
@@ -231,7 +248,7 @@ function composerRappel($db, $rdv, $nomConcerne, $quand) {
     ];
 }
 
-function rappelEnTexte($nomConcerne, $quand, $infos, $rdv, $questions, $medicaments, $pathologies, $autresRdvs = ['lignes' => [], 'restants' => 0]) {
+function rappelEnTexte($nomConcerne, $quand, $infos, $rdv, $questions, $medicaments, $pathologies, $autresRdvs = []) {
     $l = [];
     $l[] = 'Rappel de rendez-vous : ' . $quand;
     $l[] = '';
@@ -287,28 +304,28 @@ function rappelEnTexte($nomConcerne, $quand, $infos, $rdv, $questions, $medicame
             if (!empty($path['traitement'])) $l[] = '  Suivi : ' . $path['traitement'];
         }
     }
-    if (!empty($autresRdvs['lignes'])) {
+    if (!empty($autresRdvs)) {
         $l[] = '';
-        $l[] = 'AUTRES RENDEZ-VOUS DES HUIT PROCHAINES SEMAINES';
-        foreach ($autresRdvs['lignes'] as $r) {
-            // Le nom en premier, avant la date : en texte brut il n'y a pas
-            // de colonnes, et c'est "de qui parle-t-on" qui permet de sauter
-            // les lignes qui ne nous concernent pas.
-            $ligne = '- ' . $r['qui'] . ' — ' . $r['quand'] . ' — ' . $r['objet'];
-            if ($r['service'] !== '') {
-                $ligne .= ' (' . $r['service'] . ')';
+        $l[] = 'TOUS LES AUTRES RENDEZ-VOUS À VENIR';
+        foreach ($autresRdvs as $groupe) {
+            $l[] = '';
+            $l[] = mb_strtoupper($groupe['mois'], 'UTF-8');
+            foreach ($groupe['lignes'] as $r) {
+                // Le nom en premier, avant la date : en texte brut il n'y a
+                // pas de colonnes, et c'est "de qui parle-t-on" qui permet
+                // de sauter les lignes qui ne nous concernent pas.
+                $ligne = '- ' . $r['qui'] . ' — ' . $r['quand'] . ' — ' . $r['objet'];
+                if ($r['service'] !== '') {
+                    $ligne .= ' (' . $r['service'] . ')';
+                }
+                $l[] = $ligne;
             }
-            $l[] = $ligne;
-        }
-        if ($autresRdvs['restants'] > 0) {
-            $l[] = '  … et ' . $autresRdvs['restants'] . ' autre'
-                 . ($autresRdvs['restants'] > 1 ? 's' : '') . ' dans les huit semaines.';
         }
     }
     return implode("\n", $l);
 }
 
-function rappelEnHtml($nomConcerne, $quand, $infos, $rdv, $questions, $medicaments, $pathologies, $autresRdvs = ['lignes' => [], 'restants' => 0]) {
+function rappelEnHtml($nomConcerne, $quand, $infos, $rdv, $questions, $medicaments, $pathologies, $autresRdvs = []) {
     // Styles repetes a chaque balise : les clients de messagerie
     // suppriment les feuilles de style, y compris celles placees dans
     // <head>. C'est verbeux, mais c'est la seule facon fiable.
@@ -408,43 +425,50 @@ function rappelEnHtml($nomConcerne, $quand, $infos, $rdv, $questions, $medicamen
     // liste - leurs lignes n'ont pas la meme forme (une boite, ou deux
     // separees par OU, plus une posologie commune) et un tableau aurait
     // demande des cellules fusionnees pour rien.
-    if (!empty($autresRdvs['lignes'])) {
-        $o[] = '<div style="' . $sTitre . '">Autres rendez-vous à venir</div>';
+    if (!empty($autresRdvs)) {
+        $o[] = '<div style="' . $sTitre . '">Tous les autres rendez-vous à venir</div>';
+        $o[] = '<div style="' . $sTexte . 'font-size:15px;color:#5b6068;margin:0 0 10px;">'
+             . 'Pour vérifier, quand on vous propose une date, que rien n\'est déjà prévu ce jour-là.</div>';
         $o[] = '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%;border-collapse:collapse;">';
+
+        $sEntete = $police . 'font-size:13px;font-weight:700;text-transform:uppercase;'
+                 . 'letter-spacing:0.04em;color:#5b6068;padding:0 8px 6px 0;border-bottom:2px solid #e6e8ec;';
         // En-tetes en gris et en petit : ils servent a lire la premiere
         // ligne, pas a etre relus a chaque ligne suivante.
         $o[] = '<tr>'
-             . '<th align="left" style="' . $police . 'font-size:13px;font-weight:700;text-transform:uppercase;'
-             . 'letter-spacing:0.04em;color:#5b6068;padding:0 8px 6px 0;border-bottom:2px solid #e6e8ec;">Qui</th>'
-             . '<th align="left" style="' . $police . 'font-size:13px;font-weight:700;text-transform:uppercase;'
-             . 'letter-spacing:0.04em;color:#5b6068;padding:0 8px 6px 0;border-bottom:2px solid #e6e8ec;">Quand</th>'
-             . '<th align="left" style="' . $police . 'font-size:13px;font-weight:700;text-transform:uppercase;'
-             . 'letter-spacing:0.04em;color:#5b6068;padding:0 0 6px 0;border-bottom:2px solid #e6e8ec;">Médecin</th>'
+             . '<th align="left" style="' . $sEntete . '">Qui</th>'
+             . '<th align="left" style="' . $sEntete . '">Quand</th>'
+             . '<th align="left" style="' . $sEntete . 'padding-right:0;">Médecin</th>'
              . '</tr>';
-        foreach ($autresRdvs['lignes'] as $r) {
-            $objet = echapperHtml($r['objet']);
-            if ($r['service'] !== '') {
-                // Le service sous le nom du medecin plutot qu'a cote : une
-                // quatrieme colonne ramenerait chaque cellule a deux ou
-                // trois caracteres de large sur un telephone.
-                $objet .= '<br><span style="font-size:14px;color:#5b6068;">' . echapperHtml($r['service']) . '</span>';
+
+        $cell = $police . 'font-size:16px;color:#1c1d20;padding:8px 8px 8px 0;'
+              . 'vertical-align:top;border-bottom:1px solid #e6e8ec;';
+
+        foreach ($autresRdvs as $groupe) {
+            // Intertitre de mois sur toute la largeur : c'est lui qui porte
+            // l'annee, et il decoupe une liste qui peut faire trente lignes.
+            $o[] = '<tr><td colspan="3" style="' . $police . 'font-size:14px;font-weight:700;'
+                 . 'text-transform:uppercase;letter-spacing:0.04em;color:#5b6068;'
+                 . 'padding:16px 0 4px;">' . echapperHtml($groupe['mois']) . '</td></tr>';
+
+            foreach ($groupe['lignes'] as $r) {
+                $objet = echapperHtml($r['objet']);
+                if ($r['service'] !== '') {
+                    // Le service sous le nom du medecin plutot qu'a cote :
+                    // une quatrieme colonne ramenerait chaque cellule a deux
+                    // ou trois caracteres de large sur un telephone.
+                    $objet .= '<br><span style="font-size:14px;color:#5b6068;">' . echapperHtml($r['service']) . '</span>';
+                }
+                $o[] = '<tr>'
+                     // Le nom en gras : c'est la colonne qu'on parcourt du
+                     // regard pour retrouver ses propres rendez-vous.
+                     . '<td style="' . $cell . 'font-weight:700;white-space:nowrap;">' . echapperHtml($r['qui']) . '</td>'
+                     . '<td style="' . $cell . 'white-space:nowrap;">' . echapperHtml($r['quand']) . '</td>'
+                     . '<td style="' . $cell . 'padding-right:0;">' . $objet . '</td>'
+                     . '</tr>';
             }
-            $cell = $police . 'font-size:16px;color:#1c1d20;padding:8px 8px 8px 0;'
-                  . 'vertical-align:top;border-bottom:1px solid #e6e8ec;';
-            $o[] = '<tr>'
-                 // Le nom en gras : c'est la colonne qu'on parcourt du
-                 // regard pour retrouver ses propres rendez-vous.
-                 . '<td style="' . $cell . 'font-weight:700;white-space:nowrap;">' . echapperHtml($r['qui']) . '</td>'
-                 . '<td style="' . $cell . '">' . echapperHtml($r['quand']) . '</td>'
-                 . '<td style="' . $cell . 'padding-right:0;">' . $objet . '</td>'
-                 . '</tr>';
         }
         $o[] = '</table>';
-        if ($autresRdvs['restants'] > 0) {
-            $o[] = '<div style="' . $police . 'font-size:15px;color:#5b6068;margin:8px 0 0;">… et '
-                 . (int) $autresRdvs['restants'] . ' autre'
-                 . ($autresRdvs['restants'] > 1 ? 's' : '') . ' dans les huit semaines.</div>';
-        }
     }
 
     $o[] = '<div style="' . $police . 'font-size:13px;color:#8b9099;margin-top:28px;'

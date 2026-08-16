@@ -128,11 +128,14 @@
     repartant est toujours la même — « vous êtes libres quand ? » — et sans
     les deux agendas sous les yeux, le rendez-vous se prend à l'aveugle
     puis se déplace le soir même.
-    - Fenêtre de **huit semaines**, **douze lignes** au plus, et ce qui est
-      laissé de côté est annoncé (« … et 4 autres »). Il y a régulièrement
-      plus de vingt rendez-vous en attente : tout lister ferait un mail
-      interminable, et une liste tronquée en silence ferait croire qu'il
-      n'y a rien d'autre.
+    - **Tous** les rendez-vous à venir, sans limite de date ni de nombre,
+      **regroupés par mois**. Une première version s'arrêtait à huit
+      semaines pour ne pas allonger le mail — c'était passer à côté de
+      l'usage : certains rendez-vous se prennent pour l'année suivante, et
+      une liste tronquée répond « rien de prévu » pour une date où il y a
+      en réalité déjà quelque chose. C'est l'intertitre du mois qui porte
+      l'année ; la répéter sur chaque ligne allongerait une colonne déjà
+      étroite sur un téléphone.
     - C'est le **seul vrai tableau** du message, parce que c'est le seul
       contenu tabulaire : trois colonnes courtes et de même nature d'une
       ligne à l'autre. Les médicaments restent en liste — leurs lignes
