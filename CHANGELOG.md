@@ -2,6 +2,23 @@
 
 ## Non publié
 
+- **Les boutons d'action des formulaires ne transmettaient plus rien.**
+  `admin-ui.js` désactive les boutons à la soumission pour éviter le
+  double-clic — mais **un bouton désactivé n'envoie plus son couple
+  nom/valeur**. Or plusieurs formulaires font porter l'action au bouton
+  lui-même (`name="action" value="tester"`). Le serveur recevait donc un
+  POST sans action, n'exécutait aucune branche, et réaffichait la page à
+  l'identique : ni succès, ni erreur, « rien ne se passe ».
+  - Quatre boutons étaient concernés depuis l'introduction du fichier :
+    l'email de test et l'enregistrement des réglages (`admin/reglages.php`),
+    les mêmes sur `mes_rappels.php`, et la suppression d'une photo de
+    médicament. C'est ce qui empêchait l'email de test de partir.
+  - La valeur du bouton cliqué (`event.submitter`) est désormais recopiée
+    dans un champ caché **avant** la désactivation. La protection contre le
+    double-clic est conservée.
+  - Symptôme trompeur : l'absence de copie dans le dossier « Envoyés » de la
+    boîte mail ne prouvait rien — un envoi SMTP n'y dépose jamais de copie.
+
 - **`lib/db.php` refuse de démarrer avec une configuration de production sur
   la machine de développement.** `config.php` avait été écrasé par une copie
   de `config_prod.php` et l'était resté ; rien ne le signalait. L'erreur n'a

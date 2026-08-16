@@ -149,6 +149,25 @@ $patients = listerPatients(getDb());
             </select>
           </div>
         </div>
+
+        <!-- Dans "Quand" et non dans une section a part : le rappel parle
+             bien du moment ("la veille"), et surtout une section autonome
+             occupait une ligne entiere de la grille a deux colonnes, la
+             droite restant vide - il fallait alors faire defiler pour voir
+             la case. Ici elle comble le creux laisse par "Qui", plus haute
+             d'un champ.
+
+             Cochee par defaut (voir viderFormulaire dans app.js) : mieux
+             vaut un rappel de trop qu'un rendez-vous manque. Formulee a
+             l'affirmative, parce qu'une case a cocher negative se lit de
+             travers une fois sur deux. -->
+        <label class="case-rappel">
+          <input type="checkbox" id="fRappelActif" checked>
+          <span>Envoyer un rappel la veille</span>
+        </label>
+        <p class="aide-rappel">
+          Décoche pour un rendez-vous de routine qui n'en a pas besoin.
+        </p>
       </div>
 
       <div class="section-groupe">
@@ -221,22 +240,6 @@ $patients = listerPatients(getDb());
         <div class="champ">
           <textarea id="fQuestions" rows="3" placeholder="Une question par ligne, ex. Peut-on arrêter ce traitement ?"></textarea>
         </div>
-      </div>
-
-      <!-- Cochee par defaut (voir viderFormulaire dans app.js) : mieux
-           vaut un rappel de trop qu'un rendez-vous manque. La case est
-           formulee a l'affirmative - "Envoyer un rappel" plutot que "Ne
-           pas envoyer" - parce qu'une case a cocher negative se lit de
-           travers une fois sur deux. -->
-      <div class="section-groupe">
-        <p class="section-titre">Rappel par email</p>
-        <label class="case-rappel">
-          <input type="checkbox" id="fRappelActif" checked>
-          <span>Envoyer un rappel la veille</span>
-        </label>
-        <p class="aide-rappel">
-          Décoche pour un rendez-vous de routine qui n'en a pas besoin.
-        </p>
       </div>
 
     </div>

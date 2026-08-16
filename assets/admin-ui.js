@@ -106,6 +106,28 @@ document.addEventListener('DOMContentLoaded', function () {
   document.querySelectorAll('form').forEach(function (form) {
     form.addEventListener('submit', function (e) {
       if (e.defaultPrevented) return;
+
+      // AVANT de desactiver quoi que ce soit : un bouton desactive
+      // n'envoie plus son couple nom/valeur. Or plusieurs formulaires du
+      // site font porter l'action au bouton lui-meme
+      // (name="action" value="tester"). Les desactiver ici faisait donc
+      // disparaitre le parametre : le serveur recevait un POST sans
+      // action, n'executait aucune branche, et reaffichait la page a
+      // l'identique. Ni succes, ni erreur - "rien ne se passe".
+      //
+      // C'est ce qui empechait l'email de test de partir, et aussi
+      // l'enregistrement des reglages et la suppression d'une photo.
+      // On recopie donc la valeur du bouton clique dans un champ cache,
+      // qui survivra a la desactivation.
+      var soumetteur = e.submitter;
+      if (soumetteur && soumetteur.name) {
+        var champCache = document.createElement('input');
+        champCache.type = 'hidden';
+        champCache.name = soumetteur.name;
+        champCache.value = soumetteur.value;
+        form.appendChild(champCache);
+      }
+
       form.querySelectorAll('button[type=submit], button:not([type])').forEach(function (b) {
         b.disabled = true;
         b.dataset.texteOriginal = b.textContent;
