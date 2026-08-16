@@ -16,6 +16,9 @@ require_once __DIR__ . '/../lib/db.php';
 require_once __DIR__ . '/../lib/calendar_sync.php';
 require_once __DIR__ . '/../lib/persons.php';
 require_once __DIR__ . '/../lib/entete_admin.php';
+require_once __DIR__ . '/../lib/sauvegardes.php';
+require_once __DIR__ . '/../lib/settings.php';
+require_once __DIR__ . '/../lib/mailer.php';
 
 $config = require __DIR__ . '/../config.php';
 $sync = new CalendarSync($config['google_service_account_path'], $config['google_calendar_id']);
@@ -30,6 +33,76 @@ if (is_dir($dossierBackups)) {
 
 function nomBackupValide($nom) {
     return preg_match('/^appointments-[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{4}\.json$/', $nom) === 1;
+}
+
+/**
+ * Range le message a afficher, puis RECHARGE la page en GET.
+ *
+ * Meme raison qu'ailleurs dans l'administration : sans cela, la page
+ * affichee est la reponse au formulaire, et la rafraichir propose de
+ * REJOUER l'action. Ici ce serait particulierement facheux - refaire une
+ * restauration, ou renvoyer une sauvegarde par email.
+ */
+function rechargerSauvegardes($flash) {
+    $_SESSION['flash_sauvegardes'] = $flash;
+    header('Location: /admin/sauvegardes.php');
+    exit;
+}
+
+// La sauvegarde la plus recente : c'est elle qu'on emporte hors du serveur.
+// rsort() a mis les noms horodates dans l'ordre decroissant.
+$dernierHorodatage = '';
+if (!empty($fichiersBackup) && preg_match('/^appointments-(.+)\.json$/', basename($fichiersBackup[0]), $m)) {
+    $dernierHorodatage = $m[1];
+}
+
+// --- Telechargement de la derniere sauvegarde --------------------------
+//
+// En GET : cela ne fait que LIRE des fichiers. Le telechargement part
+// avant toute sortie HTML, sinon les en-tetes seraient deja envoyes.
+if (isset($_GET['action']) && $_GET['action'] === 'telecharger' && $dernierHorodatage !== '') {
+    $archive = archiverSauvegarde($dossierBackups, $dernierHorodatage);
+    if ($archive['erreur'] === '') {
+        if (count($archive['pieces']) === 1) {
+            $piece = $archive['pieces'][0];
+            header('Content-Type: ' . $piece['type']);
+            header('Content-Disposition: attachment; filename="' . $piece['nom'] . '"');
+            header('Content-Length: ' . strlen($piece['contenu']));
+            echo $piece['contenu'];
+            exit;
+        }
+        // Plusieurs pieces = ZipArchive absent de ce PHP. Un navigateur ne
+        // telecharge qu'un fichier a la fois : on le dit, plutot que
+        // d'envoyer un fichier au hasard.
+        rechargerSauvegardes(['ok' => false, 'message' =>
+            "Ce serveur n'a pas l'extension ZIP : impossible de tout réunir en un fichier. "
+            . "Utilise « Me l'envoyer par email », qui joint les fichiers un par un."]);
+    }
+    rechargerSauvegardes(['ok' => false, 'message' => $archive['erreur']]);
+}
+
+// --- Envoi hors-site immediat ------------------------------------------
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'envoyer_hors_site') {
+    $destinataire = trim(getSetting($db, 'reminder_email_chem', ''));
+    if ($destinataire === '') {
+        rechargerSauvegardes(['ok' => false, 'message' =>
+            "Aucune adresse enregistrée : remplis « Ton adresse email » dans Rappels par email."]);
+    }
+    if ($dernierHorodatage === '') {
+        rechargerSauvegardes(['ok' => false, 'message' => 'Aucune sauvegarde à envoyer.']);
+    }
+    $envoi = envoyerSauvegardeParEmail(
+        $dossierBackups, $dernierHorodatage, $destinataire,
+        trim(getSetting($db, 'reminder_email_from', '')),
+        construireConfigSmtp($config)
+    );
+    if ($envoi['ok']) {
+        // Le meme reperage que le cron : un envoi manuel repousse d'autant
+        // l'envoi automatique, sans quoi on recevrait deux fois la meme
+        // sauvegarde le lendemain.
+        setSetting($db, 'backup_offsite_last_sent', date('Y-m-d H:i'));
+    }
+    rechargerSauvegardes($envoi);
 }
 
 // Sauvegarde choisie (menu déroulant, requête GET en lecture seule) :
@@ -157,7 +230,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             }
         }
     }
+
+    rechargerSauvegardes(['ok' => true, 'message' => $nbRestaures . ' rendez-vous restauré(s)'
+        . ($nbRestaures > 0 ? ' (et resynchronisé(s) avec Google Calendar si activé)' : '') . '.']);
 }
+
+// Le message laisse par la redirection, lu une seule fois.
+$flash = isset($_SESSION['flash_sauvegardes']) ? $_SESSION['flash_sauvegardes'] : null;
+unset($_SESSION['flash_sauvegardes']);
+
+$dernierEnvoiHorsSite = getSetting($db, 'backup_offsite_last_sent', '');
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -177,17 +259,56 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
       . "suppression : les rendez-vous qui y figurent mais qui ont disparu de l'agenda actuel sont proposés à la restauration."
   ); ?>
 
+  <?php if ($flash !== null): ?>
+    <p class="<?= $flash['ok'] ? 'info' : 'erreur' ?>" style="margin-bottom:16px;"><?= htmlspecialchars($flash['message']) ?></p>
+  <?php endif; ?>
+
+  <?php /* COPIE HORS-SITE. Tout le reste de cette page protege de la fausse
+           manoeuvre ; ce bloc protege de la perte du serveur, qui emporterait
+           backups/ avec lui. C'est la seule panne dont on ne se remet pas,
+           donc il est en haut. */ ?>
+  <div class="outil" style="margin-bottom:18px;">
+    <h2 class="panneau-titre">Copie hors du serveur</h2>
+    <p class="sous-titre">
+      Les sauvegardes ci-dessous vivent sur le serveur : elles disparaîtraient avec lui.
+      Une copie part automatiquement par email une fois par semaine, à l'adresse réglée dans
+      <a href="/admin/reglages.php">Rappels par email</a>.
+    </p>
+
+    <div class="recap-rappels">
+      <div class="ligne-recap">
+        <span class="cle-recap">Dernier envoi</span>
+        <span class="val-recap">
+          <?= $dernierEnvoiHorsSite !== ''
+              ? '✔ ' . htmlspecialchars($dernierEnvoiHorsSite)
+              : '✕ aucun envoi hors-site pour l\'instant' ?>
+        </span>
+      </div>
+      <div class="ligne-recap">
+        <span class="cle-recap">Sauvegarde la plus récente</span>
+        <span class="val-recap">
+          <?= $dernierHorodatage !== ''
+              ? htmlspecialchars($dernierHorodatage)
+              : '✕ aucune sauvegarde sur le serveur' ?>
+        </span>
+      </div>
+    </div>
+
+    <?php if ($dernierHorodatage !== ''): ?>
+      <div class="form-boutons" style="margin-top:14px;">
+        <a class="secondaire" href="/admin/sauvegardes.php?action=telecharger">Télécharger la dernière sauvegarde</a>
+        <form method="post" style="display:inline;">
+          <input type="hidden" name="action" value="envoyer_hors_site">
+          <button class="secondaire" type="submit">Me l'envoyer par email</button>
+        </form>
+      </div>
+    <?php endif; ?>
+  </div>
+
   <div class="outil">
     <?php if (empty($fichiersBackup)): ?>
       <p class="vide">Aucune sauvegarde trouvée pour l'instant. Vérifiez que le Cron Job de sauvegarde est bien configuré (voir le guide d'installation).</p>
     <?php else: ?>
-
-      <?php if ($nbRestaures !== null): ?>
-        <p class="info">
-          <?= (int) $nbRestaures ?> rendez-vous restauré(s)<?= $nbRestaures > 0 ? ' (et resynchronisé(s) avec Google Calendar si activé)' : '' ?>.
-        </p>
-        <p><a href="/admin/sauvegardes.php">Retour aux sauvegardes</a></p>
-      <?php else: ?>
 
         <form method="get" style="margin-bottom:16px;">
           <div class="champ">
@@ -246,7 +367,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
           <?php endif; ?>
         <?php endif; ?>
 
-      <?php endif; ?>
     <?php endif; ?>
   </div>
 

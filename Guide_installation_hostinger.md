@@ -175,6 +175,16 @@ Si vous n'avez pas de Cron Jobs sur votre plan Hostinger, vous pouvez toujours d
 
 **Important : mettez à jour l'URL du Cron Job existant.** Si vous aviez déjà configuré ce Cron Job avant cette mise à jour (structure de fichiers réorganisée), modifiez son URL dans hPanel pour utiliser le nouveau chemin `cron/backup.php` (au lieu de `backup.php`), sinon la sauvegarde automatique cessera de fonctionner.
 
+### Copie hors du serveur
+
+Tout ce qui précède protège de la fausse manœuvre, **pas de la perte du serveur** : le dossier `backups/` est sur le disque de la machine qu'il est censé protéger. Un compte résilié, un dossier vidé par erreur en FTP, un incident chez l'hébergeur, et les sauvegardes disparaissent avec les données.
+
+Le site en envoie donc **une copie par email, une fois par semaine**, à l'adresse réglée dans `admin/reglages.php` (« Ton adresse email »). Rien à configurer : le Cron Job de sauvegarde s'en charge au passage, une fois tous les 7 jours. La pièce jointe est un `.zip` des fichiers JSON (ou les JSON un par un si l'extension ZIP n'est pas disponible sur le serveur).
+
+Pour restaurer depuis un de ces emails : décompressez la pièce jointe, déposez les `.json` dans le dossier `backups/` du site, puis ouvrez `admin/restaurer_tout.php` et choisissez cette date.
+
+Depuis `admin/sauvegardes.php`, un bloc « Copie hors du serveur » indique la date du dernier envoi et permet à tout moment de **télécharger** la dernière sauvegarde ou de **se l'envoyer par email** immédiatement. Un envoi manuel repousse d'autant l'envoi automatique.
+
 En complément (pas à la place) : selon votre plan Hostinger, hPanel propose peut-être ses propres sauvegardes automatiques de tout le compte (**Fichiers > Sauvegardes**). Ça vaut le coup de vérifier et de l'activer si disponible — c'est un filet de sécurité supplémentaire au niveau de l'hébergement, indépendant de celui-ci.
 
 ## Rappels par email

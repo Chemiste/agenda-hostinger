@@ -18,22 +18,39 @@ require_once __DIR__ . '/../lib/address_aliases.php';
 require_once __DIR__ . '/../lib/entete_admin.php';
 
 $db = getDb();
-$erreur = '';
-$succes = '';
+
+/**
+ * Range le message a afficher, puis RECHARGE la page en GET.
+ *
+ * Sans cela, la page affichee est la reponse au formulaire : la
+ * rafraichir propose de le renvoyer, et ajouterait une seconde fois le
+ * meme alias.
+ */
+function rechargerAlias($flash) {
+    $_SESSION['flash_alias'] = $flash;
+    header('Location: /admin/alias_adresses.php');
+    exit;
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     if ($_POST['action'] === 'ajouter') {
         try {
             ajouterAliasAdresse($db, isset($_POST['motif']) ? $_POST['motif'] : '', isset($_POST['remplacement']) ? $_POST['remplacement'] : '');
-            $succes = 'Alias ajouté.';
+            rechargerAlias(['ok' => true, 'message' => 'Alias ajouté.']);
         } catch (Exception $e) {
-            $erreur = $e->getMessage();
+            rechargerAlias(['ok' => false, 'message' => $e->getMessage()]);
         }
     } elseif ($_POST['action'] === 'supprimer' && isset($_POST['id'])) {
         supprimerAliasAdresse($db, $_POST['id']);
-        $succes = 'Alias supprimé.';
+        rechargerAlias(['ok' => true, 'message' => 'Alias supprimé.']);
     }
 }
+
+// Le message laisse par la redirection, lu une seule fois.
+$flash = isset($_SESSION['flash_alias']) ? $_SESSION['flash_alias'] : null;
+unset($_SESSION['flash_alias']);
+$erreur = ($flash !== null && !$flash['ok']) ? $flash['message'] : '';
+$succes = ($flash !== null && $flash['ok']) ? $flash['message'] : '';
 
 $aliases = listerAliasAdresses($db);
 

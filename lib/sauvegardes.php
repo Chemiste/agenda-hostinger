@@ -137,6 +137,139 @@ function restaurerTableDepuisJson($db, $table, $lignes) {
 }
 
 /**
+ * Les fichiers d'une sauvegarde donnee, dans l'ordre de restauration.
+ *
+ * On repart de tablesSauvegardees() plutot que d'un glob() sur
+ * l'horodatage : c'est la meme liste qui sert a ecrire, a restaurer et a
+ * archiver, donc une table ajoutee demain suit partout sans qu'on y pense.
+ */
+function fichiersDeLaSauvegarde($dossier, $horodatage) {
+    $fichiers = [];
+    foreach (tablesSauvegardees() as $prefixe => $table) {
+        $chemin = $dossier . '/' . $prefixe . '-' . $horodatage . '.json';
+        if (file_exists($chemin)) {
+            $fichiers[] = $chemin;
+        }
+    }
+    return $fichiers;
+}
+
+/**
+ * Emballe une sauvegarde pour qu'elle puisse QUITTER le serveur.
+ *
+ * POURQUOI CETTE FONCTION EXISTE. Les sauvegardes vivent dans backups/,
+ * c'est-a-dire sur le disque de la machine qu'elles sont censees proteger.
+ * Elles couvrent la fausse manoeuvre - un rendez-vous efface, une
+ * restauration ratee - mais pas la perte du serveur, la resiliation du
+ * compte, ni le repertoire vide apres une mauvaise manipulation FTP.
+ * C'est la seule panne du projet dont on ne se remet pas.
+ *
+ * Un ZIP quand ZipArchive est disponible (le cas courant), sinon les
+ * fichiers JSON un par un. Les deux se restaurent de la meme facon :
+ * remettre les .json dans backups/, puis admin/restaurer_tout.php. Aucun
+ * format inventé pour l'occasion - ce serait un format qu'on ne saurait
+ * plus relire le jour ou l'on en a besoin.
+ *
+ * @return array{pieces:array, octets:int, erreur:string}
+ */
+function archiverSauvegarde($dossier, $horodatage) {
+    $fichiers = fichiersDeLaSauvegarde($dossier, $horodatage);
+    if (empty($fichiers)) {
+        return ['pieces' => [], 'octets' => 0, 'erreur' => 'Aucun fichier pour la sauvegarde ' . $horodatage . '.'];
+    }
+
+    if (class_exists('ZipArchive')) {
+        $temporaire = tempnam(sys_get_temp_dir(), 'agenda-sauvegarde');
+        $zip = new ZipArchive();
+        if ($zip->open($temporaire, ZipArchive::CREATE | ZipArchive::OVERWRITE) === true) {
+            foreach ($fichiers as $f) {
+                $zip->addFile($f, basename($f));
+            }
+            $zip->close();
+            $contenu = file_get_contents($temporaire);
+            @unlink($temporaire);
+            return [
+                'pieces' => [[
+                    'nom' => 'sauvegarde-' . $horodatage . '.zip',
+                    'type' => 'application/zip',
+                    'contenu' => $contenu,
+                ]],
+                'octets' => strlen($contenu),
+                'erreur' => '',
+            ];
+        }
+        @unlink($temporaire);
+    }
+
+    // Repli : les JSON tels quels. Plus volumineux, mais directement
+    // exploitables - et une piece jointe illisible ne protege de rien.
+    $pieces = [];
+    $octets = 0;
+    foreach ($fichiers as $f) {
+        $contenu = file_get_contents($f);
+        $octets += strlen($contenu);
+        $pieces[] = ['nom' => basename($f), 'type' => 'application/json', 'contenu' => $contenu];
+    }
+    return ['pieces' => $pieces, 'octets' => $octets, 'erreur' => ''];
+}
+
+/**
+ * Envoie une sauvegarde a une adresse email, en piece jointe.
+ *
+ * Le mail dit COMMENT s'en servir : le jour ou l'on ouvre ce message, le
+ * site n'est plus la pour l'expliquer.
+ *
+ * @return array{ok:bool, message:string}
+ */
+function envoyerSauvegardeParEmail($dossier, $horodatage, $destinataire, $expediteur, $smtp) {
+    require_once __DIR__ . '/mailer.php';
+
+    $archive = archiverSauvegarde($dossier, $horodatage);
+    if ($archive['erreur'] !== '') {
+        return ['ok' => false, 'message' => $archive['erreur']];
+    }
+
+    // Les serveurs de messagerie refusent generalement au-dela de 25 Mo, et
+    // l'encodage base64 gonfle de 33%. On s'arrete bien avant : un envoi
+    // rejete ne previendrait personne, il laisserait juste croire que la
+    // copie hors-site existe.
+    $limite = 12 * 1024 * 1024;
+    if ($archive['octets'] > $limite) {
+        return ['ok' => false, 'message' => 'Sauvegarde trop volumineuse pour un email ('
+            . round($archive['octets'] / 1048576, 1) . ' Mo). Utilise le bouton de téléchargement.'];
+    }
+
+    $corps = implode("\n", [
+        'Copie hors-site de la base de l\'agenda médical.',
+        '',
+        'Sauvegarde du ' . $horodatage . ' — ' . count($archive['pieces']) . ' pièce(s) jointe(s), '
+            . round($archive['octets'] / 1024) . ' Ko.',
+        '',
+        'À QUOI ÇA SERT',
+        'Les sauvegardes automatiques vivent sur le serveur, donc elles disparaissent',
+        'avec lui. Ce message en garde une copie ailleurs. Ne le supprime pas.',
+        '',
+        'COMMENT S\'EN SERVIR',
+        '1. Décompresser la pièce jointe (ou récupérer les fichiers .json).',
+        '2. Les déposer dans le dossier backups/ du site.',
+        '3. Ouvrir /admin/restaurer_tout.php et choisir cette date.',
+        '',
+        'Envoyé automatiquement par l\'agenda médical.',
+    ]);
+
+    $envoi = envoyerEmail(
+        [$destinataire],
+        'Sauvegarde agenda médical — ' . $horodatage,
+        $corps, $expediteur, $smtp, null, $archive['pieces']
+    );
+
+    return $envoi['ok']
+        ? ['ok' => true, 'message' => 'Sauvegarde envoyée à ' . $destinataire . ' ('
+            . round($archive['octets'] / 1024) . ' Ko).']
+        : ['ok' => false, 'message' => 'Échec de l\'envoi : ' . $envoi['erreur']];
+}
+
+/**
  * Ecrit une sauvegarde complete et retourne l'horodatage utilise.
  *
  * Partage par le cron quotidien et par la sauvegarde de securite que

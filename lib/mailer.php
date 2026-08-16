@@ -70,10 +70,25 @@ function construireConfigSmtp($config) {
  * sans qu'on s'en apercoive. Le texte reste en 8bit, ses lignes etant
  * naturellement courtes.
  */
-function construireCorpsMime($corpsTexte, $corpsHtml) {
+/**
+ * @param array $pieces Pieces jointes, chacune
+ *        ['nom' => 'sauvegarde-2026-08-16.zip',
+ *         'type' => 'application/zip',
+ *         'contenu' => (donnees binaires)].
+ *        Avec au moins une piece, le message devient un multipart/mixed
+ *        dont la PREMIERE partie est le message lui-meme (texte seul, ou
+ *        le multipart/alternative complet). C'est l'imbrication prevue par
+ *        la RFC 2046 : les deux versions du texte restent des alternatives
+ *        l'une de l'autre, les pieces s'ajoutent a cote - et non comme une
+ *        troisieme version parmi lesquelles choisir.
+ */
+function construireCorpsMime($corpsTexte, $corpsHtml, $pieces = []) {
     $texteCrLf = str_replace(["\r\n", "\r", "\n"], "\r\n", $corpsTexte);
+    $avecHtml = !($corpsHtml === null || trim($corpsHtml) === '');
 
-    if ($corpsHtml === null || trim($corpsHtml) === '') {
+    // Sans HTML NI piece jointe : on ne touche a rien, le message reste le
+    // text/plain d'origine, octet pour octet.
+    if (!$avecHtml && empty($pieces)) {
         return [
             'entetes' => [
                 'Content-Type: text/plain; charset=UTF-8',
@@ -83,35 +98,85 @@ function construireCorpsMime($corpsTexte, $corpsHtml) {
         ];
     }
 
-    // Frontiere aleatoire : elle ne doit apparaitre dans aucune des deux
-    // versions, sinon le message se coupe au mauvais endroit.
-    $frontiere = 'agenda-' . bin2hex(random_bytes(16));
+    // La partie "message", avec ses propres en-tetes : soit un simple
+    // text/plain, soit le multipart/alternative des deux versions.
+    if ($avecHtml) {
+        // Frontiere aleatoire : elle ne doit apparaitre dans aucune des deux
+        // versions, sinon le message se coupe au mauvais endroit.
+        $frontiere = 'agenda-' . bin2hex(random_bytes(16));
+        $entetesMessage = ['Content-Type: multipart/alternative; boundary="' . $frontiere . '"'];
+        $corpsMessage = implode("\r\n", [
+            'Ce message contient une version mise en forme et une version texte.',
+            '',
+            '--' . $frontiere,
+            'Content-Type: text/plain; charset=UTF-8',
+            'Content-Transfer-Encoding: 8bit',
+            '',
+            $texteCrLf,
+            '',
+            '--' . $frontiere,
+            'Content-Type: text/html; charset=UTF-8',
+            'Content-Transfer-Encoding: base64',
+            '',
+            rtrim(chunk_split(base64_encode($corpsHtml), 76, "\r\n")),
+            '',
+            '--' . $frontiere . '--',
+            '',
+        ]);
+    } else {
+        $entetesMessage = [
+            'Content-Type: text/plain; charset=UTF-8',
+            'Content-Transfer-Encoding: 8bit',
+        ];
+        $corpsMessage = $texteCrLf;
+    }
 
-    $corps = implode("\r\n", [
-        'Ce message contient une version mise en forme et une version texte.',
+    if (empty($pieces)) {
+        return [
+            'entetes' => array_merge(['MIME-Version: 1.0'], $entetesMessage),
+            'corps' => $corpsMessage,
+        ];
+    }
+
+    $frontiereMixte = 'agenda-jointes-' . bin2hex(random_bytes(16));
+
+    $lignes = [
+        'Ce message contient une ou plusieurs pieces jointes.',
         '',
-        '--' . $frontiere,
-        'Content-Type: text/plain; charset=UTF-8',
-        'Content-Transfer-Encoding: 8bit',
-        '',
-        $texteCrLf,
-        '',
-        '--' . $frontiere,
-        'Content-Type: text/html; charset=UTF-8',
-        'Content-Transfer-Encoding: base64',
-        '',
-        rtrim(chunk_split(base64_encode($corpsHtml), 76, "\r\n")),
-        '',
-        '--' . $frontiere . '--',
-        '',
-    ]);
+        '--' . $frontiereMixte,
+    ];
+    foreach ($entetesMessage as $e) {
+        $lignes[] = $e;
+    }
+    $lignes[] = '';
+    $lignes[] = $corpsMessage;
+    $lignes[] = '';
+
+    foreach ($pieces as $piece) {
+        // Le nom de fichier est le notre (horodatage), jamais une saisie :
+        // on le nettoie quand meme, un guillemet casserait l'en-tete.
+        $nom = str_replace(['"', "\r", "\n"], '', $piece['nom']);
+        $lignes[] = '--' . $frontiereMixte;
+        $lignes[] = 'Content-Type: ' . $piece['type'] . '; name="' . $nom . '"';
+        $lignes[] = 'Content-Transfer-Encoding: base64';
+        $lignes[] = 'Content-Disposition: attachment; filename="' . $nom . '"';
+        $lignes[] = '';
+        // Decoupe a 76 caracteres : la limite de 998 caracteres par ligne
+        // (RFC 5321) vaut aussi pour les pieces jointes, et un fichier
+        // encode en base64 fait une seule ligne enorme sans cela.
+        $lignes[] = rtrim(chunk_split(base64_encode($piece['contenu']), 76, "\r\n"));
+        $lignes[] = '';
+    }
+
+    $lignes[] = '--' . $frontiereMixte . '--';
+    $lignes[] = '';
 
     return [
         'entetes' => [
             'MIME-Version: 1.0',
-            'Content-Type: multipart/alternative; boundary="' . $frontiere . '"',
+            'Content-Type: multipart/mixed; boundary="' . $frontiereMixte . '"',
         ],
-        'corps' => $corps,
+        'corps' => implode("\r\n", $lignes),
     ];
 }
 
@@ -120,7 +185,7 @@ function construireCorpsMime($corpsTexte, $corpsHtml) {
  *        parametre est en derniere position pour que les appels existants
  *        (email de test des reglages, entre autres) restent valables.
  */
-function envoyerEmail($destinataires, $sujet, $corps, $expediteur, $smtp = null, $corpsHtml = null) {
+function envoyerEmail($destinataires, $sujet, $corps, $expediteur, $smtp = null, $corpsHtml = null, $pieces = []) {
     $destinataires = array_values(array_filter(array_map('trim', $destinataires)));
     if (empty($destinataires)) {
         return ['ok' => false, 'erreur' => 'Aucun destinataire.'];
@@ -131,7 +196,7 @@ function envoyerEmail($destinataires, $sujet, $corps, $expediteur, $smtp = null,
     // mail l'affichent mal ou le rejettent.
     $sujetEncode = '=?UTF-8?B?' . base64_encode($sujet) . '?=';
 
-    $mime = construireCorpsMime($corps, $corpsHtml);
+    $mime = construireCorpsMime($corps, $corpsHtml, $pieces);
 
     if ($smtp !== null) {
         return envoyerEmailSmtp($destinataires, $sujetEncode, $mime, $expediteur, $smtp);

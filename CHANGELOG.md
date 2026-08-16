@@ -2,6 +2,45 @@
 
 ## Non publié
 
+- **Les sauvegardes quittent enfin le serveur.** Elles vivaient dans
+  `backups/`, c'est-à-dire sur le disque de la machine qu'elles sont
+  censées protéger : elles couvraient la fausse manœuvre, mais pas le
+  compte résilié, le dossier vidé par erreur en FTP, ni l'incident chez
+  l'hébergeur. C'était la seule panne du projet dont on ne se relevait pas.
+  - **Une copie par email chaque semaine**, en pièce jointe, à l'adresse
+    déjà réglée dans `admin/reglages.php`. Le cron de sauvegarde passe tous
+    les jours ; c'est un délai de 7 jours depuis le dernier envoi **réussi**
+    qui décide — une semaine ratée est donc retentée dès le lendemain, et
+    non sautée.
+  - Pourquoi l'email : les sauvegardes quotidiennes restent sur le serveur
+    avec 60 jours de rétention, la copie distante ne couvre que le sinistre
+    total. Google Drive avait été envisagé puis abandonné — un compte de
+    service n'a **aucun quota de stockage**, il ne peut rien déposer dans un
+    Drive personnel.
+  - `admin/sauvegardes.php` gagne un bloc **« Copie hors du serveur »** :
+    date du dernier envoi, bouton de téléchargement immédiat, et envoi par
+    email à la demande. Un envoi manuel repousse d'autant l'automatique,
+    sans quoi la même sauvegarde arriverait deux fois.
+  - Le mail explique **comment s'en servir** — décompresser, déposer les
+    `.json` dans `backups/`, ouvrir `admin/restaurer_tout.php`. Le jour où
+    on ouvre ce message, le site n'est plus là pour l'expliquer.
+  - `lib/mailer.php` sait joindre des fichiers : le message devient un
+    `multipart/mixed` dont la première partie reste le `multipart/alternative`
+    texte + HTML. Sans pièce jointe **et** sans HTML, le chemin d'envoi ne
+    change pas d'un octet. Vérifié par 16 contrôles sur le message produit,
+    dont l'intégrité des accents, celle des octets de la pièce jointe après
+    aller-retour, et l'absence de ligne de plus de 998 caractères.
+  - Un ZIP quand l'extension est disponible, sinon les JSON un par un.
+    Aucun format inventé pour l'occasion : ce serait un format qu'on ne
+    saurait plus relire le jour où l'on en a besoin.
+
+- **Trois pages d'administration ne rejouent plus l'action au
+  rafraîchissement**, comme la page des réglages avant elles :
+  `admin/sauvegardes.php`, `admin/alias_adresses.php` et surtout
+  `admin/restaurer_tout.php` — sur celle-là, un simple F5 proposait de
+  rejouer un remplacement de tables entières, mot de confirmation compris,
+  puisque le navigateur renvoie tout le formulaire.
+
 - **Relire un vrai rappel avant que tes parents ne le reçoivent.**
   L'email de test n'envoyait qu'une phrase fixe : il prouvait que l'envoi
   fonctionnait, pas que le rappel était juste. `admin/reglages.php` permet

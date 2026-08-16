@@ -55,15 +55,30 @@ function jeuxDeSauvegarde($dossier) {
 $jeux = jeuxDeSauvegarde($dossierBackups);
 $jeuChoisi = isset($_REQUEST['jeu']) && isset($jeux[$_REQUEST['jeu']]) ? $_REQUEST['jeu'] : '';
 
+/**
+ * Range le compte rendu, puis RECHARGE la page en GET.
+ *
+ * Nulle part ailleurs ce n'est aussi important qu'ici : sans redirection,
+ * la page affichee est la reponse au formulaire, et un simple F5 propose
+ * de REJOUER une restauration qui remplace des tables entieres - mot de
+ * confirmation compris, puisque le navigateur renvoie tout le formulaire.
+ */
+function rechargerRestauration($flash, $jeu = '') {
+    $_SESSION['flash_restauration'] = $flash;
+    header('Location: /admin/restaurer_tout.php' . ($jeu !== '' ? '?jeu=' . urlencode($jeu) : ''));
+    exit;
+}
+
 // --- Restauration effective ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'restaurer' && $jeuChoisi !== '') {
     $tablesChoisies = isset($_POST['tables']) ? (array) $_POST['tables'] : [];
     $motTape = isset($_POST['confirmation']) ? trim((string) $_POST['confirmation']) : '';
 
     if (empty($tablesChoisies)) {
-        $erreur = 'Aucune table sélectionnée.';
+        rechargerRestauration(['erreur' => 'Aucune table sélectionnée.', 'resultats' => [], 'securite' => ''], $jeuChoisi);
     } elseif ($motTape !== MOT_DE_CONFIRMATION) {
-        $erreur = 'Le mot de confirmation ne correspond pas. Rien n\'a été modifié.';
+        rechargerRestauration(['erreur' => 'Le mot de confirmation ne correspond pas. Rien n\'a été modifié.',
+            'resultats' => [], 'securite' => ''], $jeuChoisi);
     } else {
         try {
             // Garde-fou n°1, avant toute écriture.
@@ -90,10 +105,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     $resultats[$prefixe] = 'échec : ' . $e->getMessage();
                 }
             }
+            rechargerRestauration(['erreur' => '', 'resultats' => $resultats,
+                'securite' => $sauvegardeSecurite], $jeuChoisi);
         } catch (Exception $e) {
-            $erreur = 'Sauvegarde de sécurité impossible, restauration annulée : ' . $e->getMessage();
+            rechargerRestauration(['erreur' => 'Sauvegarde de sécurité impossible, restauration annulée : ' . $e->getMessage(),
+                'resultats' => [], 'securite' => ''], $jeuChoisi);
         }
     }
+}
+
+// Le compte rendu laisse par la redirection, lu une seule fois.
+$flashRestauration = isset($_SESSION['flash_restauration']) ? $_SESSION['flash_restauration'] : null;
+unset($_SESSION['flash_restauration']);
+if ($flashRestauration !== null) {
+    $erreur = $flashRestauration['erreur'];
+    $resultats = $flashRestauration['resultats'];
+    $sauvegardeSecurite = $flashRestauration['securite'];
 }
 
 // --- Comparaison fichier / base, pour le jeu choisi ---

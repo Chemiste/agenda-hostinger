@@ -34,8 +34,14 @@
 
 require_once __DIR__ . '/../lib/db.php';
 require_once __DIR__ . '/../lib/sauvegardes.php';
+require_once __DIR__ . '/../lib/settings.php';
+require_once __DIR__ . '/../lib/mailer.php';
 
 const RETENTION_JOURS = 60;
+
+// Une copie hors-site par semaine (voir plus bas). Le cron passe tous les
+// jours : c'est ce delai, et non la frequence du cron, qui decide.
+const JOURS_ENTRE_COPIES_HORS_SITE = 7;
 
 $config = require __DIR__ . '/../config.php';
 $token = isset($config['backup_token']) ? $config['backup_token'] : '';
@@ -91,7 +97,44 @@ foreach (glob($dossier . '/*.json') as $f) {
     }
 }
 
+// --- Copie hors-site ---------------------------------------------------
+//
+// Tout ce qui precede protege de la fausse manoeuvre, pas de la perte du
+// serveur : backups/ est sur le disque de la machine qu'il est cense
+// proteger. Un envoi par email met la sauvegarde ailleurs, sans compte a
+// creer ni service tiers a qui confier des donnees medicales - la boite
+// de Chem recoit deja les rappels.
+//
+// UNE FOIS PAR SEMAINE, pas a chaque passage : les sauvegardes
+// quotidiennes restent sur le serveur avec 60 jours de retention, la copie
+// distante ne couvre que le sinistre total. On date le dernier envoi
+// REUSSI, donc une semaine ratee est retentee des le lendemain.
+$messageHorsSite = '';
+$destinataire = trim(getSetting($db, 'reminder_email_chem', ''));
+
+if ($destinataire === '') {
+    $messageHorsSite = "Copie hors-site impossible : aucune adresse dans admin/reglages.php.";
+} else {
+    $dernier = getSetting($db, 'backup_offsite_last_sent', '');
+    $limiteEnvoi = strtotime('-' . JOURS_ENTRE_COPIES_HORS_SITE . ' days');
+
+    if ($dernier !== '' && strtotime($dernier) > $limiteEnvoi) {
+        $messageHorsSite = 'Copie hors-site : rien à faire (dernière le ' . $dernier . ').';
+    } else {
+        $envoi = envoyerSauvegardeParEmail(
+            $dossier, $horodatage, $destinataire,
+            trim(getSetting($db, 'reminder_email_from', '')),
+            construireConfigSmtp($config)
+        );
+        if ($envoi['ok']) {
+            setSetting($db, 'backup_offsite_last_sent', date('Y-m-d H:i'));
+        }
+        $messageHorsSite = 'Copie hors-site : ' . $envoi['message'];
+    }
+}
+
 echo 'OK (' . $horodatage . ') : ' . implode(', ', $resume) . '.';
 if (!empty($avertissements)) {
     echo "\nAvertissements : " . implode(' | ', $avertissements);
 }
+echo "\n" . $messageHorsSite;
