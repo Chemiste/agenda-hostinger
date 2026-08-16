@@ -5,12 +5,21 @@
 # donnees : seul config.php etait protege ici. En temps normal PHP les
 # execute (et ils n'affichent rien), mais si l'interpreteur venait a etre
 # mal configure, ils seraient servis en texte brut, mot de passe compris.
-<FilesMatch "^(config.*\.php|.*\.json|.*\.sql)$">
+# error_log : chez Hostinger, php.ini vaut error_log = "error_log" (chemin
+# RELATIF), donc PHP cree un fichier nomme "error_log" dans le dossier du
+# script - c'est-a-dire ici, dans la racine web. Sans cette regle il serait
+# telechargeable a l'adresse /error_log, avec dedans les requetes SQL et les
+# chemins du serveur. D'autant plus important depuis qu'api.php y ecrit
+# volontairement le detail de ses exceptions.
+<FilesMatch "^(config.*\.php|.*\.json|.*\.sql|error_log|.*\.log)$">
   Require all denied
 </FilesMatch>
 
-<IfModule mod_php.c>
-  php_flag display_errors off
-</IfModule>
+# Note : le bloc <IfModule mod_php.c> qui coupait display_errors a ete
+# retire. PHP tourne ici en CGI/FastCGI (verifie dans phpinfo : "Server
+# API = CGI/FastCGI"), ce module n'existe donc pas et la directive n'a
+# jamais rien fait. Elle n'est pas remplacee : le php.ini d'Hostinger a
+# deja display_errors = Off et display_startup_errors = Off, en valeur
+# maitre comme en valeur locale.
 
 Options -Indexes

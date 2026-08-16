@@ -2,6 +2,56 @@
 
 ## Non publié
 
+- **Le fuseau horaire ne dépend plus du réglage de l'hébergeur.**
+  `lib/db.php` fixe `Europe/Brussels` — c'est le seul fichier inclus par
+  les 11 points d'entrée qui manipulent des dates. Le serveur était livré
+  en UTC : `taches.php` comparait un `date('Y-m-d')` UTC à la date cible
+  d'une tâche, donc entre minuit et 2 h du matin en été, PHP croyait qu'on
+  était encore la veille. Le réglage hPanel corrige la même chose, mais un
+  réglage d'hébergeur se perd et cette ligne suit le code.
+  - `definirTacheFaite()` écrit `fait_at` avec `NOW()` de MySQL au lieu de
+    `date()` de PHP. La table mélangeait sinon deux horloges : `created_at`
+    et `reminder_sent_at` viennent de MySQL, `fait_at` venait de PHP.
+  - **La connexion MySQL est alignée sur le même fuseau.** Vérification
+    faite sur le serveur : `@@time_zone` valait `SYSTEM`, c'est-à-dire UTC,
+    et `NOW()` renvoyait deux heures de moins que l'heure belge. Ce n'était
+    pas cosmétique : `cron/rappels.php` compare des heures de rendez-vous
+    notées en heure locale à `NOW()`, donc **un rappel réglé sur 24 h
+    partait en réalité 22 h avant**. `getDb()` envoie désormais
+    `SET time_zone`.
+  - Un **décalage** (`+02:00`) et non un nom de fuseau : les noms exigent
+    que les tables `mysql.time_zone_*` soient chargées, ce que les
+    hébergements mutualisés ne font généralement pas. Le décalage est
+    recalculé à chaque connexion depuis le fuseau de PHP, donc il suit le
+    passage à l'heure d'hiver tout seul.
+  - Effet de bord assumé : les lignes déjà enregistrées (`created_at` du
+    journal, `reminder_sent_at`) restent en UTC et s'afficheront donc deux
+    heures en arrière. Seules les nouvelles sont à l'heure belge.
+
+- **`api.php` ne renvoie plus le détail des exceptions au navigateur.** Un
+  message PDO n'est pas un message d'erreur ordinaire : il contient la
+  requête SQL, les noms de colonnes, et sur un échec de connexion
+  l'utilisateur MySQL. Il partait tel quel dans la réponse JSON, lisible
+  dans l'onglet Réseau. Le détail va désormais dans le journal du serveur
+  (`error_log()`) et le navigateur reçoit un message générique.
+  - `.htaccess` bloque maintenant `error_log` et `*.log`. Le php.ini
+    d'Hostinger définit `error_log = "error_log"`, un chemin **relatif** :
+    PHP crée donc ce fichier dans la racine web, où il était téléchargeable
+    à l'adresse `/error_log`. D'autant plus important maintenant qu'on y
+    écrit volontairement des requêtes SQL.
+  - Le bloc `<IfModule mod_php.c>` qui coupait `display_errors` est retiré.
+    Le phpinfo du serveur donne `Server API = CGI/FastCGI` : ce module
+    n'existe pas, la directive n'a jamais rien fait. Elle n'est pas
+    remplacée — le php.ini d'Hostinger a déjà `display_errors = Off`.
+
+- **« Modifier » et « Supprimer » sont collés en bas des fiches.** Sur
+  Médecins et Pathologies, les liens se posaient juste sous le texte : les
+  fiches n'ayant pas toutes le même nombre de lignes, ils apparaissaient à
+  trois hauteurs différentes sur une même rangée. Les cartes étaient déjà
+  étirées à la même hauteur par la grille, un `margin-top: auto` suffit à
+  aligner les pieds. Un filet sépare le pied du contenu, pour que l'espace
+  ainsi créé se lise comme un pied de carte et non comme un trou.
+
 - **Les boutons d'action sont au même endroit sur toutes les pages.**
   L'agenda plaçait « Ajouter » et « Imprimer » en haut à droite du titre ;
   Médecins et Tâches posaient un gros bouton à gauche sous le sous-titre,

@@ -134,8 +134,18 @@ try {
             echo json_encode(['error' => 'Action inconnue.']);
     }
 } catch (Exception $e) {
+    // Le detail va dans le journal du serveur, jamais dans la reponse.
+    // Un message PDO n'est pas un "message d'erreur" au sens courant : il
+    // contient la requete SQL, les noms de colonnes, et sur un probleme de
+    // connexion l'utilisateur MySQL. Renvoye au navigateur, il donnait le
+    // plan de la base a quiconque ouvre l'onglet Reseau.
+    //
+    // Cote serveur, log_errors est actif chez Hostinger (php.ini) : le
+    // message atterrit dans le fichier error_log du dossier, protege par
+    // .htaccess. C'est la qu'il faut aller regarder en cas de souci.
+    error_log('[agenda] api.php action=' . $action . ' : ' . $e->getMessage());
     http_response_code(500);
-    echo json_encode(['error' => $e->getMessage()]);
+    echo json_encode(['error' => "Une erreur est survenue. Réessaie, et préviens Laurent si ça recommence."]);
 }
 
 /**

@@ -230,7 +230,13 @@ textarea.motifs { width:100%; min-height:100px; font-family:inherit; font-size:1
 .coord-medecin { font-size:13px; color:var(--text-secondary); margin-top:2px; }
 
 .notes-medecin { font-size:12px; color:var(--text-muted); margin-top:4px; font-style:italic; }
-.actions-medecin { display:flex; align-items:center; gap:16px; margin-top:2px; }
+/* Pied de carte colle en bas (margin-top:auto dans une carte deja en
+   colonne flex, etiree a la hauteur de sa rangee par la grille) : les
+   fiches n'ont pas toutes le meme nombre de lignes, et sans ca "Modifier"
+   se retrouvait a une hauteur differente dans chaque carte d'une meme
+   rangee. Le filet du haut evite que l'espace ainsi cree passe pour un
+   trou : il se lit comme un pied de carte. */
+.actions-medecin { display:flex; align-items:center; gap:16px; margin-top:auto; padding-top:8px; border-top:1px solid var(--border); }
 .actions-medecin form { margin:0; display:flex; }
 /* Un <button> ne reprend pas la police/graisse/hauteur de ligne par
    defaut comme un <a> (chaque navigateur lui applique son propre style

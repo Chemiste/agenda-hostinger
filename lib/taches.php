@@ -67,8 +67,22 @@ function modifierTache($db, $id, $texte, $personId, $dateCible) {
 }
 
 function definirTacheFaite($db, $id, $fait) {
-    $stmt = $db->prepare('UPDATE taches SET fait = ?, fait_at = ? WHERE id = ?');
-    $stmt->execute([$fait ? 1 : 0, $fait ? date('Y-m-d H:i:s') : null, (int) $id]);
+    // NOW() plutot que date('Y-m-d H:i:s') : l'horodatage vient ainsi de
+    // la meme horloge que created_at (defaut de la colonne) et que
+    // reminder_sent_at. Avec la date calculee par PHP, la table melangeait
+    // l'heure de PHP et celle de MySQL - deux valeurs qui ne coincident
+    // que si les deux serveurs sont regles sur le meme fuseau, ce que
+    // rien ne garantissait.
+    // Deux requetes plutot qu'un CASE avec un parametre lie : MySQL
+    // recevrait la condition sous forme de chaine ('1'/'0') et devrait la
+    // reinterpreter en booleen. Deux lignes lisibles valent mieux qu'une
+    // ligne qui repose sur une conversion implicite.
+    if ($fait) {
+        $stmt = $db->prepare('UPDATE taches SET fait = 1, fait_at = NOW() WHERE id = ?');
+    } else {
+        $stmt = $db->prepare('UPDATE taches SET fait = 0, fait_at = NULL WHERE id = ?');
+    }
+    $stmt->execute([(int) $id]);
 }
 
 function supprimerTache($db, $id) {
