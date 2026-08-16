@@ -98,9 +98,32 @@
   - Aucune image : beaucoup de clients les bloquent, et la photo d'une
     boîte ne sert pas à répondre au médecin — elle sert à remplir le
     pilulier à la maison.
-  - Les alternatives restent sur **une seule ligne**, séparées par « OU ».
-    Les lister l'une sous l'autre déferait la précaution que la fiche
-    imprimée prend avec trois signaux redondants.
+  - Les alternatives restent sur **une seule ligne**, séparées par « OU »
+    (en gras dans la version HTML : c'est le mot qui porte tout le sens de
+    la ligne, noyé dans le reste il se lisait comme un « et »). Les lister
+    l'une sous l'autre déferait la précaution que la fiche imprimée prend
+    avec trois signaux redondants.
+  - La posologie commune à deux alternatives n'est écrite **qu'une fois**,
+    sur sa propre ligne, comme sur la fiche imprimée. Le mail répétait
+    « contre la douleur, max 3x/jour espacé de 8h » pour chacune des deux
+    boîtes. L'avertissement « un seul des deux » est lui aussi posé une
+    seule fois par médicament, et non par alternative.
+  - **Le tableau des autres rendez-vous à venir**, ceux de Michel *et* de
+    Christiane, avec une colonne « Qui ». La question posée au comptoir en
+    repartant est toujours la même — « vous êtes libres quand ? » — et sans
+    les deux agendas sous les yeux, le rendez-vous se prend à l'aveugle
+    puis se déplace le soir même.
+    - Fenêtre de **huit semaines**, **douze lignes** au plus, et ce qui est
+      laissé de côté est annoncé (« … et 4 autres »). Il y a régulièrement
+      plus de vingt rendez-vous en attente : tout lister ferait un mail
+      interminable, et une liste tronquée en silence ferait croire qu'il
+      n'y a rien d'autre.
+    - C'est le **seul vrai tableau** du message, parce que c'est le seul
+      contenu tabulaire : trois colonnes courtes et de même nature d'une
+      ligne à l'autre. Les médicaments restent en liste — leurs lignes
+      n'ont pas la même forme (une boîte, ou deux séparées par « OU », plus
+      une posologie commune) et un tableau aurait demandé des cellules
+      fusionnées pour rien, sur un écran large de 360 px.
 
 - **Les sauvegardes couvrent enfin tout, et se restaurent.** Elles
   n'emportaient que 6 tables sur 11, et l'administration n'en savait
