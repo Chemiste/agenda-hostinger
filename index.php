@@ -223,6 +223,22 @@ $patients = listerPatients(getDb());
         </div>
       </div>
 
+      <!-- Cochee par defaut (voir viderFormulaire dans app.js) : mieux
+           vaut un rappel de trop qu'un rendez-vous manque. La case est
+           formulee a l'affirmative - "Envoyer un rappel" plutot que "Ne
+           pas envoyer" - parce qu'une case a cocher negative se lit de
+           travers une fois sur deux. -->
+      <div class="section-groupe">
+        <p class="section-titre">Rappel par email</p>
+        <label class="case-rappel">
+          <input type="checkbox" id="fRappelActif" checked>
+          <span>Envoyer un rappel la veille</span>
+        </label>
+        <p class="aide-rappel">
+          Décoche pour un rendez-vous de routine qui n'en a pas besoin.
+        </p>
+      </div>
+
     </div>
     <!-- Message d'erreur et "Supprimer" places dans la barre fixe du bas
          (hors de .modal-corps qui defile) : sinon il fallait faire defiler

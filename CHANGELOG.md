@@ -2,6 +2,68 @@
 
 ## Non publié
 
+- **`lib/db.php` refuse de démarrer avec une configuration de production sur
+  la machine de développement.** `config.php` avait été écrasé par une copie
+  de `config_prod.php` et l'était resté ; rien ne le signalait. L'erreur n'a
+  fini par se voir que parce que MySQL refusait l'utilisateur — si
+  l'hébergeur avait autorisé les connexions distantes, le site local aurait
+  écrit dans les vraies données.
+  - Une clé `environnement` (`'dev'` ou `'prod'`) est ajoutée à la
+    configuration, et la machine de développement se reconnaît à la présence
+    de `config_dev.php` — fichier exclu de git **et** du déploiement, donc
+    absent du serveur. Le garde-fou ne peut par construction que bloquer le
+    poste local, jamais la production, où le test est entièrement sauté.
+  - C'est la déclaration qui compte, pas le nom de la base : pointer
+    `config.php` vers une base de test locale ne déclenche rien.
+
+- **Un rappel peut être désactivé rendez-vous par rendez-vous.** Le réglage
+  était tout ou rien par personne : soit un mail pour chaque rendez-vous,
+  soit aucun. Or une prise de sang de routine à deux rues de chez soi
+  n'appelle pas le même accompagnement qu'une consultation à l'hôpital — et
+  un rappel qui arrive pour tout finit par ne plus être lu du tout, ce qui
+  fait rater celui qui comptait.
+  - **Actif par défaut**, et c'est un choix. Sur un agenda médical, l'oubli
+    doit pencher du côté du rappel envoyé en trop : on ignore un mail
+    inutile, on ne rattrape pas un rendez-vous manqué. Les rendez-vous déjà
+    enregistrés gardent donc leur rappel sans aucune intervention.
+  - La case est formulée à l'affirmative — « Envoyer un rappel la veille »
+    plutôt que « Ne pas envoyer » : une case à cocher négative se lit de
+    travers une fois sur deux.
+  - La carte affiche « Sans rappel par email » quand c'est désactivé. Sans
+    cette mention il faudrait ouvrir chaque fiche pour savoir lesquelles
+    enverront quelque chose. Écrit en toutes lettres, jamais signalé par une
+    couleur seule.
+  - Le cron n'inscrit pas `reminder_sent_at` sur un rendez-vous ignoré :
+    recocher la case redonne lieu à un rappel si la date n'est pas passée.
+  - La restauration d'un rendez-vous conserve le réglage, et retombe sur
+    « actif » pour une sauvegarde antérieure à la migration.
+
+- **Le rappel de la veille devient un vrai récapitulatif, et passe en HTML.**
+  Il contenait déjà le rendez-vous, l'adresse, le téléphone, l'accompagnant
+  et les questions à poser. S'y ajoutent le **plan de prise** et les
+  **pathologies suivies** : ce que Michel et Christiane doivent pouvoir
+  montrer au médecin depuis leur téléphone, dans la salle d'attente.
+  - `lib/mailer.php` sait envoyer en `multipart/alternative` : les versions
+    texte et HTML voyagent **ensemble**, le logiciel de messagerie choisit.
+    Un client qui bloque l'HTML garde un message lisible. Sans version HTML
+    fournie, le chemin d'envoi ne change pas d'un octet — celui-ci
+    fonctionne depuis des mois, il n'y avait aucune raison de le remuer.
+  - La partie HTML part en base64 : une ligne de message ne doit pas
+    dépasser 998 caractères (RFC 5321) et du HTML engendré atteint vite
+    cette limite sans qu'on s'en aperçoive. Vérifié en analysant le message
+    produit avec la bibliothèque `email` de Python — onze contrôles, dont
+    l'intégrité des accents et l'absence de ligne trop longue.
+  - **Tailles de caractères généreuses** (17 px de base, 22 px pour
+    l'essentiel). Le texte brut suivait le réglage du téléphone ; l'HTML
+    impose le sien. Sans ce choix, passer en HTML aurait été une
+    *régression* de lisibilité pour eux.
+  - Aucune image : beaucoup de clients les bloquent, et la photo d'une
+    boîte ne sert pas à répondre au médecin — elle sert à remplir le
+    pilulier à la maison.
+  - Les alternatives restent sur **une seule ligne**, séparées par « OU ».
+    Les lister l'une sous l'autre déferait la précaution que la fiche
+    imprimée prend avec trois signaux redondants.
+
 - **Les sauvegardes couvrent enfin tout, et se restaurent.** Elles
   n'emportaient que 6 tables sur 11, et l'administration n'en savait
   restaurer **qu'une seule**. Le carnet de médecins — adresses, téléphones,

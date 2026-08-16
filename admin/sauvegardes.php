@@ -109,7 +109,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     }
                 }
 
-                $stmt = $db->prepare('INSERT INTO appointments (id, appt_date, appt_time, duration_minutes, person, person_id, doctor, department, location, phone, route, accompagnant, notes, questions, pathologie_id, calendar_event_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+                $stmt = $db->prepare('INSERT INTO appointments (id, appt_date, appt_time, duration_minutes, person, person_id, doctor, department, location, phone, route, accompagnant, notes, questions, pathologie_id, rappel_actif, calendar_event_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
                 $stmt->execute([
                     $id,
                     $ligne['appt_date'],
@@ -126,6 +126,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     isset($ligne['notes']) ? $ligne['notes'] : '',
                     isset($ligne['questions']) ? $ligne['questions'] : '',
                     isset($ligne['pathologie_id']) ? (int) $ligne['pathologie_id'] : 0,
+                    // Sauvegarde anterieure a la migration 0023 : le champ
+                    // n'existe pas, on retombe sur "rappel actif".
+                    (!isset($ligne['rappel_actif']) || $ligne['rappel_actif']) ? 1 : 0,
                     '', // nouvel événement Calendar recréé ci-dessous (l'ancien id est périmé)
                     isset($ligne['created_at']) ? $ligne['created_at'] : date('Y-m-d H:i:s'),
                 ]);

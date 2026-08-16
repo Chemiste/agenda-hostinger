@@ -51,7 +51,76 @@ function construireConfigSmtp($config) {
  * $smtp : tableau construit par construireConfigSmtp(), ou null pour
  * forcer l'utilisation de mail() natif.
  */
-function envoyerEmail($destinataires, $sujet, $corps, $expediteur, $smtp = null) {
+/**
+ * Assemble le corps du message et les en-tetes de contenu correspondants.
+ *
+ * Sans version HTML, on ne touche a RIEN : le message reste un simple
+ * text/plain, exactement comme avant. Ce chemin fonctionne depuis des mois,
+ * il n'y a aucune raison de le remuer.
+ *
+ * Avec une version HTML, le message devient un multipart/alternative : les
+ * DEUX versions voyagent ensemble et le logiciel de messagerie choisit
+ * celle qu'il sait afficher. Ce n'est pas une precaution theorique - c'est
+ * ce qui garantit que le rappel reste lisible si le client de Michel ou de
+ * Christiane bloque l'HTML, ou s'ils lisent leurs mails depuis une montre
+ * ou un assistant vocal.
+ *
+ * La partie HTML part en base64 : une ligne de message ne doit pas depasser
+ * 998 caracteres (RFC 5321), et du HTML engendre atteint vite cette limite
+ * sans qu'on s'en apercoive. Le texte reste en 8bit, ses lignes etant
+ * naturellement courtes.
+ */
+function construireCorpsMime($corpsTexte, $corpsHtml) {
+    $texteCrLf = str_replace(["\r\n", "\r", "\n"], "\r\n", $corpsTexte);
+
+    if ($corpsHtml === null || trim($corpsHtml) === '') {
+        return [
+            'entetes' => [
+                'Content-Type: text/plain; charset=UTF-8',
+                'Content-Transfer-Encoding: 8bit',
+            ],
+            'corps' => $corpsTexte,
+        ];
+    }
+
+    // Frontiere aleatoire : elle ne doit apparaitre dans aucune des deux
+    // versions, sinon le message se coupe au mauvais endroit.
+    $frontiere = 'agenda-' . bin2hex(random_bytes(16));
+
+    $corps = implode("\r\n", [
+        'Ce message contient une version mise en forme et une version texte.',
+        '',
+        '--' . $frontiere,
+        'Content-Type: text/plain; charset=UTF-8',
+        'Content-Transfer-Encoding: 8bit',
+        '',
+        $texteCrLf,
+        '',
+        '--' . $frontiere,
+        'Content-Type: text/html; charset=UTF-8',
+        'Content-Transfer-Encoding: base64',
+        '',
+        rtrim(chunk_split(base64_encode($corpsHtml), 76, "\r\n")),
+        '',
+        '--' . $frontiere . '--',
+        '',
+    ]);
+
+    return [
+        'entetes' => [
+            'MIME-Version: 1.0',
+            'Content-Type: multipart/alternative; boundary="' . $frontiere . '"',
+        ],
+        'corps' => $corps,
+    ];
+}
+
+/**
+ * @param string|null $corpsHtml Version mise en forme, facultative. Le
+ *        parametre est en derniere position pour que les appels existants
+ *        (email de test des reglages, entre autres) restent valables.
+ */
+function envoyerEmail($destinataires, $sujet, $corps, $expediteur, $smtp = null, $corpsHtml = null) {
     $destinataires = array_values(array_filter(array_map('trim', $destinataires)));
     if (empty($destinataires)) {
         return ['ok' => false, 'erreur' => 'Aucun destinataire.'];
@@ -62,23 +131,27 @@ function envoyerEmail($destinataires, $sujet, $corps, $expediteur, $smtp = null)
     // mail l'affichent mal ou le rejettent.
     $sujetEncode = '=?UTF-8?B?' . base64_encode($sujet) . '?=';
 
+    $mime = construireCorpsMime($corps, $corpsHtml);
+
     if ($smtp !== null) {
-        return envoyerEmailSmtp($destinataires, $sujetEncode, $corps, $expediteur, $smtp);
+        return envoyerEmailSmtp($destinataires, $sujetEncode, $mime, $expediteur, $smtp);
     }
 
-    return envoyerEmailNatif($destinataires, $sujetEncode, $corps, $expediteur);
+    return envoyerEmailNatif($destinataires, $sujetEncode, $mime, $expediteur);
 }
 
-function envoyerEmailNatif($destinataires, $sujetEncode, $corps, $expediteur) {
+function envoyerEmailNatif($destinataires, $sujetEncode, $mime, $expediteur) {
     $to = implode(', ', $destinataires);
+    $corps = $mime['corps'];
 
     $headers = [];
     if ($expediteur !== '') {
         $headers[] = 'From: Agenda medical <' . $expediteur . '>';
         $headers[] = 'Reply-To: ' . $expediteur;
     }
-    $headers[] = 'Content-Type: text/plain; charset=UTF-8';
-    $headers[] = 'Content-Transfer-Encoding: 8bit';
+    foreach ($mime['entetes'] as $entete) {
+        $headers[] = $entete;
+    }
 
     // mail() emet un E_WARNING en cas d'echec (ex: sendmail introuvable,
     // enveloppe expediteur refusee...) : on le capture temporairement au
@@ -97,7 +170,8 @@ function envoyerEmailNatif($destinataires, $sujetEncode, $corps, $expediteur) {
 
 // --- Client SMTP minimal (sans dependance externe) ---
 
-function envoyerEmailSmtp($destinataires, $sujetEncode, $corps, $expediteur, $smtp) {
+function envoyerEmailSmtp($destinataires, $sujetEncode, $mime, $expediteur, $smtp) {
+    $corps = $mime['corps'];
     $host = $smtp['host'];
     $port = $smtp['port'];
     $securite = $smtp['securite'];
@@ -213,8 +287,9 @@ function envoyerEmailSmtp($destinataires, $sujetEncode, $corps, $expediteur, $sm
     $entetes[] = 'To: ' . implode(', ', $destinataires);
     $entetes[] = 'Reply-To: ' . $adresseExpediteur;
     $entetes[] = 'Subject: ' . $sujetEncode;
-    $entetes[] = 'Content-Type: text/plain; charset=UTF-8';
-    $entetes[] = 'Content-Transfer-Encoding: 8bit';
+    foreach ($mime['entetes'] as $entete) {
+        $entetes[] = $entete;
+    }
     $entetes[] = 'Date: ' . date('r');
 
     // Point-doublage RFC 5321 : une ligne du corps qui commencerait par un

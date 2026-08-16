@@ -28,6 +28,11 @@ require_once __DIR__ . '/../lib/db.php';
 require_once __DIR__ . '/../lib/settings.php';
 require_once __DIR__ . '/../lib/rappels_personnes.php';
 require_once __DIR__ . '/../lib/mailer.php';
+require_once __DIR__ . '/../lib/rappel_contenu.php';
+// nomPerson() arrivait jusqu'ici par un chemin indirect (via
+// rappels_personnes.php). On la demande explicitement : une
+// reorganisation des includes ne doit pas casser les rappels en silence.
+require_once __DIR__ . '/../lib/persons.php';
 
 $config = require __DIR__ . '/../config.php';
 $token = isset($config['reminder_token']) ? $config['reminder_token'] : '';
@@ -88,6 +93,11 @@ if (!$auMoinsUneAdresse) {
 $stmt = $db->prepare(
     'SELECT * FROM appointments ' .
     'WHERE reminder_sent_at IS NULL ' .
+    // Rappel desactive sur ce rendez-vous precis (case decochee dans le
+    // formulaire) : on ne l'envoie pas, et on ne marque pas non plus
+    // reminder_sent_at - reactiver la case doit pouvoir redonner lieu a un
+    // rappel si la date n'est pas encore passee.
+    'AND rappel_actif = 1 ' .
     "AND TIMESTAMP(appt_date, appt_time) > NOW() " .
     'AND TIMESTAMP(appt_date, appt_time) <= DATE_ADD(NOW(), INTERVAL ? HOUR) ' .
     'ORDER BY appt_date, appt_time'
@@ -125,35 +135,17 @@ foreach ($rdvs as $rdv) {
     }
 
     $quand = formaterDateFr($rdv['appt_date'], $rdv['appt_time'], $joursFr, $moisFr);
-
-    $lignes = [];
-    $lignes[] = 'Rappel de rendez-vous : ' . $quand;
-    $lignes[] = '';
     $nomConcerne = ((int) $rdv['person_id'] > 0) ? nomPerson($db, $rdv['person_id']) : $rdv['person'];
-    $lignes[] = 'Personne concernée : ' . $nomConcerne;
-    if (!empty($rdv['doctor'])) $lignes[] = 'Médecin / consultation : ' . $rdv['doctor'];
-    if (!empty($rdv['department'])) $lignes[] = 'Service : ' . $rdv['department'];
-    if (!empty($rdv['location'])) $lignes[] = 'Adresse : ' . $rdv['location'];
-    if (!empty($rdv['route'])) $lignes[] = 'Route : ' . $rdv['route'];
-    if (!empty($rdv['phone'])) $lignes[] = 'Téléphone : ' . $rdv['phone'];
-    if (!empty($rdv['accompagnant'])) $lignes[] = 'Accompagné(e) de : ' . $rdv['accompagnant'];
-    if (!empty($rdv['notes'])) {
-        $lignes[] = '';
-        $lignes[] = 'Notes : ' . $rdv['notes'];
-    }
-    if (!empty($rdv['questions'])) {
-        $lignes[] = '';
-        $lignes[] = 'Questions à poser :';
-        foreach (preg_split('/\r\n|\r|\n/', trim($rdv['questions'])) as $q) {
-            $q = trim($q);
-            if ($q !== '') $lignes[] = '- ' . $q;
-        }
-    }
-    $corps = implode("\n", $lignes);
+
+    // La composition du message vit dans lib/rappel_contenu.php : elle
+    // engendre les versions texte ET HTML cote a cote, pour qu'elles ne
+    // divergent jamais.
+    $message = composerRappel($db, $rdv, $nomConcerne, $quand);
+    $corps = $message['texte'];
 
     $sujet = 'Rappel : rendez-vous ' . $nomConcerne . ' - ' . $quand;
 
-    $envoi = envoyerEmail($destinataires, $sujet, $corps, $emailFrom, $configSmtp);
+    $envoi = envoyerEmail($destinataires, $sujet, $corps, $emailFrom, $configSmtp, $message['html']);
 
     if ($envoi['ok']) {
         $maj = $db->prepare('UPDATE appointments SET reminder_sent_at = NOW() WHERE id = ?');

@@ -681,6 +681,10 @@ function afficherListe() {
         lieuEtRouteHtml(r) +
         (r.phone ? '<div class="contact">' + ICONES.telephone + escapeHtml(r.phone) + '</div>' : '') +
         (r.accompagnant ? '<div class="accompagnant">' + ICONES.accompagnant + escapeHtml(r.accompagnant) + '</div>' : '') +
+        // Sans cette mention, un rappel desactive serait invisible : il
+        // faudrait ouvrir chaque fiche pour savoir lesquelles enverront un
+        // mail. Ecrit en toutes lettres, jamais par une couleur seule.
+        (Number(r.rappel_actif) === 0 ? '<div class="sans-rappel">Sans rappel par email</div>' : '') +
         (r.notes ? '<div class="notes">' + ICONES.note + escapeHtml(r.notes) + '</div>' : '') +
         (r.questions ? '<div class="questions">' +
           '<div class="questions-titre">' + ICONES.question + 'Questions à poser</div>' +
@@ -966,6 +970,10 @@ function viderFormulaire() {
   document.getElementById('fAccompagnant').value = '';
   document.getElementById('fNotes').value = '';
   document.getElementById('fQuestions').value = '';
+  // Coche par defaut : c'est la valeur par defaut de la colonne en base
+  // (migration 0023), et le comportement sur lequel il vaut mieux se
+  // tromper - un rappel de trop plutot qu'un rendez-vous manque.
+  document.getElementById('fRappelActif').checked = true;
   document.querySelectorAll('.personnes input').forEach(function (r) { r.checked = false; });
   document.querySelectorAll('.personnes label').forEach(function (l) { l.classList.remove('checked'); });
   document.getElementById('erreurForm').textContent = '';
@@ -993,6 +1001,10 @@ function ouvrirEnEdition(id) {
   document.getElementById('fAccompagnant').value = r.accompagnant || '';
   document.getElementById('fNotes').value = r.notes || '';
   document.getElementById('fQuestions').value = r.questions || '';
+  // Un rendez-vous enregistre avant la migration 0023 n'a pas ce champ :
+  // absent = actif, comme la valeur par defaut de la colonne.
+  document.getElementById('fRappelActif').checked =
+    (r.rappel_actif === undefined || Number(r.rappel_actif) === 1);
   selectionnerPersonne(r.person_id);
   // Apres selectionnerPersonne() : le menu doit d'abord etre rempli avec
   // les pathologies de CETTE personne avant qu'on y resélectionne la
@@ -1193,6 +1205,7 @@ function restaurerRdv(r) {
     phone: r.phone,
     route: r.route,
     accompagnant: r.accompagnant,
+    rappel_actif: r.rappel_actif,
     notes: r.notes,
     questions: r.questions,
     pathologie_id: r.pathologie_id
@@ -1304,6 +1317,7 @@ document.getElementById('btnEnregistrer').addEventListener('click', function () 
   var notes = document.getElementById('fNotes').value;
   var questions = document.getElementById('fQuestions').value;
   var pathologieId = document.getElementById('fPathologie').value || '0';
+  var rappelActif = document.getElementById('fRappelActif').checked;
 
   // Champs obligatoires manquants : on les entoure de rouge sur place
   // plutot que d'ecrire une phrase en bas du formulaire - il fallait
@@ -1338,7 +1352,8 @@ document.getElementById('btnEnregistrer').addEventListener('click', function () 
     accompagnant: accompagnant,
     notes: notes,
     questions: questions,
-    pathologie_id: pathologieId
+    pathologie_id: pathologieId,
+    rappel_actif: rappelActif ? 1 : 0
   };
 
   var btn = document.getElementById('btnEnregistrer');

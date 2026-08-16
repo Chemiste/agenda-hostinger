@@ -175,7 +175,7 @@ function validateAppt($db, $appt) {
 }
 
 function listAppointments($db) {
-    $stmt = $db->query('SELECT id, appt_date AS date, appt_time AS time, duration_minutes AS duration, person, person_id, doctor, department, location, phone, route, accompagnant, notes, questions, pathologie_id FROM appointments ORDER BY appt_date, appt_time');
+    $stmt = $db->query('SELECT id, appt_date AS date, appt_time AS time, duration_minutes AS duration, person, person_id, doctor, department, location, phone, route, accompagnant, notes, questions, pathologie_id, rappel_actif FROM appointments ORDER BY appt_date, appt_time');
     $rows = $stmt->fetchAll();
 
     // "person" devient le nom ACTUEL, lu dans la table persons : renommer
@@ -226,7 +226,7 @@ function dureeAppt($appt) {
 function addAppointment($db, $sync, $appt) {
     $personId = validateAppt($db, $appt);
     $appt['person'] = nomPerson($db, $personId);
-    $stmt = $db->prepare('INSERT INTO appointments (appt_date, appt_time, duration_minutes, person, person_id, doctor, department, location, phone, route, accompagnant, notes, questions, pathologie_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+    $stmt = $db->prepare('INSERT INTO appointments (appt_date, appt_time, duration_minutes, person, person_id, doctor, department, location, phone, route, accompagnant, notes, questions, pathologie_id, rappel_actif) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
     $stmt->execute([
         $appt['date'],
         $appt['time'],
@@ -242,6 +242,10 @@ function addAppointment($db, $sync, $appt) {
         isset($appt['notes']) ? $appt['notes'] : '',
         isset($appt['questions']) ? $appt['questions'] : '',
         isset($appt['pathologie_id']) ? (int) $appt['pathologie_id'] : 0,
+        // Absent de la requete (import .ics, ancienne sauvegarde) = rappel
+        // ACTIF : sur un agenda medical, l'oubli doit pencher du cote du
+        // rappel envoye en trop, pas du rappel manquant.
+        (!isset($appt['rappel_actif']) || $appt['rappel_actif']) ? 1 : 0,
     ]);
     $id = $db->lastInsertId();
 
@@ -288,7 +292,7 @@ function updateAppointmentAction($db, $sync, $appt) {
     $dateHeureChangee = ($row['appt_date'] !== $appt['date']) || (substr($row['appt_time'], 0, 5) !== $appt['time']);
 
     $upd = $db->prepare(
-        'UPDATE appointments SET appt_date = ?, appt_time = ?, duration_minutes = ?, person = ?, person_id = ?, doctor = ?, department = ?, location = ?, phone = ?, route = ?, accompagnant = ?, notes = ?, questions = ?, pathologie_id = ?'
+        'UPDATE appointments SET appt_date = ?, appt_time = ?, duration_minutes = ?, person = ?, person_id = ?, doctor = ?, department = ?, location = ?, phone = ?, route = ?, accompagnant = ?, notes = ?, questions = ?, pathologie_id = ?, rappel_actif = ?'
         . ($dateHeureChangee ? ', reminder_sent_at = NULL' : '')
         . ' WHERE id = ?'
     );
@@ -307,6 +311,7 @@ function updateAppointmentAction($db, $sync, $appt) {
         isset($appt['notes']) ? $appt['notes'] : '',
         isset($appt['questions']) ? $appt['questions'] : '',
         isset($appt['pathologie_id']) ? (int) $appt['pathologie_id'] : 0,
+        (!isset($appt['rappel_actif']) || $appt['rappel_actif']) ? 1 : 0,
         $appt['id'],
     ]);
 
