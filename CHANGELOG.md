@@ -2,6 +2,36 @@
 
 ## Non publié
 
+- **Les sauvegardes couvrent enfin tout, et se restaurent.** Elles
+  n'emportaient que 6 tables sur 11, et l'administration n'en savait
+  restaurer **qu'une seule**. Le carnet de médecins — adresses, téléphones,
+  routes, saisis à la main pendant des mois — n'était sauvegardé nulle
+  part, pas plus que les tâches ni les alias d'adresses. Et pour les cinq
+  tables effectivement sauvegardées, un sinistre aurait laissé des fichiers
+  JSON sans aucun outil pour les réinjecter. La sauvegarde inspirait donc
+  plus de confiance qu'elle n'en méritait.
+  - `lib/sauvegardes.php` devient la seule source de vérité sur ce qui est
+    sauvegardé. La liste vivait dans `cron/backup.php` pendant que la
+    restauration en connaissait une autre : deux listes finissent toujours
+    par diverger, et c'est précisément ce qui était arrivé.
+  - `admin/restaurer_tout.php` remet des tables entières dans l'état d'une
+    date. Volontairement **distinct** de `admin/sauvegardes.php`, qui
+    repêche un rendez-vous effacé sans toucher au reste : confondre les
+    deux serait dangereux dans les deux sens.
+  - La restauration **recoupe les colonnes du fichier avec celles de la
+    base**. Une sauvegarde antérieure à une migration reste exploitable :
+    les colonnes ajoutées depuis prennent leur valeur par défaut, celles
+    qui ont disparu sont ignorées, et la page annonce les unes et les
+    autres avant qu'on valide.
+  - `DELETE` et non `TRUNCATE` : `TRUNCATE` déclenche un commit implicite
+    en MySQL et ne s'annule pas, ce qui viderait la table même si les
+    insertions échouaient ensuite. Vérifié sur données fabriquées — une
+    ligne invalide en cours de route laisse la table intacte.
+  - Une **sauvegarde de sécurité** est prise avant toute écriture : se
+    tromper de date reste rattrapable.
+  - Le `ORDER BY id` de la sauvegarde a sauté : `settings` est une table
+    clé/valeur sans colonne `id`, la requête aurait échoué pour elle seule.
+
 - **Connexion par compte Google, et un vrai droit d'administration.**
   Le site demandait un mot de passe familial partagé, puis affichait
   « Qui êtes-vous ? » où chacun cliquait son nom. Ce clic n'était vérifié

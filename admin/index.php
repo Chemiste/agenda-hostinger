@@ -2,13 +2,14 @@
 /**
  * ADMINISTRATION : accueil.
  *
- * Point d'entree de la zone d'administration (protegee par le mot de
- * passe admin, voir requireAdminLogin()) : regroupe les outils par theme
- * plutot que de tout empiler sur une seule page.
+ * Point d'entree de la zone d'administration (reservee aux personnes
+ * portant le drapeau est_admin, voir requireAdminLogin()) : regroupe les
+ * outils par theme plutot que de tout empiler sur une seule page.
  *
  *  - Rendez-vous : import .ics (import.php), correction de rendez-vous
  *    existants (corriger.php - regroupe 3 outils sous forme d'onglets).
- *  - Sauvegardes : consultation et restauration (sauvegardes.php).
+ *  - Sauvegardes : repecher un rendez-vous efface (sauvegardes.php), ou
+ *    remettre des tables entieres apres un sinistre (restaurer_tout.php).
  *  - Notifications : reglages des rappels par email (reglages.php).
  *
  * C'est cette page (et non plus admin/nettoyage.php, qui n'existe plus)
@@ -125,6 +126,13 @@ $reminderDelai = getSetting($db, 'reminder_hours_before', '24');
     <a class="carte-accueil carte-backup" href="/admin/sauvegardes.php">
       <div class="titre">Restaurer un rendez-vous</div>
       <div class="detail"><?= $nbBackups ?> sauvegarde<?= $nbBackups > 1 ? 's' : '' ?></div>
+    </a>
+    <?php /* Volontairement distincte de la carte ci-dessus : l'une repeche
+             une ligne, l'autre remplace des tables entieres. Les presenter
+             ensemble inviterait a cliquer la mauvaise. */ ?>
+    <a class="carte-accueil carte-backup" href="/admin/restaurer_tout.php">
+      <div class="titre">Reconstruire la base</div>
+      <div class="detail">Après une perte de données</div>
     </a>
   </div>
 

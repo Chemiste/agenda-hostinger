@@ -33,6 +33,7 @@
  */
 
 require_once __DIR__ . '/../lib/db.php';
+require_once __DIR__ . '/../lib/sauvegardes.php';
 
 const RETENTION_JOURS = 60;
 
@@ -67,46 +68,26 @@ try {
     exit;
 }
 
-// Tables sauvegardees : prefixe du fichier => nom de la table. Les
-// medicaments et les pathologies s'ajoutent aux rendez-vous - ce sont des
-// donnees saisies a la main, longues a reconstituer, et elles n'avaient
-// aucun filet jusqu'ici.
-$tables = [
-    'appointments'       => 'appointments',
-    // Les personnes : sans elles, un person_id restaure ne designerait
-    // plus rien (voir migrations/0021_ajouter_persons.sql).
-    'persons'            => 'persons',
-    'medicaments'        => 'medicaments',
-    'medicament_moments' => 'medicament_moments',
-    'medicament_prises'  => 'medicament_prises',
-    'pathologies'        => 'pathologies',
-];
+// La liste des tables et l'ecriture des fichiers vivent dans
+// lib/sauvegardes.php : admin/restaurer_tout.php s'en sert aussi, et une
+// liste dupliquee finit toujours par diverger - c'est exactement ce qui
+// s'etait passe, cinq tables n'etant sauvegardees nulle part.
+$resultat = ecrireSauvegarde($db, $dossier);
+$horodatage = $resultat['horodatage'];
+$avertissements = $resultat['avertissements'];
 
-$horodatage = date('Y-m-d-Hi');
 $resume = [];
-$avertissements = [];
+foreach ($resultat['resume'] as $prefixe => $nb) {
+    $resume[] = $nb . ' ' . $prefixe;
+}
 
-foreach ($tables as $prefixe => $table) {
-    try {
-        $lignes = $db->query('SELECT * FROM ' . $table . ' ORDER BY id')->fetchAll();
-    } catch (Exception $e) {
-        // Une table absente (migration pas encore appliquee sur cet
-        // environnement) ne doit pas faire echouer toute la sauvegarde :
-        // les autres tables sont quand meme ecrites.
-        $avertissements[] = $table . ' non sauvegardée (' . $e->getMessage() . ')';
-        continue;
-    }
-
-    $fichier = $dossier . '/' . $prefixe . '-' . $horodatage . '.json';
-    file_put_contents($fichier, json_encode($lignes, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
-    $resume[] = count($lignes) . ' ' . $prefixe;
-
-    // Nettoyage des sauvegardes trop anciennes, table par table.
-    $limite = time() - RETENTION_JOURS * 86400;
-    foreach (glob($dossier . '/' . $prefixe . '-*.json') as $f) {
-        if (filemtime($f) < $limite) {
-            @unlink($f);
-        }
+// Nettoyage des sauvegardes trop anciennes. Les sauvegardes de securite
+// prises avant une restauration (suffixe "-avant-restauration") sont
+// soumises a la meme regle : ce sont des sauvegardes comme les autres.
+$limite = time() - RETENTION_JOURS * 86400;
+foreach (glob($dossier . '/*.json') as $f) {
+    if (filemtime($f) < $limite) {
+        @unlink($f);
     }
 }
 

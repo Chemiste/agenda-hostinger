@@ -508,3 +508,21 @@ textarea.motifs { width:100%; min-height:100px; font-family:inherit; font-size:1
    ne suffisent pas a reconnaitre une boite (admin/medicaments.php). */
 .vignette-medicament img { transition:transform 150ms ease; transform-origin:left center; }
 .vignette-medicament:hover img { transform:scale(2.6); position:relative; z-index:20; }
+
+/* --- Reconstruction de la base (admin/restaurer_tout.php) --- */
+.liste-jeux { list-style:none; padding:0; margin:0; }
+.liste-jeux li { display:flex; align-items:baseline; gap:12px; padding:9px 0; border-bottom:1px solid var(--border); }
+.liste-jeux li:last-child { border-bottom:none; }
+.detail-jeu { font-size:12.5px; color:var(--text-muted); }
+.liste-resultats { margin:8px 0 16px; padding-left:20px; font-size:14px; }
+.liste-resultats li { margin-bottom:4px; }
+
+/* Encadre rouge sous le tableau : cette zone est le seul endroit du site
+   d'ou l'on peut effacer des tables entieres. Le trait et le fond disent
+   qu'on quitte les gestes ordinaires - et le mot a taper, plutot qu'une
+   simple confirmation, oblige a s'arreter une seconde. */
+.zone-confirmation { margin-top:18px; padding:14px 16px; border:1px solid var(--danger); border-radius:var(--radius-md); background:#fdf6f6; }
+.zone-confirmation p { margin:0 0 10px; font-size:13.5px; }
+.zone-confirmation input[type=text] { max-width:260px; margin:0 10px 0 0; display:inline-block; }
+.bouton-confirmer-restauration { border:1px solid var(--danger); border-radius:var(--radius-sm); padding:9px 14px; font-size:13.5px; font-weight:600; cursor:pointer; }
+.bouton-confirmer-restauration:hover { background:var(--danger); color:#fff; }
