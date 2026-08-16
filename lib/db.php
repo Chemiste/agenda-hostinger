@@ -27,10 +27,45 @@
  */
 date_default_timezone_set('Europe/Brussels');
 
+/**
+ * Refuse de demarrer si un config.php de PRODUCTION tourne sur la machine
+ * de developpement.
+ *
+ * Comment on sait qu'on est en developpement : config_dev.php n'existe que
+ * la. Il est exclu de git ET du deploiement (voir .gitignore et
+ * deploiement/exclusions.txt), donc il ne se retrouve jamais sur le
+ * serveur. Le garde-fou ne peut par construction QUE bloquer la machine
+ * locale - jamais la production, ou le fichier est absent et le test
+ * entierement saute.
+ *
+ * Pourquoi ce garde-fou existe : config.php avait ete ecrase par une copie
+ * de config_prod.php et est reste ainsi. Rien ne le signalait. L'erreur
+ * n'a fini par se voir que parce que MySQL refusait l'utilisateur - si
+ * l'hebergeur avait autorise les connexions distantes, le site de
+ * developpement aurait ecrit dans les donnees reelles.
+ *
+ * Une base de test locale reste 'dev' : seule la declaration compte, pas
+ * le nom de la base. On peut donc pointer config.php vers agenda_test sans
+ * declencher quoi que ce soit.
+ */
+function verifierEnvironnement($config) {
+    $surMachineDeDev = file_exists(__DIR__ . '/../config_dev.php');
+    $declareProduction = isset($config['environnement']) && $config['environnement'] === 'prod';
+
+    if ($surMachineDeDev && $declareProduction) {
+        throw new Exception(
+            "config.php declare 'environnement' => 'prod' alors que cette machine est un poste de "
+            . "developpement (config_dev.php existe). Refus de se connecter : ce serait la base de "
+            . "PRODUCTION.\n\nPour repartir : cp config_dev.php config.php"
+        );
+    }
+}
+
 function getDb() {
     static $pdo = null;
     if ($pdo === null) {
         $config = require __DIR__ . '/../config.php';
+        verifierEnvironnement($config);
         $dsn = 'mysql:host=' . $config['db_host'] . ';dbname=' . $config['db_name'] . ';charset=utf8mb4';
         $pdo = new PDO($dsn, $config['db_user'], $config['db_pass'], [
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,

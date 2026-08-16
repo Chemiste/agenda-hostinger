@@ -12,6 +12,14 @@
  */
 return [
 
+    // --- Quel environnement ce fichier decrit-il ? 'dev' ou 'prod' ---
+    // Sert de garde-fou (voir lib/db.php) : un config.php declarant 'prod'
+    // refuse de demarrer sur une machine de developpement. Sans lui, une
+    // copie malencontreuse de config_prod.php par-dessus config.php fait
+    // travailler le site local dans les VRAIES donnees, sans rien signaler.
+    // C'est deja arrive.
+    'environnement' => 'prod',
+
     // --- Base de donnees MySQL/MariaDB ---
     'db_host' => 'localhost',
     'db_name' => 'REMPLACER_nom_de_la_base',
